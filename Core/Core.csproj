@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configurations>Debug;Release</Configurations>
+    <Platforms>AnyCPU</Platforms>
+    <ProjectGuid>{6A3E4EA6-746C-49F1-8913-A22159E1F27F}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>COL.UnityGameWheels.Core</RootNamespace>
+    <AssemblyName>COL.UnityGameWheels.Core</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;LOG_DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>
+    </DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;LOG_WARNING</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Asset\AssetAccessor.cs" />
+    <Compile Include="Asset\AssetAccessorStatus.cs" />
+    <Compile Include="Asset\AssetIndexAugmented.cs" />
+    <Compile Include="Asset\AssetModule.Loader.ResourceLoadingTask.cs" />
+    <Compile Include="Asset\AssetModule.Loader.AssetLoadingTask.cs" />
+    <Compile Include="Asset\AssetModule.Loader.cs" />
+    <Compile Include="Asset\AssetModule.Updater.DownloadContext.cs" />
+    <Compile Include="Asset\AssetModule.Updater.cs" />
+    <Compile Include="Asset\AssetModule.UpdateCheckerStatus.cs" />
+    <Compile Include="Asset\AssetModule.PreparerStatus.cs" />
+    <Compile Include="Asset\AssetModule.Preparer.cs" />
+    <Compile Include="Asset\AssetModule.UpdateChecker.cs" />
+    <Compile Include="Asset\AssetIndexRemoteRemoteFileInfo.cs" />
+    <Compile Include="Asset\IAssetAccessor.cs" />
+    <Compile Include="Asset\ResourceCacheQuery.cs" />
+    <Compile Include="Asset\AssetCacheQuery.cs" />
+    <Compile Include="Asset\BaseCacheQuery.cs" />
+    <Compile Include="Asset\ITask.cs" />
+    <Compile Include="Asset\ResourceGroupUpdateSummary.cs" />
+    <Compile Include="Asset\UpdateCheckCallbackSet.cs" />
+    <Compile Include="Asset\AssetModulePrepareCallbackSet.cs" />
+    <Compile Include="Asset\ResourceGroupUpdateCallbackSet.cs" />
+    <Compile Include="Asset\Constant.cs" />
+    <Compile Include="Asset\LoadAssetIndexForInstallerCallbackSet.cs" />
+    <Compile Include="Asset\IAssetIndexForInstallerLoader.cs" />
+    <Compile Include="Event\DefaultEventArgsReleaser.cs" />
+    <Compile Include="Event\IEventArgsReleaser.cs" />
+    <Compile Include="RefPool\RefPoolStatistics.cs" />
+    <Compile Include="RefPool\RefPoolStatisticsInternal.cs" />
+    <Compile Include="Common\Algorithm\Algorithm.Graph.TarjanSccExecutor.cs" />
+    <Compile Include="Common\Algorithm\Algorithm.Graph.cs" />
+    <Compile Include="Common\Algorithm\Algorithm.cs" />
+    <Compile Include="Common\Algorithm\Algorithm.Crc32.cs" />
+    <Compile Include="Common\BaseModule.cs" />
+    <Compile Include="Common\Collections\DefaultMinPriorityQueueNodePool.cs" />
+    <Compile Include="Common\Collections\IMinPriorityQueueNodePool.cs" />
+    <Compile Include="Common\Collections\MinPriorityQueue.cs" />
+    <Compile Include="Common\Collections\MinPriorityQueueNode.cs" />
+    <Compile Include="Common\IModule.cs" />
+    <Compile Include="Common\IObjectDestroyer.cs" />
+    <Compile Include="Common\ISimpleFactory.cs" />
+    <Compile Include="Common\Logger\ILoggerImpl.cs" />
+    <Compile Include="Common\Logger\LogLevel.cs" />
+    <Compile Include="Common\StringBuilderCache.cs" />
+    <Compile Include="Common\TimeStruct.cs" />
+    <Compile Include="Common\Utility\Utility.BitConverter.cs" />
+    <Compile Include="Common\Utility\Utility.IO.cs" />
+    <Compile Include="Common\Utility\Utility.Buffer.cs" />
+    <Compile Include="Common\Utility\Utility.cs" />
+    <Compile Include="Common\Utility\Utility.Text.cs" />
+    <Compile Include="Download\DownloadCallbackSet.cs" />
+    <Compile Include="Download\DownloadErrorCode.cs" />
+    <Compile Include="Download\DownloadModule.cs" />
+    <Compile Include="Download\DownloadModule.DownloadTaskInfoSlot.cs" />
+    <Compile Include="Download\DownloadTask.cs" />
+    <Compile Include="Download\DownloadTaskInfo.cs" />
+    <Compile Include="Download\DownloadTaskPool.cs" />
+    <Compile Include="Download\IDownloadModule.cs" />
+    <Compile Include="Download\IDownloadTask.cs" />
+    <Compile Include="Download\IDownloadTaskImpl.cs" />
+    <Compile Include="Download\IDownloadTaskPool.cs" />
+    <Compile Include="Event\BaseEventArgs.cs" />
+    <Compile Include="Event\EventIdToTypeMap.cs" />
+    <Compile Include="Event\EventModule.cs" />
+    <Compile Include="Event\IEventModule.cs" />
+    <Compile Include="Event\OnHearEvent.cs" />
+    <Compile Include="RefPool\RefPool.cs" />
+    <Compile Include="RefPool\IRefPool.cs" />
+    <Compile Include="RefPool\IBaseRefPool.cs" />
+    <Compile Include="RefPool\IRefPoolModule.cs" />
+    <Compile Include="RefPool\RefPoolModule.cs" />
+    <Compile Include="RefPool\RequireThreadSafeRefPoolAttribute.cs" />
+    <Compile Include="RefPool\ThreadSafeRefObjectPool.cs" />
+    <Compile Include="Asset\IAssetModule.cs" />
+    <Compile Include="Net\DefaultNetChannelFactory.cs" />
+    <Compile Include="Net\INetChannel.cs" />
+    <Compile Include="Net\INetChannelHandler.cs" />
+    <Compile Include="Net\INetModule.cs" />
+    <Compile Include="Net\INetChannelFactory.cs" />
+    <Compile Include="Net\IPacketHeader.cs" />
+    <Compile Include="Net\NetChannelState.cs" />
+    <Compile Include="Net\NetModule.cs" />
+    <Compile Include="Net\Packet.cs" />
+    <Compile Include="Net\TcpChannel.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Event\EventModule.SenderEventPair.cs" />
+    <Compile Include="Asset\LoadAssetCallbackSet.cs" />
+    <Compile Include="Asset\IBinarySerializable.cs" />
+    <Compile Include="Asset\AssetIndexBase.cs" />
+    <Compile Include="Asset\AssetInfo.cs" />
+    <Compile Include="Asset\AssetModule.cs" />
+    <Compile Include="Asset\AssetIndexForInstaller.cs" />
+    <Compile Include="Asset\AssetIndexForReadWrite.cs" />
+    <Compile Include="Asset\AssetIndexForRemote.cs" />
+    <Compile Include="Asset\ResourceInfo.cs" />
+    <Compile Include="Asset\IAssetLoadingTaskImpl.cs" />
+    <Compile Include="Asset\IResourceLoadingTaskImpl.cs" />
+    <Compile Include="Asset\AssetModule.Loader.BaseCache.cs" />
+    <Compile Include="Asset\AssetModule.Loader.AssetCache.cs" />
+    <Compile Include="Asset\AssetCacheStatus.cs" />
+    <Compile Include="Asset\AssetModule.Loader.ResourceCache.cs" />
+    <Compile Include="Asset\ResourceCacheStatus.cs" />
+    <Compile Include="Asset\ResourceGroupInfo.cs" />
+    <Compile Include="Asset\IResourceUpdater.cs" />
+    <Compile Include="Asset\ResourceGroupStatus.cs" />
+    <Compile Include="Asset\ResourceBasicInfo.cs" />
+    <Compile Include="Common\Logger\CoreLog.cs" />
+    <Compile Include="Common\Logger\CoreLog.DummyLoggerImpl.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
