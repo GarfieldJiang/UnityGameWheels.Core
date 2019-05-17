@@ -8,7 +8,15 @@
     /// </summary>
     public class ResourceGroupUpdateSummary : IDictionary<string, long>
     {
+        /// <summary>
+        /// How many bytes totally.
+        /// </summary>
         public long TotalSize { get; internal set; }
+
+        /// <summary>
+        /// How many bytes are still to update.
+        /// </summary>
+        public long RemainingSize { get; internal set; }
 
         internal IDictionary<string, long> ResourcePathToSizeMap { get; private set; }
 
@@ -20,7 +28,11 @@
 
         public bool IsReadOnly => true;
 
-        public long this[string key] { get => ResourcePathToSizeMap[key]; set => throw new System.NotSupportedException(); }
+        public long this[string key]
+        {
+            get => ResourcePathToSizeMap[key];
+            set => throw new System.NotSupportedException();
+        }
 
         public ResourceGroupUpdateSummary()
         {

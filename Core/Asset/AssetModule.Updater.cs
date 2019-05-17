@@ -10,12 +10,9 @@ namespace COL.UnityGameWheels.Core.Asset
         private partial class Updater : IResourceUpdater
         {
             private readonly AssetModule m_Owner;
-            private ResourceGroupUpdateCallbackSet m_CallbackSet;
-            private object m_Context;
-            private readonly HashSet<int> m_DownloadTaskIds = new HashSet<int>();
             private int[] m_AvailableResourceGroupIds;
-            private int m_ResourceGroupBeingUpdated = -1;
-            private ResourceGroupUpdateSummary m_ResourceSummaryBeingUpdated = null;
+            private readonly Dictionary<int, ResourceGroupBeingUpdated> m_ResourceGroupsBeingUpdated = new Dictionary<int, ResourceGroupBeingUpdated>();
+
             private Dictionary<int, ResourceGroupUpdateSummary> ResourceSummaries => m_Owner.ResourceGroupUpdateSummaries;
 
             private List<Uri> RootUrls => m_Owner.m_UpdateServerRootUrls;
@@ -38,20 +35,19 @@ namespace COL.UnityGameWheels.Core.Asset
                 m_OnDownloadProgress = OnDownloadProgress;
             }
 
-            private void Fail(Exception e, string errorMessageFormat)
+            private void Fail(ResourceGroupBeingUpdated resourceGroup, Exception e, string errorMessageFormat)
             {
-                var downloadTaskIds = new HashSet<int>(m_DownloadTaskIds);
-                foreach (var downloadTaskId in downloadTaskIds)
+                foreach (var downloadTaskId in resourceGroup.DownloadTaskIds)
                 {
                     m_Owner.DownloadModule.StopDownloading(downloadTaskId, true);
                 }
 
-                m_DownloadTaskIds.Clear();
+                resourceGroup.DownloadTaskIds.Clear();
 
                 var errorMessage = e == null ? errorMessageFormat : Utility.Text.Format(errorMessageFormat, e.ToString());
-                if (m_CallbackSet.OnAllFailure != null)
+                if (resourceGroup.CallbackSet.OnAllFailure != null)
                 {
-                    m_CallbackSet.OnAllFailure(errorMessage, m_Context);
+                    resourceGroup.CallbackSet.OnAllFailure(errorMessage, resourceGroup.CallbackContext);
                 }
                 else
                 {
@@ -66,11 +62,11 @@ namespace COL.UnityGameWheels.Core.Asset
                 }
             }
 
-            private void SingleFail(string resourcePath, string errorMessage)
+            private void SingleFail(ResourceGroupBeingUpdated resourceGroup, string resourcePath, string errorMessage)
             {
-                if (m_CallbackSet.OnSingleFailure != null)
+                if (resourceGroup.CallbackSet.OnSingleFailure != null)
                 {
-                    m_CallbackSet.OnSingleFailure(resourcePath, errorMessage, m_Context);
+                    resourceGroup.CallbackSet.OnSingleFailure(resourcePath, errorMessage, resourceGroup.CallbackContext);
                 }
                 else
                 {
@@ -80,16 +76,19 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private void OnDownloadSuccess(int downloadTaskId, DownloadTaskInfo downloadTaskInfo)
             {
-                m_DownloadTaskIds.Remove(downloadTaskId);
-
-                var resourcePath = ((DownloadContext) downloadTaskInfo.Context).ResourcePath;
-                m_ResourceSummaryBeingUpdated.ResourcePathToSizeMap.Remove(resourcePath);
-                m_ResourceSummaryBeingUpdated.TotalSize -= downloadTaskInfo.Size;
+                var downloadContext = (DownloadContext)downloadTaskInfo.Context;
+                var resourcePath = downloadContext.ResourcePath;
+                var resourceGroupId = downloadContext.ResourceGroupId;
+                var resourceGroup = m_ResourceGroupsBeingUpdated[resourceGroupId];
+                resourceGroup.DownloadTaskIds.Remove(downloadTaskId);
+                var resourceSummary = resourceGroup.Summary;
+                resourceSummary.ResourcePathToSizeMap.Remove(resourcePath);
+                resourceSummary.RemainingSize -= downloadTaskInfo.Size;
                 m_UpdatedBytesBeforeSavingReadWriteIndex += downloadTaskInfo.Size;
 
                 m_Owner.m_ReadWriteIndex.ResourceInfos[resourcePath] = m_Owner.m_RemoteIndex.ResourceInfos[resourcePath];
 
-                if (m_ResourceSummaryBeingUpdated.TotalSize <= 0 ||
+                if (resourceSummary.RemainingSize <= 0 ||
                     m_UpdatedBytesBeforeSavingReadWriteIndex >= m_Owner.UpdateSizeBeforeSavingReadWriteIndex)
                 {
                     m_UpdatedBytesBeforeSavingReadWriteIndex = 0;
@@ -100,41 +99,43 @@ namespace COL.UnityGameWheels.Core.Asset
                     catch (Exception e)
                     {
                         string errorMessageFormat = "Cannot save read-write index. Inner exception is '{0}'.";
-                        SingleFail(resourcePath, Utility.Text.Format("Cannot save read-write index. Inner exception is '{0}'.", e));
-                        Fail(e, errorMessageFormat);
+                        SingleFail(resourceGroup, resourcePath, Utility.Text.Format("Cannot save read-write index. Inner exception is '{0}'.", e));
+                        Fail(resourceGroup, e, errorMessageFormat);
                         return;
                     }
                 }
 
-                m_CallbackSet.OnSingleSuccess?.Invoke(resourcePath, downloadTaskInfo.Size, m_Context);
-                if (m_ResourceSummaryBeingUpdated.TotalSize <= 0L)
+                resourceGroup.CallbackSet.OnSingleSuccess?.Invoke(resourcePath, downloadTaskInfo.Size, resourceGroup.CallbackContext);
+                if (resourceSummary.RemainingSize <= 0L)
                 {
-                    ClearBeingUpdated();
-                    m_CallbackSet.OnAllSuccess?.Invoke(m_Context);
+                    ClearBeingUpdated(resourceGroupId);
+                    resourceGroup.CallbackSet.OnAllSuccess?.Invoke(resourceGroup.CallbackContext);
                 }
             }
 
             private void OnDownloadProgress(int downloadTaskId, DownloadTaskInfo downloadTaskInfo, long downloadedSize)
             {
-                m_CallbackSet.OnSingleProgress?.Invoke(((DownloadContext) downloadTaskInfo.Context).ResourcePath, downloadedSize,
-                    downloadTaskInfo.Size, m_Context);
+                var downloadContext = (DownloadContext)downloadTaskInfo.Context;
+                var resourceGroup = m_ResourceGroupsBeingUpdated[downloadContext.ResourceGroupId];
+                resourceGroup.CallbackSet.OnSingleProgress?.Invoke(((DownloadContext)downloadTaskInfo.Context).ResourcePath, downloadedSize,
+                    downloadTaskInfo.Size, resourceGroup.CallbackContext);
             }
 
             private void OnDownloadFailure(int downloadTaskId, DownloadTaskInfo downloadTaskInfo, DownloadErrorCode errorCode,
                 string errorMessage)
             {
-                m_DownloadTaskIds.Remove(downloadTaskId);
-
-                var downloadContext = (DownloadContext) downloadTaskInfo.Context;
+                var downloadContext = (DownloadContext)downloadTaskInfo.Context;
+                var resourceGroup = m_ResourceGroupsBeingUpdated[downloadContext.ResourceGroupId];
+                resourceGroup.DownloadTaskIds.Remove(downloadTaskId);
                 errorMessage = Utility.Text.Format(
                     "Download failed for '{0}' from '{1}'. Inner error code is '{2}'. Inner error message is '{3}'.",
                     downloadContext.ResourcePath, downloadTaskInfo.UrlStr, errorCode, errorMessage);
 
                 if (downloadContext.RootUrlIndex >= RootUrls.Count - 1)
                 {
-                    SingleFail(downloadContext.ResourcePath, errorMessage);
-                    ClearBeingUpdated();
-                    Fail(null, errorMessage);
+                    SingleFail(resourceGroup, downloadContext.ResourcePath, errorMessage);
+                    ClearBeingUpdated(resourceGroup.GroupId);
+                    Fail(resourceGroup, null, errorMessage);
                     return;
                 }
 
@@ -149,7 +150,7 @@ namespace COL.UnityGameWheels.Core.Asset
                         OnSuccess = m_OnDownloadSuccess,
                         OnProgress = m_OnDownloadProgress,
                     }, downloadContext);
-                m_DownloadTaskIds.Add(m_Owner.DownloadModule.StartDownloading(newDownloadTaskInfo));
+                resourceGroup.DownloadTaskIds.Add(m_Owner.DownloadModule.StartDownloading(newDownloadTaskInfo));
             }
 
             private int[] AvailableResourceGroupIds
@@ -216,12 +217,12 @@ namespace COL.UnityGameWheels.Core.Asset
                     throw new ArgumentException(Utility.Text.Format("Resource group '{0}' is not available.", groupId));
                 }
 
-                if (m_ResourceGroupBeingUpdated == groupId)
+                if (m_ResourceGroupsBeingUpdated.ContainsKey(groupId))
                 {
                     return ResourceGroupStatus.BeingUpdated;
                 }
 
-                return ResourceSummaries[groupId].TotalSize > 0 ? ResourceGroupStatus.OutOfDate : ResourceGroupStatus.UpToDate;
+                return ResourceSummaries[groupId].RemainingSize > 0 ? ResourceGroupStatus.OutOfDate : ResourceGroupStatus.UpToDate;
             }
 
             public ResourceGroupUpdateSummary GetResourceGroupUpdateSummary(int groupId)
@@ -236,8 +237,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     throw new ArgumentException(Utility.Text.Format("Resource group '{0}' is not available.", groupId));
                 }
 
-                ResourceGroupUpdateSummary resourceSummary;
-                if (!ResourceSummaries.TryGetValue(groupId, out resourceSummary))
+                if (!ResourceSummaries.TryGetValue(groupId, out var resourceSummary))
                 {
                     throw new InvalidOperationException(Utility.Text.Format("Oops! Cannot find resource summary for group '{0}'.",
                         groupId));
@@ -251,12 +251,6 @@ namespace COL.UnityGameWheels.Core.Asset
                 if (!IsReady)
                 {
                     throw new InvalidOperationException("Not ready.");
-                }
-
-                if (m_ResourceGroupBeingUpdated >= 0)
-                {
-                    throw new InvalidOperationException(Utility.Text.Format("A resource group '{0}' is being update.",
-                        m_ResourceGroupBeingUpdated));
                 }
 
                 if (!AvailableResourceGroupIds.Contains(groupId))
@@ -274,16 +268,29 @@ namespace COL.UnityGameWheels.Core.Asset
                     throw new InvalidOperationException("You have to update resource group 0 first.");
                 }
 
-                var resourceSummary = ResourceSummaries[groupId];
+                if (m_ResourceGroupsBeingUpdated.ContainsKey(groupId))
+                {
+                    throw new InvalidOperationException($"Resource group '{groupId}' is being updated.");
+                }
 
-                m_ResourceGroupBeingUpdated = groupId;
-                m_ResourceSummaryBeingUpdated = resourceSummary;
-                m_CallbackSet = callbackSet;
-                m_Context = context;
+                var resourceSummary = ResourceSummaries[groupId];
+                var resourceGroup = new ResourceGroupBeingUpdated
+                {
+                    GroupId = groupId,
+                    Summary = resourceSummary,
+                    CallbackSet = callbackSet,
+                    CallbackContext = context,
+                };
+                m_ResourceGroupsBeingUpdated.Add(groupId, resourceGroup);
 
                 foreach (var resourceToUpdate in resourceSummary)
                 {
-                    var downloadContext = new DownloadContext {RootUrlIndex = 0, ResourcePath = resourceToUpdate.Key};
+                    var downloadContext = new DownloadContext
+                    {
+                        RootUrlIndex = 0,
+                        ResourcePath = resourceToUpdate.Key,
+                        ResourceGroupId = groupId,
+                    };
                     var resourceInfo = m_Owner.m_RemoteIndex.ResourceInfos[resourceToUpdate.Key];
                     var downloadTaskInfo = new DownloadTaskInfo(
                         Utility.Text.Format("{0}/{1}_{2}{3}", RootUrls[0], resourceToUpdate.Key, resourceInfo.Crc32,
@@ -295,7 +302,7 @@ namespace COL.UnityGameWheels.Core.Asset
                             OnSuccess = m_OnDownloadSuccess,
                             OnProgress = m_OnDownloadProgress,
                         }, downloadContext);
-                    m_DownloadTaskIds.Add(m_Owner.DownloadModule.StartDownloading(downloadTaskInfo));
+                    resourceGroup.DownloadTaskIds.Add(m_Owner.DownloadModule.StartDownloading(downloadTaskInfo));
                 }
             }
 
@@ -311,26 +318,34 @@ namespace COL.UnityGameWheels.Core.Asset
                     throw new ArgumentException(Utility.Text.Format("Resource group '{0}' is not available.", groupId));
                 }
 
-                if (groupId != m_ResourceGroupBeingUpdated)
+                if (m_ResourceGroupsBeingUpdated.TryGetValue(groupId, out var resourceGroup))
                 {
                     return false;
                 }
 
-                foreach (var downloadTaskId in m_DownloadTaskIds)
+                foreach (var downloadTaskId in resourceGroup.DownloadTaskIds)
                 {
                     m_Owner.DownloadModule.StopDownloading(downloadTaskId, true);
                 }
 
-                m_DownloadTaskIds.Clear();
-                ClearBeingUpdated();
+                resourceGroup.DownloadTaskIds.Clear();
+                ClearBeingUpdated(groupId);
                 return true;
             }
 
-            private void ClearBeingUpdated()
+            private void ClearBeingUpdated(int resourceGroupId)
             {
                 m_UpdatedBytesBeforeSavingReadWriteIndex = 0L;
-                m_ResourceGroupBeingUpdated = -1;
-                m_ResourceSummaryBeingUpdated = null;
+                m_ResourceGroupsBeingUpdated.Remove(resourceGroupId);
+            }
+
+            private class ResourceGroupBeingUpdated
+            {
+                public int GroupId;
+                public ResourceGroupUpdateSummary Summary;
+                public ResourceGroupUpdateCallbackSet CallbackSet;
+                public object CallbackContext;
+                public readonly HashSet<int> DownloadTaskIds = new HashSet<int>();
             }
         }
     }

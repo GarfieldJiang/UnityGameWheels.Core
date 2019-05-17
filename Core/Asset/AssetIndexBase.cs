@@ -43,6 +43,10 @@ namespace COL.UnityGameWheels.Core.Asset
 
         private readonly Dictionary<string, ResourceBasicInfo> m_ResourceBasicInfos = new Dictionary<string, ResourceBasicInfo>();
 
+
+        /// <summary>
+        /// Gets the resource basic infos
+        /// </summary>
         public IDictionary<string, ResourceBasicInfo> ResourceBasicInfos => m_ResourceBasicInfos;
 
         protected abstract void SerializeAugmentedData(BinaryWriter bw);

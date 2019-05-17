@@ -8,6 +8,8 @@
             {
                 public int RootUrlIndex;
 
+                public int ResourceGroupId;
+
                 public string ResourcePath;
             }
         }

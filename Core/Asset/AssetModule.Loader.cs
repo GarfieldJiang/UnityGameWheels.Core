@@ -119,7 +119,7 @@
             {
                 //CoreLog.Debug($"start visit {resourceCache.Path}");
                 m_DFSVisitedFlags.Add(resourceCache.Path);
-                var dependingPaths = EnsureResourceInfo(resourceCache.Path).DependingResourcePaths;
+                var dependingPaths = ReadWriteIndex.ResourceBasicInfos[resourceCache.Path].DependingResourcePaths;
                 bool additionalCanReleaseFlag = true;
                 foreach (var dependingPath in dependingPaths)
                 {

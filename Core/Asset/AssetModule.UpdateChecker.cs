@@ -8,15 +8,15 @@ namespace COL.UnityGameWheels.Core.Asset
     {
         private class UpdateChecker
         {
-            private AssetModule m_Owner;
+            private readonly AssetModule m_Owner;
             private AssetIndexRemoteFileInfo m_RemoteIndexFileInfo;
             private UpdateCheckCallbackSet m_CallbackSet;
             private object m_Context;
             private int m_RootUrlIndex = 0;
             private int m_DownloadRetryTimes = 0;
             private DownloadTaskInfo m_DownloadTaskInfo;
-            private OnDownloadSuccess m_OnDownloadSuccess;
-            private OnDownloadFailure m_OnDownloadFailure;
+            private readonly OnDownloadSuccess m_OnDownloadSuccess;
+            private readonly OnDownloadFailure m_OnDownloadFailure;
 
             public UpdateCheckerStatus Status { get; private set; }
 
@@ -92,7 +92,7 @@ namespace COL.UnityGameWheels.Core.Asset
                         OnSuccess = m_OnDownloadSuccess,
                         OnFailure = m_OnDownloadFailure,
                         OnProgress = null,
-                    }, context: null);
+                    }, null);
                 m_Owner.DownloadModule.StartDownloading(m_DownloadTaskInfo);
             }
 
@@ -193,7 +193,7 @@ namespace COL.UnityGameWheels.Core.Asset
                             OnSuccess = m_OnDownloadSuccess,
                             OnFailure = m_OnDownloadFailure,
                             OnProgress = null,
-                        }, context: null);
+                        }, null);
                 }
 
                 m_Owner.DownloadModule.StartDownloading(m_DownloadTaskInfo);
@@ -294,15 +294,13 @@ namespace COL.UnityGameWheels.Core.Asset
             {
                 foreach (var readWrite in ReadWriteIndex.ResourceInfos.Values)
                 {
-                    ResourceInfo remote;
-                    if (!RemoteIndex.ResourceInfos.TryGetValue(readWrite.Path, out remote))
+                    if (!RemoteIndex.ResourceInfos.TryGetValue(readWrite.Path, out var remote))
                     {
                         m_ResourcesToDelete.Add(readWrite.Path);
                         continue;
                     }
 
-                    ResourceInfo installer;
-                    if (!InstallerIndex.ResourceInfos.TryGetValue(readWrite.Path, out installer))
+                    if (!InstallerIndex.ResourceInfos.TryGetValue(readWrite.Path, out var installer))
                     {
                         continue;
                     }
@@ -313,34 +311,31 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
                 }
 
-                for (int i = 0; i < ReadWriteIndex.ResourceGroupInfos.Count; i++)
+                foreach (var resourceGroupInfo in ReadWriteIndex.ResourceGroupInfos)
                 {
-                    ResourceSummaries.Add(ReadWriteIndex.ResourceGroupInfos[i].GroupId, new ResourceGroupUpdateSummary());
+                    ResourceSummaries.Add(resourceGroupInfo.GroupId, new ResourceGroupUpdateSummary());
                 }
 
                 foreach (var remote in RemoteIndex.ResourceInfos.Values)
                 {
-                    if (m_ResourcesToDelete.Contains(remote.Path))
-                    {
-                        continue;
-                    }
+                    var groupId = RemoteIndex.ResourceBasicInfos[remote.Path].GroupId;
+                    var resourceSummary = ResourceSummaries[groupId];
+                    resourceSummary.TotalSize += remote.Size;
 
-                    ResourceInfo installer;
-                    if (InstallerIndex.ResourceInfos.TryGetValue(remote.Path, out installer) && installer.Hash == remote.Hash &&
+                    if (InstallerIndex.ResourceInfos.TryGetValue(remote.Path, out var installer) && installer.Hash == remote.Hash &&
                         installer.Size == remote.Size)
                     {
                         continue;
                     }
 
-                    ResourceInfo readWrite;
-                    if (!ReadWriteIndex.ResourceInfos.TryGetValue(remote.Path, out readWrite) || readWrite.Hash != remote.Hash ||
-                        readWrite.Size != remote.Size)
+                    if (ReadWriteIndex.ResourceInfos.TryGetValue(remote.Path, out var readWrite) && readWrite.Hash == remote.Hash &&
+                        readWrite.Size == remote.Size)
                     {
-                        var groupId = RemoteIndex.ResourceBasicInfos[remote.Path].GroupId;
-                        var resourceSummary = ResourceSummaries[groupId];
-                        resourceSummary.ResourcePathToSizeMap.Add(remote.Path, remote.Size);
-                        resourceSummary.TotalSize += remote.Size;
+                        continue;
                     }
+
+                    resourceSummary.ResourcePathToSizeMap.Add(remote.Path, remote.Size);
+                    resourceSummary.RemainingSize += remote.Size;
                 }
             }
 
