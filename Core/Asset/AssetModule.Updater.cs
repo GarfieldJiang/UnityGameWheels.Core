@@ -99,7 +99,8 @@ namespace COL.UnityGameWheels.Core.Asset
                     catch (Exception e)
                     {
                         string errorMessageFormat = "Cannot save read-write index. Inner exception is '{0}'.";
-                        SingleFail(resourceGroup, resourcePath, Utility.Text.Format("Cannot save read-write index. Inner exception is '{0}'.", e));
+                        SingleFail(resourceGroup, resourcePath, Utility.Text.Format(errorMessageFormat, e));
+                        ClearBeingUpdated(resourceGroupId);
                         Fail(resourceGroup, e, errorMessageFormat);
                         return;
                     }
