@@ -319,7 +319,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     throw new ArgumentException(Utility.Text.Format("Resource group '{0}' is not available.", groupId));
                 }
 
-                if (m_ResourceGroupsBeingUpdated.TryGetValue(groupId, out var resourceGroup))
+                if (!m_ResourceGroupsBeingUpdated.TryGetValue(groupId, out var resourceGroup))
                 {
                     return false;
                 }
