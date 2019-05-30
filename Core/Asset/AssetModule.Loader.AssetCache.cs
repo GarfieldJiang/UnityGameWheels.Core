@@ -39,6 +39,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 internal override void Init()
                 {
                     CoreLog.DebugFormat("[AssetCache Init] {0}", Path);
+                    Owner.m_AssetPathsNotReadyOrFailure.Add(Path);
                     var resourceCache = Owner.EnsureResourceCache(ResourcePath);
                     resourceCache.IncreaseRetainCount();
 
@@ -121,6 +122,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                     DependencyAssetPaths = null;
                     Status = AssetCacheStatus.None;
+                    Owner.m_AssetPathsNotReadyOrFailure.Remove(Path);
                     m_DependencyAssetReadyCount = 0;
                     ResourcePath = null;
                     IsScene = false;
@@ -223,6 +225,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 private void FailAndNotify()
                 {
                     Status = AssetCacheStatus.Failure;
+                    Owner.m_AssetPathsNotReadyOrFailure.Remove(Path);
                     StopTicking();
                     StopAndResetLoadingTask();
 
@@ -257,6 +260,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 private void SucceedAndNotify()
                 {
                     Status = AssetCacheStatus.Ready;
+                    Owner.m_AssetPathsNotReadyOrFailure.Remove(Path);
                     StopAndResetLoadingTask();
 
                     m_CopiedAssetObservers.Clear();

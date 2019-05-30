@@ -19,6 +19,8 @@ namespace COL.UnityGameWheels.Core.Asset
 
         bool StopUpdatingResourceGroup(int groupId);
 
+        void StopAllUpdatingResourceGroups();
+
         ResourceGroupUpdateSummary GetResourceGroupUpdateSummary(int groupId);
     }
 }

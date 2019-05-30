@@ -324,14 +324,40 @@ namespace COL.UnityGameWheels.Core.Asset
                     return false;
                 }
 
+                StopDownloadTasks(resourceGroup);
+                resourceGroup.DownloadTaskIds.Clear();
+                ClearBeingUpdated(groupId);
+                return true;
+            }
+
+            private void StopDownloadTasks(ResourceGroupBeingUpdated resourceGroup)
+            {
                 foreach (var downloadTaskId in resourceGroup.DownloadTaskIds)
                 {
                     m_Owner.DownloadModule.StopDownloading(downloadTaskId, true);
                 }
+            }
 
-                resourceGroup.DownloadTaskIds.Clear();
-                ClearBeingUpdated(groupId);
-                return true;
+            public void StopAllUpdatingResourceGroups()
+            {
+                if (!IsReady)
+                {
+                    throw new InvalidOperationException("Not ready.");
+                }
+
+                foreach (var kv in m_ResourceGroupsBeingUpdated)
+                {
+                    var resourceGroup = kv.Value;
+                    StopDownloadTasks(resourceGroup);
+                }
+
+                ClearBeingUpdated();
+            }
+
+            private void ClearBeingUpdated()
+            {
+                m_ResourceGroupsBeingUpdated.Clear();
+                m_UpdatedBytesBeforeSavingReadWriteIndex = 0L;
             }
 
             private void ClearBeingUpdated(int resourceGroupId)

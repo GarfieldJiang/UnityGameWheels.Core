@@ -27,7 +27,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 internal override void Init()
                 {
                     CoreLog.DebugFormat("[ResourceCache Reuse] {0}", Path);
-
+                    Owner.m_ResourcePathsNotReadyOrFailure.Add(Path);
                     Status = ResourceCacheStatus.WaitingForSlot;
                     StartTicking();
                 }
@@ -51,6 +51,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     ResourceObject = null;
                     ShouldLoadFromReadWritePath = false;
                     Status = ResourceCacheStatus.None;
+                    Owner.m_ResourcePathsNotReadyOrFailure.Remove(Path);
                     base.Reset();
                 }
 
@@ -154,6 +155,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 private void FailAndNotify()
                 {
                     Status = ResourceCacheStatus.Failure;
+                    Owner.m_ResourcePathsNotReadyOrFailure.Remove(Path);
 
                     StopTicking();
                     StopAndResetLoadingTask();
@@ -178,6 +180,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 private void SucceedAndNotify()
                 {
                     Status = ResourceCacheStatus.Ready;
+                    Owner.m_ResourcePathsNotReadyOrFailure.Remove(Path);
                     StopAndResetLoadingTask();
 
                     m_CopiedResourceObservers.Clear();

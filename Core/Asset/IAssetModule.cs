@@ -159,6 +159,11 @@ namespace COL.UnityGameWheels.Core.Asset
         void UnloadAsset(IAssetAccessor assetAccessor);
 
         /// <summary>
+        /// Whether any asset is being loaded.
+        /// </summary>
+        bool IsLoadingAnyAsset { get; }
+
+        /// <summary>
         /// Requests to unload all unused resources.
         /// </summary>
         void RequestUnloadUnusedResources();

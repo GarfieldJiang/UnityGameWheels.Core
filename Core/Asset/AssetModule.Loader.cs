@@ -10,6 +10,8 @@
             private readonly AssetModule m_Owner = null;
             private readonly Dictionary<string, AssetCache> m_AssetCaches = new Dictionary<string, AssetCache>();
             private readonly Dictionary<string, ResourceCache> m_ResourceCaches = new Dictionary<string, ResourceCache>();
+            private readonly HashSet<string> m_AssetPathsNotReadyOrFailure = new HashSet<string>();
+            private readonly HashSet<string> m_ResourcePathsNotReadyOrFailure = new HashSet<string>();
             private readonly HashSet<AssetCache> m_UnretainedAssetCaches = new HashSet<AssetCache>();
             private readonly List<AssetCache> m_TempAssetCaches = new List<AssetCache>();
             private readonly HashSet<ResourceCache> m_UnretainedResourceCaches = new HashSet<ResourceCache>();
@@ -62,6 +64,8 @@
                 m_ResourceLoadingTaskPool = m_Owner.RefPoolModule.Add<ResourceLoadingTask>(m_RunningResourceLoadingTasks.Capacity);
                 m_DFSVisitedFlags = new HashSet<string>();
             }
+
+            internal bool IsLoadingAnyAsset => m_AssetPathsNotReadyOrFailure.Count > 0 || m_ResourcePathsNotReadyOrFailure.Count > 0;
 
             internal void Update(TimeStruct timeStruct)
             {

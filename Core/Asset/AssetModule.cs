@@ -632,6 +632,20 @@ namespace COL.UnityGameWheels.Core.Asset
         }
 
         /// <inheritdoc />
+        public bool IsLoadingAnyAsset
+        {
+            get
+            {
+                if (m_UpdateChecker.Status != UpdateCheckerStatus.Success)
+                {
+                    return false;
+                }
+
+                return m_Loader.IsLoadingAnyAsset;
+            }
+        }
+
+        /// <inheritdoc />
         public void RequestUnloadUnusedResources()
         {
             if (m_UpdateChecker.Status != UpdateCheckerStatus.Success)
