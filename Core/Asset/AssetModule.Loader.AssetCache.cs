@@ -137,7 +137,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
                     else if (Status == AssetCacheStatus.Failure)
                     {
-                        CallLoadAssetFailureOrThrow(assetAccessor.CallbackSet, assetAccessor, ErrorMessage, assetAccessor.Context);
+                        CallLoadAssetFailureOrThrow(assetAccessor, ErrorMessage);
                     }
                     else
                     {
@@ -244,7 +244,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     m_CopiedAssetAccessors.AddRange(m_AssetAccessors);
                     foreach (var assetAccessor in m_CopiedAssetAccessors)
                     {
-                        CallLoadAssetFailureOrThrow(assetAccessor.CallbackSet, assetAccessor, ErrorMessage, assetAccessor.Context);
+                        CallLoadAssetFailureOrThrow(assetAccessor, ErrorMessage);
                     }
 
                     m_CopiedAssetAccessors.Clear();
@@ -328,23 +328,23 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
                 }
 
-                private static void CallLoadAssetFailureOrThrow(LoadAssetCallbackSet callbackSet, AssetAccessor assetAccessor,
-                    string errorMessage, object context)
+                private static void CallLoadAssetFailureOrThrow(AssetAccessor assetAccessor, string errorMessage)
                 {
+                    var callbackSet = assetAccessor.CallbackSet;
                     if (callbackSet.OnFailure != null)
                     {
                         try
                         {
-                            callbackSet.OnFailure(assetAccessor, errorMessage, context);
+                            callbackSet.OnFailure(assetAccessor, errorMessage, assetAccessor.Context);
                         }
                         finally
                         {
-                            assetAccessor.Context = null;
+                            assetAccessor.ResetCallbacks();
                         }
                     }
                     else
                     {
-                        assetAccessor.Context = null;
+                        assetAccessor.ResetCallbacks();
                         throw new InvalidOperationException(errorMessage);
                     }
                 }
@@ -357,7 +357,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
                     finally
                     {
-                        assetAccessor.Context = null;
+                        assetAccessor.ResetCallbacks();
                     }
                 }
             }

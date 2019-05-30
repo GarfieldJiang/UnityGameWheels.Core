@@ -76,12 +76,17 @@
             }
 
             m_AssetCache.RemoveAccessor(this);
-            CallbackSet = default(LoadAssetCallbackSet);
-            Context = null;
+            ResetCallbacks();
 
             m_AssetCache.ReduceRetainCount();
             m_AssetCache = null;
             m_SerialId = 0;
+        }
+
+        internal void ResetCallbacks()
+        {
+            CallbackSet = default(LoadAssetCallbackSet);
+            Context = null;
         }
     }
 }
