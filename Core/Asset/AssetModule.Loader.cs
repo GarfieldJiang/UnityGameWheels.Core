@@ -20,6 +20,7 @@
             private readonly List<Action<TimeStruct>> m_TempTickDelegates = new List<Action<TimeStruct>>();
             private readonly List<IAssetLoadingTaskImpl> m_RunningAssetLoadingTasks = null;
             private readonly List<IResourceLoadingTaskImpl> m_RunningResourceLoadingTasks = null;
+            private readonly List<AssetAccessor> m_AssetAccessorsToRelease = null;
 
             private AssetIndexForInstaller InstallerIndex => m_Owner.m_InstallerIndex;
 
@@ -63,12 +64,14 @@
                 m_AssetLoadingTaskPool = m_Owner.RefPoolModule.Add<AssetLoadingTask>(m_RunningAssetLoadingTasks.Capacity);
                 m_ResourceLoadingTaskPool = m_Owner.RefPoolModule.Add<ResourceLoadingTask>(m_RunningResourceLoadingTasks.Capacity);
                 m_DFSVisitedFlags = new HashSet<string>();
+                m_AssetAccessorsToRelease = new List<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity / 8);
             }
 
             internal bool IsLoadingAnyAsset => m_AssetPathsNotReadyOrFailure.Count > 0 || m_ResourcePathsNotReadyOrFailure.Count > 0;
 
             internal void Update(TimeStruct timeStruct)
             {
+                ReleaseAssetAccessors();
                 UpdateRunningAssetLoadingTasks(timeStruct);
                 UpdateRunningResourceLoadingTasks(timeStruct);
                 UpdateTickDelegates(timeStruct);
@@ -249,8 +252,7 @@
                         assetAccessor.AssetPath, resourceGroup));
                 }
 
-                assetAccessor.Reset();
-                m_AssetAccessorPool.Release(assetAccessor);
+                m_AssetAccessorsToRelease.Add(assetAccessor);
             }
 
             private AssetCache EnsureAssetCache(string assetPath)
@@ -410,6 +412,22 @@
             internal void RequestUnloadUnusedResources()
             {
                 m_ShouldForceUnloadUnusedResources = true;
+            }
+
+            private void ReleaseAssetAccessors()
+            {
+                if (m_AssetAccessorsToRelease.Count <= 0)
+                {
+                    return;
+                }
+
+                foreach (var assetAccessor in m_AssetAccessorsToRelease)
+                {
+                    assetAccessor.Reset();
+                    m_AssetAccessorPool.Release(assetAccessor);
+                }
+
+                m_AssetAccessorsToRelease.Clear();
             }
         }
     }
