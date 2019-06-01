@@ -56,7 +56,7 @@
     <Compile Include="Asset\AssetModule.PreparerStatus.cs" />
     <Compile Include="Asset\AssetModule.Preparer.cs" />
     <Compile Include="Asset\AssetModule.UpdateChecker.cs" />
-    <Compile Include="Asset\AssetIndexRemoteRemoteFileInfo.cs" />
+    <Compile Include="Asset\AssetIndexRemoteFileInfo.cs" />
     <Compile Include="Asset\IAssetAccessor.cs" />
     <Compile Include="Asset\ResourceCacheQuery.cs" />
     <Compile Include="Asset\AssetCacheQuery.cs" />
