@@ -259,7 +259,7 @@ namespace COL.UnityGameWheels.Core.Asset
         {
             get
             {
-                if (string.IsNullOrEmpty(m_UpdateRelativePathFormat))
+                if (m_UpdateRelativePathFormat == null)
                 {
                     throw new InvalidOperationException("Not set.");
                 }
@@ -269,17 +269,12 @@ namespace COL.UnityGameWheels.Core.Asset
 
             set
             {
-                if (string.IsNullOrEmpty(value))
-                {
-                    throw new ArgumentException("Shouldn't be null or empty.", nameof(value));
-                }
-
-                if (!string.IsNullOrEmpty(m_UpdateRelativePathFormat))
+                if (m_UpdateRelativePathFormat != null)
                 {
                     throw new InvalidOperationException("Already set.");
                 }
 
-                m_UpdateRelativePathFormat = value;
+                m_UpdateRelativePathFormat = value ?? throw new ArgumentException("Shouldn't be null.", nameof(value));
             }
         }
 
