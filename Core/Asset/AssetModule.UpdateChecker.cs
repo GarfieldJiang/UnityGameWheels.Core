@@ -36,7 +36,7 @@ namespace COL.UnityGameWheels.Core.Asset
             public UpdateChecker(AssetModule owner)
             {
                 m_Owner = owner;
-                Status = UpdateCheckerStatus.None;
+                ResetStatus();
                 m_OnDownloadFailure = OnDownloadFailure;
                 m_OnDownloadSuccess = OnDownloadSuccess;
             }
@@ -63,6 +63,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 if (RootUrls.Count <= 0)
                 {
+                    ResetStatus();
                     throw new InvalidOperationException("Root URL for any update server hasn't been set.");
                 }
 
@@ -156,15 +157,24 @@ namespace COL.UnityGameWheels.Core.Asset
                 CheckUpdate();
             }
 
+            private void ResetStatus()
+            {
+                Status = UpdateCheckerStatus.None;
+                m_RootUrlIndex = 0;
+                m_DownloadRetryTimes = 0;
+            }
+
+
             private void OnDownloadFailure(int downloadTaskId, DownloadTaskInfo downloadTaskInfo, DownloadErrorCode errorCode,
                 string errorMessage)
             {
                 if (m_DownloadRetryTimes >= m_Owner.DownloadRetryCount)
                 {
                     m_DownloadRetryTimes = -1;
-                    if (++m_RootUrlIndex >= RootUrls.Count)
+                    m_RootUrlIndex++;
+                    if (m_RootUrlIndex >= RootUrls.Count)
                     {
-                        Status = UpdateCheckerStatus.None;
+                        ResetStatus();
                         errorMessage = Utility.Text.Format("Cannot update remote index file. Error code is '{0}'. Error message is '{1}'.",
                             errorCode, errorMessage);
                         if (m_CallbackSet.OnFailure != null)
@@ -257,7 +267,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private void Fail(Exception e, string errorMessageFormat)
             {
-                Status = UpdateCheckerStatus.None;
+                ResetStatus();
                 var errorMessage = Utility.Text.Format(errorMessageFormat, e.ToString());
                 if (m_CallbackSet.OnFailure != null)
                 {
