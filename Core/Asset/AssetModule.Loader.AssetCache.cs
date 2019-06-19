@@ -25,6 +25,8 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 public override float LoadingProgress => m_LoadingTask?.Progress ?? 0f;
 
+                private float m_LastLoadingProgress = 0;
+
                 public bool IsScene { get; internal set; }
 
                 public IEnumerable<string> GetDependencyAssetPaths()
@@ -32,13 +34,14 @@ namespace COL.UnityGameWheels.Core.Asset
                     return DependencyAssetPaths == null ? new List<string>() : new List<string>(DependencyAssetPaths);
                 }
 
-                public AssetCache() : base()
+                public AssetCache()
                 {
                 }
 
                 internal override void Init()
                 {
                     CoreLog.DebugFormat("[AssetCache Init] {0}", Path);
+                    m_LastLoadingProgress = 0f;
                     Owner.m_AssetPathsNotReadyOrFailure.Add(Path);
                     var resourceCache = Owner.EnsureResourceCache(ResourcePath);
                     resourceCache.IncreaseRetainCount();
@@ -93,6 +96,14 @@ namespace COL.UnityGameWheels.Core.Asset
                                 CoreLog.DebugFormat("[AssetCache Update] {0} loading success.", Path);
                                 SucceedAndNotify();
                             }
+                            else
+                            {
+                                if (LoadingProgress != m_LastLoadingProgress)
+                                {
+                                    m_LastLoadingProgress = LoadingProgress;
+                                    ProgressAndNotify();
+                                }
+                            }
 
                             break;
                     }
@@ -126,6 +137,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     m_DependencyAssetReadyCount = 0;
                     ResourcePath = null;
                     IsScene = false;
+                    m_LastLoadingProgress = 0;
                     base.Reset();
                 }
 
@@ -291,6 +303,18 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
                 }
 
+                private void ProgressAndNotify()
+                {
+                    m_CopiedAssetAccessors.Clear();
+                    m_CopiedAssetAccessors.AddRange(m_AssetAccessors);
+                    foreach (var assetAccessor in m_CopiedAssetAccessors)
+                    {
+                        CallLoadAssetProgress(assetAccessor, LoadingProgress);
+                    }
+
+                    m_CopiedAssetAccessors.Clear();
+                }
+
                 private void StopAndResetLoadingTask()
                 {
                     if (m_LoadingTask != null)
@@ -359,6 +383,11 @@ namespace COL.UnityGameWheels.Core.Asset
                     {
                         assetAccessor.ResetCallbacks();
                     }
+                }
+
+                private static void CallLoadAssetProgress(AssetAccessor assetAccessor, float progress)
+                {
+                    assetAccessor.CallbackSet.OnProgress?.Invoke(assetAccessor, progress, assetAccessor.Context);
                 }
             }
         }

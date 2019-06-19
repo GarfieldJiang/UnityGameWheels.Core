@@ -11,6 +11,11 @@
     public delegate void OnLoadAssetFailure(IAssetAccessor assetAccessor, string errorMessage, object context);
 
     /// <summary>
+    /// On load asset progress.
+    /// </summary>
+    public delegate void OnLoadAssetProgress(IAssetAccessor assetAccessor, float progress, object context);
+
+    /// <summary>
     /// Load asset callback set.
     /// </summary>
     public struct LoadAssetCallbackSet
@@ -24,5 +29,10 @@
         /// On failure callback.
         /// </summary>
         public OnLoadAssetFailure OnFailure;
+
+        /// <summary>
+        /// On progress callback.
+        /// </summary>
+        public OnLoadAssetProgress OnProgress;
     }
 }
