@@ -81,6 +81,7 @@
     <Compile Include="Download\DownloadTaskTests.cs" />
     <Compile Include="Download\DownloadModuleTests.cs" />
     <Compile Include="Event\EventTests.cs" />
+    <Compile Include="RedDot\RedDotTests.cs" />
     <Compile Include="RefPool\RefPoolTests.cs" />
     <Compile Include="RefPool\RefPoolModuleTests.cs" />
     <Compile Include="Asset\AssetIndexTests.cs" />
@@ -97,6 +98,5 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
