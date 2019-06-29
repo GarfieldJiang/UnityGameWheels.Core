@@ -89,6 +89,11 @@ namespace COL.UnityGameWheels.Core.Tests
                 Assert.AreEqual(1, m_RedDotModule.GetValue("Root"));
                 Assert.AreEqual(1, valuesGotInOnChange["Root"]);
             });
+
+            m_RedDotModule.RemoveObserver("Leaf0", observer);
+            m_RedDotModule.SetLeafValue("Leaf0", 4);
+            m_RedDotModule.Update(default(TimeStruct));
+            Assert.AreEqual(1, valuesGotInOnChange["Leaf0"]);
         }
 
         [Test]
