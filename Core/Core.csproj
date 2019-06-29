@@ -73,6 +73,7 @@
     <Compile Include="Event\IEventArgsReleaser.cs" />
     <Compile Include="RedDot\IRedDotModule.cs" />
     <Compile Include="RedDot\IRedDotObserver.cs" />
+    <Compile Include="RedDot\NodeQuery.cs" />
     <Compile Include="RedDot\NonLeafOperation.cs" />
     <Compile Include="RedDot\RedDotModule.cs" />
     <Compile Include="RedDot\RedDotModule.LeafNode.cs" />

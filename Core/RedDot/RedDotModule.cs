@@ -47,6 +47,44 @@ namespace COL.UnityGameWheels.Core.RedDot
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        /// <remarks>Debug use.</remarks>
+        public NodeQuery GetNodeQuery(string key)
+        {
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                return null;
+            }
+
+            bool isLeaf = false;
+            string[] dependencies = { };
+            string[] reverseDependencies = new List<string>(node.BeDependedOn).ToArray();
+            NonLeafOperation operation = (NonLeafOperation)(-1);
+            if (node is LeafNode leafNode)
+            {
+                isLeaf = true;
+            }
+            else if (node is NonLeafNode nonLeafNode)
+            {
+                dependencies = new List<string>(nonLeafNode.DependsOn).ToArray();
+                operation = nonLeafNode.Operation;
+            }
+
+            return new NodeQuery
+            {
+                Key = key,
+                Value = node.Value,
+                IsLeaf = isLeaf,
+                Dependencies = dependencies,
+                ReverseDependencies = reverseDependencies,
+                Opeartion = operation,
+            };
+        }
+
         public void AddNonLeaf(string key, NonLeafOperation operation, IEnumerable<string> dependsOn)
         {
             GuardNotSetUp();
