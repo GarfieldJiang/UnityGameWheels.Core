@@ -143,5 +143,38 @@ namespace COL.UnityGameWheels.Core.Tests
             Assert.Throws<ArgumentException>(() =>
                 m_RedDotModule.AddNonLeaf(string.Empty, NonLeafOperation.Or, new[] {"Anything"}));
         }
+
+        [Test]
+        public void GetValueOnAddingObserver()
+        {
+            const string LeafNodeName = "Leaf";
+            m_RedDotModule.AddLeaf(LeafNodeName);
+            const string NonLeafNodeName = "NonLeaf";
+            m_RedDotModule.AddNonLeaf(NonLeafNodeName, NonLeafOperation.Sum, new[] {LeafNodeName});
+            m_RedDotModule.SetUp();
+            m_RedDotModule.SetLeafValue(LeafNodeName, 100);
+            m_RedDotModule.Update(default(TimeStruct));
+            int getValueInOnChange = 0;
+            m_RedDotModule.AddObserver(NonLeafNodeName, new RedDotObserver((key, value) => { getValueInOnChange = value; }));
+            Assert.AreEqual(100, getValueInOnChange);
+        }
+
+        [Test]
+        public void RemoveObserver()
+        {
+            const string LeafNodeName = "Leaf";
+            m_RedDotModule.AddLeaf(LeafNodeName);
+            m_RedDotModule.SetUp();
+            int getValueInOnChange = 0;
+            var observer = new RedDotObserver((key, value) => { getValueInOnChange = value; });
+            m_RedDotModule.AddObserver(LeafNodeName, observer);
+            m_RedDotModule.SetLeafValue(LeafNodeName, 100);
+            m_RedDotModule.Update(default(TimeStruct));
+            Assert.AreEqual(100, getValueInOnChange);
+            m_RedDotModule.RemoveObserver(LeafNodeName, observer);
+            m_RedDotModule.SetLeafValue(LeafNodeName, 90);
+            m_RedDotModule.Update(default(TimeStruct));
+            Assert.AreEqual(100, getValueInOnChange);
+        }
     }
 }
