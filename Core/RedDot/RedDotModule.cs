@@ -244,6 +244,7 @@ namespace COL.UnityGameWheels.Core.RedDot
             }
 
             node.Observers.Add(observer);
+            observer.OnChange(key, node.Value);
         }
 
         public bool RemoveObserver(string key, IRedDotObserver observer)
