@@ -8,8 +8,9 @@ namespace COL.UnityGameWheels.Core.RedDot
         {
             public string Key;
             public int Value = 0;
-            public readonly HashSet<string> BeDependedOn = new HashSet<string>();
+            public readonly HashSet<string> ReverseDependencies = new HashSet<string>();
             public List<IRedDotObserver> Observers = null;
+            public abstract RedDotNodeType Type { get; }
         }
     }
 }

@@ -73,12 +73,12 @@
     <Compile Include="Event\IEventArgsReleaser.cs" />
     <Compile Include="RedDot\IRedDotModule.cs" />
     <Compile Include="RedDot\IRedDotObserver.cs" />
-    <Compile Include="RedDot\NodeQuery.cs" />
     <Compile Include="RedDot\NonLeafOperation.cs" />
     <Compile Include="RedDot\RedDotModule.cs" />
     <Compile Include="RedDot\RedDotModule.LeafNode.cs" />
     <Compile Include="RedDot\RedDotModule.Node.cs" />
     <Compile Include="RedDot\RedDotModule.NonLeafNode.cs" />
+    <Compile Include="RedDot\RedDotNodeType.cs" />
     <Compile Include="RefPool\RefPoolStatistics.cs" />
     <Compile Include="RefPool\RefPoolStatisticsInternal.cs" />
     <Compile Include="Common\Algorithm\Algorithm.Graph.TarjanSccExecutor.cs" />

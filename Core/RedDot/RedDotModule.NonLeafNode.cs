@@ -6,8 +6,9 @@ namespace COL.UnityGameWheels.Core.RedDot
     {
         private class NonLeafNode : Node
         {
+            public override RedDotNodeType Type => RedDotNodeType.NonLeaf;
             public NonLeafOperation Operation;
-            public readonly HashSet<string> DependsOn = new HashSet<string>();
+            public readonly HashSet<string> Dependencies = new HashSet<string>();
         }
     }
 }

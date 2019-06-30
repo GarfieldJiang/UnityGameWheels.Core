@@ -4,7 +4,7 @@ namespace COL.UnityGameWheels.Core.RedDot
     {
         private class LeafNode : Node
         {
-            // Empty.
+            public override RedDotNodeType Type => RedDotNodeType.Leaf;
         }
     }
 }

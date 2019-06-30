@@ -16,12 +16,127 @@ namespace COL.UnityGameWheels.Core.RedDot
 
         private bool m_SetUp = false;
 
+        public bool IsSetUp => m_SetUp;
+
+        private Action m_OnSetUp;
+
+        public event Action OnSetUp
+        {
+            add => m_OnSetUp += value;
+            remove => m_OnSetUp -= value;
+        }
+
         public void AddLeaf(string key)
         {
             GuardNotSetUp();
             GuardKey(key, nameof(key));
             GuardKeyNotExist(key);
             DoAddLeaf(key);
+        }
+
+        public bool HasNode(string key)
+        {
+            GuardKey(key, nameof(key));
+            return m_Nodes.ContainsKey(key);
+        }
+
+        public bool HasNode(string key, RedDotNodeType nodeType)
+        {
+            GuardKey(key, nameof(key));
+            GuardNodeType(nodeType);
+            return nodeType == RedDotNodeType.Leaf ? m_LeafNodes.ContainsKey(key) : m_NonLeafNodes.ContainsKey(key);
+        }
+
+        public RedDotNodeType GetNodeType(string key)
+        {
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return node.Type;
+        }
+
+        public IEnumerable<string> GetNodeKeys(RedDotNodeType nodeType)
+        {
+            GuardNodeType(nodeType);
+            if (nodeType == RedDotNodeType.Leaf)
+            {
+                foreach (var kv in m_LeafNodes)
+                {
+                    yield return kv.Key;
+                }
+            }
+            else
+            {
+                foreach (var kv in m_Nodes)
+                {
+                    yield return kv.Key;
+                }
+            }
+        }
+
+        public IEnumerable<string> GetNodeKeys()
+        {
+            foreach (var kv in m_Nodes)
+            {
+                yield return kv.Key;
+            }
+        }
+
+        public int NodeCount => m_Nodes.Count;
+
+        public int GetNodeCount(RedDotNodeType nodeType)
+        {
+            GuardNodeType(nodeType);
+            return nodeType == RedDotNodeType.Leaf ? m_LeafNodes.Count : m_NonLeafNodes.Count;
+        }
+
+        public IEnumerable<string> GetDependencies(string key)
+        {
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return node.Type == RedDotNodeType.Leaf ? (IEnumerable<string>)new string[] { } : new List<string>(((NonLeafNode)node).Dependencies);
+        }
+
+        public int GetDependencyCount(string key)
+        {
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return node.Type == RedDotNodeType.Leaf ? 0 : ((NonLeafNode)node).Dependencies.Count;
+        }
+
+        public IEnumerable<string> GetReverseDependencies(string key)
+        {
+            GuardSetUp();
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return new List<string>(node.ReverseDependencies);
+        }
+
+        public int GetReverseDependencyCount(string key)
+        {
+            GuardSetUp();
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return node.ReverseDependencies.Count;
         }
 
         private void DoAddLeaf(string key)
@@ -47,60 +162,22 @@ namespace COL.UnityGameWheels.Core.RedDot
             }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
-        /// <remarks>Debug use.</remarks>
-        public NodeQuery GetNodeQuery(string key)
-        {
-            if (!m_Nodes.TryGetValue(key, out var node))
-            {
-                return null;
-            }
-
-            bool isLeaf = false;
-            string[] dependencies = { };
-            string[] reverseDependencies = new List<string>(node.BeDependedOn).ToArray();
-            NonLeafOperation operation = (NonLeafOperation)(-1);
-            if (node is LeafNode leafNode)
-            {
-                isLeaf = true;
-            }
-            else if (node is NonLeafNode nonLeafNode)
-            {
-                dependencies = new List<string>(nonLeafNode.DependsOn).ToArray();
-                operation = nonLeafNode.Operation;
-            }
-
-            return new NodeQuery
-            {
-                Key = key,
-                Value = node.Value,
-                IsLeaf = isLeaf,
-                Dependencies = dependencies,
-                ReverseDependencies = reverseDependencies,
-                Opeartion = operation,
-            };
-        }
-
-        public void AddNonLeaf(string key, NonLeafOperation operation, IEnumerable<string> dependsOn)
+        public void AddNonLeaf(string key, NonLeafOperation operation, IEnumerable<string> dependencies)
         {
             GuardNotSetUp();
             GuardKey(key, nameof(key));
             GuardKeyNotExist(key);
             GuardOperation(operation);
-            if (dependsOn == null)
+            if (dependencies == null)
             {
-                throw new ArgumentNullException(nameof(dependsOn));
+                throw new ArgumentNullException(nameof(dependencies));
             }
 
             int dependCount = 0;
-            var tempSet = new HashSet<string>(dependsOn);
+            var tempSet = new HashSet<string>(dependencies);
             foreach (var dependency in tempSet)
             {
-                GuardKey(dependency, nameof(dependsOn));
+                GuardKey(dependency, nameof(dependencies));
                 dependCount++;
             }
 
@@ -110,7 +187,7 @@ namespace COL.UnityGameWheels.Core.RedDot
             }
 
             var node = new NonLeafNode {Key = key, Operation = operation};
-            node.DependsOn.UnionWith(tempSet);
+            node.Dependencies.UnionWith(tempSet);
             m_Nodes.Add(key, node);
             m_NonLeafNodes.Add(key, node);
         }
@@ -124,7 +201,7 @@ namespace COL.UnityGameWheels.Core.RedDot
                     continue;
                 }
 
-                foreach (var dependencyKey in nonLeafNode.DependsOn)
+                foreach (var dependencyKey in nonLeafNode.Dependencies)
                 {
                     if (!m_Nodes.ContainsKey(dependencyKey))
                     {
@@ -141,7 +218,7 @@ namespace COL.UnityGameWheels.Core.RedDot
             {
                 if (node is NonLeafNode nonLeafNode)
                 {
-                    return nonLeafNode.DependsOn;
+                    return nonLeafNode.Dependencies;
                 }
 
                 return emptyEnumerable;
@@ -179,9 +256,9 @@ namespace COL.UnityGameWheels.Core.RedDot
         {
             foreach (var nonLeafNode in m_NonLeafNodes.Values)
             {
-                foreach (var dependencyKey in nonLeafNode.DependsOn)
+                foreach (var dependencyKey in nonLeafNode.Dependencies)
                 {
-                    m_Nodes[dependencyKey].BeDependedOn.Add(nonLeafNode.Key);
+                    m_Nodes[dependencyKey].ReverseDependencies.Add(nonLeafNode.Key);
                 }
             }
         }
@@ -192,12 +269,19 @@ namespace COL.UnityGameWheels.Core.RedDot
             CheckNoLoopOrThrow();
             BuildReverseDependency();
             m_SetUp = true;
+            m_OnSetUp?.Invoke();
         }
 
         public void SetLeafValue(string key, int value)
         {
             GuardSetUp();
             GuardKey(key, nameof(key));
+
+            if (value < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Must be non-negative.");
+            }
+
             if (!m_LeafNodes.TryGetValue(key, out var leafNode))
             {
                 throw new InvalidOperationException($"There is no leaf with key [{key}].");
@@ -302,7 +386,7 @@ namespace COL.UnityGameWheels.Core.RedDot
 
             m_KeysNeedingRecalc.Remove(key);
             var node = m_NonLeafNodes[key];
-            foreach (var dependOnKey in node.DependsOn)
+            foreach (var dependOnKey in node.Dependencies)
             {
                 RecalcValueAndNotify(dependOnKey);
             }
@@ -311,10 +395,10 @@ namespace COL.UnityGameWheels.Core.RedDot
             switch (node.Operation)
             {
                 case NonLeafOperation.Sum:
-                    newValue = Sum(node.DependsOn);
+                    newValue = Sum(node.Dependencies);
                     break;
                 case NonLeafOperation.Or:
-                    newValue = Or(node.DependsOn);
+                    newValue = Or(node.Dependencies);
                     break;
             }
 
@@ -373,7 +457,7 @@ namespace COL.UnityGameWheels.Core.RedDot
         private void SetNeedRecalcFrom(string key)
         {
             var node = m_Nodes[key];
-            foreach (var reverseDependencyKey in node.BeDependedOn)
+            foreach (var reverseDependencyKey in node.ReverseDependencies)
             {
                 if (m_KeysNeedingRecalc.Contains(reverseDependencyKey))
                 {
@@ -422,6 +506,14 @@ namespace COL.UnityGameWheels.Core.RedDot
             if (!m_SetUp)
             {
                 throw new InvalidOperationException("Cannot be done before setting up.");
+            }
+        }
+
+        private void GuardNodeType(RedDotNodeType nodeType)
+        {
+            if (nodeType != RedDotNodeType.NonLeaf && nodeType != RedDotNodeType.Leaf)
+            {
+                throw new ArgumentException($"Unknown node type [{nodeType}].");
             }
         }
     }
