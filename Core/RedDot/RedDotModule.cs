@@ -16,9 +16,9 @@ namespace COL.UnityGameWheels.Core.RedDot
 
         private bool m_SetUp = false;
 
-        public bool IsSetUp => m_SetUp;
-
         private Action m_OnSetUp;
+
+        public bool IsSetUp => m_SetUp;
 
         public event Action OnSetUp
         {
@@ -32,118 +32,6 @@ namespace COL.UnityGameWheels.Core.RedDot
             GuardKey(key, nameof(key));
             GuardKeyNotExist(key);
             DoAddLeaf(key);
-        }
-
-        public bool HasNode(string key)
-        {
-            GuardKey(key, nameof(key));
-            return m_Nodes.ContainsKey(key);
-        }
-
-        public bool HasNode(string key, RedDotNodeType nodeType)
-        {
-            GuardKey(key, nameof(key));
-            GuardNodeType(nodeType);
-            return nodeType == RedDotNodeType.Leaf ? m_LeafNodes.ContainsKey(key) : m_NonLeafNodes.ContainsKey(key);
-        }
-
-        public RedDotNodeType GetNodeType(string key)
-        {
-            GuardKey(key, nameof(key));
-            if (!m_Nodes.TryGetValue(key, out var node))
-            {
-                throw new InvalidOperationException($"There is no node with key [{key}].");
-            }
-
-            return node.Type;
-        }
-
-        public IEnumerable<string> GetNodeKeys(RedDotNodeType nodeType)
-        {
-            GuardNodeType(nodeType);
-            if (nodeType == RedDotNodeType.Leaf)
-            {
-                foreach (var kv in m_LeafNodes)
-                {
-                    yield return kv.Key;
-                }
-            }
-            else
-            {
-                foreach (var kv in m_Nodes)
-                {
-                    yield return kv.Key;
-                }
-            }
-        }
-
-        public IEnumerable<string> GetNodeKeys()
-        {
-            foreach (var kv in m_Nodes)
-            {
-                yield return kv.Key;
-            }
-        }
-
-        public int NodeCount => m_Nodes.Count;
-
-        public int GetNodeCount(RedDotNodeType nodeType)
-        {
-            GuardNodeType(nodeType);
-            return nodeType == RedDotNodeType.Leaf ? m_LeafNodes.Count : m_NonLeafNodes.Count;
-        }
-
-        public IEnumerable<string> GetDependencies(string key)
-        {
-            GuardKey(key, nameof(key));
-            if (!m_Nodes.TryGetValue(key, out var node))
-            {
-                throw new InvalidOperationException($"There is no node with key [{key}].");
-            }
-
-            return node.Type == RedDotNodeType.Leaf ? (IEnumerable<string>)new string[] { } : new List<string>(((NonLeafNode)node).Dependencies);
-        }
-
-        public int GetDependencyCount(string key)
-        {
-            GuardKey(key, nameof(key));
-            if (!m_Nodes.TryGetValue(key, out var node))
-            {
-                throw new InvalidOperationException($"There is no node with key [{key}].");
-            }
-
-            return node.Type == RedDotNodeType.Leaf ? 0 : ((NonLeafNode)node).Dependencies.Count;
-        }
-
-        public IEnumerable<string> GetReverseDependencies(string key)
-        {
-            GuardSetUp();
-            GuardKey(key, nameof(key));
-            if (!m_Nodes.TryGetValue(key, out var node))
-            {
-                throw new InvalidOperationException($"There is no node with key [{key}].");
-            }
-
-            return new List<string>(node.ReverseDependencies);
-        }
-
-        public int GetReverseDependencyCount(string key)
-        {
-            GuardSetUp();
-            GuardKey(key, nameof(key));
-            if (!m_Nodes.TryGetValue(key, out var node))
-            {
-                throw new InvalidOperationException($"There is no node with key [{key}].");
-            }
-
-            return node.ReverseDependencies.Count;
-        }
-
-        private void DoAddLeaf(string key)
-        {
-            var node = new LeafNode {Key = key};
-            m_Nodes.Add(key, node);
-            m_LeafNodes.Add(key, node);
         }
 
         public void AddLeaves(IEnumerable<string> keys)
@@ -192,79 +80,9 @@ namespace COL.UnityGameWheels.Core.RedDot
             m_NonLeafNodes.Add(key, node);
         }
 
-        private void CheckDependencyExistenceOrThrow()
-        {
-            foreach (var node in m_Nodes.Values)
-            {
-                if (!(node is NonLeafNode nonLeafNode))
-                {
-                    continue;
-                }
-
-                foreach (var dependencyKey in nonLeafNode.Dependencies)
-                {
-                    if (!m_Nodes.ContainsKey(dependencyKey))
-                    {
-                        throw new InvalidOperationException($"Key [{dependencyKey}] in [{nonLeafNode.Key}]'s dependencies doesn't exist.");
-                    }
-                }
-            }
-        }
-
-        private void CheckNoLoopOrThrow()
-        {
-            var emptyEnumerable = new string[] { };
-            var sccs = Algorithm.Graph.TarjanScc(m_Nodes, (x, y) => x == y, node =>
-            {
-                if (node is NonLeafNode nonLeafNode)
-                {
-                    return nonLeafNode.Dependencies;
-                }
-
-                return emptyEnumerable;
-            }, false);
-
-            if (sccs.Count <= 0)
-            {
-                return;
-            }
-
-            var sb = new StringBuilder();
-
-            var scc = sccs[0];
-            sb.Append("[");
-            bool first = true;
-            foreach (var key in scc)
-            {
-                if (first)
-                {
-                    first = false;
-                }
-                else
-                {
-                    sb.Append(", ");
-                }
-
-                sb.Append(key);
-            }
-
-            sb.Append("]");
-            throw new InvalidOperationException($"Loop dependency detected. One strongly connected components shown as follows:\n{sb}");
-        }
-
-        private void BuildReverseDependency()
-        {
-            foreach (var nonLeafNode in m_NonLeafNodes.Values)
-            {
-                foreach (var dependencyKey in nonLeafNode.Dependencies)
-                {
-                    m_Nodes[dependencyKey].ReverseDependencies.Add(nonLeafNode.Key);
-                }
-            }
-        }
-
         public void SetUp()
         {
+            GuardNotSetUp();
             CheckDependencyExistenceOrThrow();
             CheckNoLoopOrThrow();
             BuildReverseDependency();
@@ -375,6 +193,195 @@ namespace COL.UnityGameWheels.Core.RedDot
             m_LeafKeysWithModifiedValue.Clear();
             m_KeysNeedingRecalc.Clear();
             m_KeysNeedingRecalcCopied.Clear();
+        }
+
+        #region Non-interface public methods
+
+        public bool HasNode(string key)
+        {
+            GuardKey(key, nameof(key));
+            return m_Nodes.ContainsKey(key);
+        }
+
+        public bool HasNode(string key, RedDotNodeType nodeType)
+        {
+            GuardKey(key, nameof(key));
+            GuardNodeType(nodeType);
+            return nodeType == RedDotNodeType.Leaf ? m_LeafNodes.ContainsKey(key) : m_NonLeafNodes.ContainsKey(key);
+        }
+
+        public RedDotNodeType GetNodeType(string key)
+        {
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return node.Type;
+        }
+
+        public IEnumerable<string> GetNodeKeys(RedDotNodeType nodeType)
+        {
+            GuardNodeType(nodeType);
+            if (nodeType == RedDotNodeType.Leaf)
+            {
+                foreach (var kv in m_LeafNodes)
+                {
+                    yield return kv.Key;
+                }
+            }
+            else
+            {
+                foreach (var kv in m_Nodes)
+                {
+                    yield return kv.Key;
+                }
+            }
+        }
+
+        public IEnumerable<string> GetNodeKeys()
+        {
+            foreach (var kv in m_Nodes)
+            {
+                yield return kv.Key;
+            }
+        }
+
+        public int NodeCount => m_Nodes.Count;
+
+        public int GetNodeCount(RedDotNodeType nodeType)
+        {
+            GuardNodeType(nodeType);
+            return nodeType == RedDotNodeType.Leaf ? m_LeafNodes.Count : m_NonLeafNodes.Count;
+        }
+
+        public IEnumerable<string> GetDependencies(string key)
+        {
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return node.Type == RedDotNodeType.Leaf ? (IEnumerable<string>)new string[] { } : new List<string>(((NonLeafNode)node).Dependencies);
+        }
+
+        public int GetDependencyCount(string key)
+        {
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return node.Type == RedDotNodeType.Leaf ? 0 : ((NonLeafNode)node).Dependencies.Count;
+        }
+
+        public IEnumerable<string> GetReverseDependencies(string key)
+        {
+            GuardSetUp();
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return new List<string>(node.ReverseDependencies);
+        }
+
+        public int GetReverseDependencyCount(string key)
+        {
+            GuardSetUp();
+            GuardKey(key, nameof(key));
+            if (!m_Nodes.TryGetValue(key, out var node))
+            {
+                throw new InvalidOperationException($"There is no node with key [{key}].");
+            }
+
+            return node.ReverseDependencies.Count;
+        }
+
+        #endregion Non-interface public methods
+
+        #region Private methods
+
+        private void CheckDependencyExistenceOrThrow()
+        {
+            foreach (var node in m_Nodes.Values)
+            {
+                if (!(node is NonLeafNode nonLeafNode))
+                {
+                    continue;
+                }
+
+                foreach (var dependencyKey in nonLeafNode.Dependencies)
+                {
+                    if (!m_Nodes.ContainsKey(dependencyKey))
+                    {
+                        throw new InvalidOperationException($"Key [{dependencyKey}] in [{nonLeafNode.Key}]'s dependencies doesn't exist.");
+                    }
+                }
+            }
+        }
+
+        private void CheckNoLoopOrThrow()
+        {
+            var emptyEnumerable = new string[] { };
+            var sccs = Algorithm.Graph.TarjanScc(m_Nodes, (x, y) => x == y, node =>
+            {
+                if (node is NonLeafNode nonLeafNode)
+                {
+                    return nonLeafNode.Dependencies;
+                }
+
+                return emptyEnumerable;
+            }, false);
+
+            if (sccs.Count <= 0)
+            {
+                return;
+            }
+
+            var sb = new StringBuilder();
+
+            var scc = sccs[0];
+            sb.Append("[");
+            bool first = true;
+            foreach (var key in scc)
+            {
+                if (first)
+                {
+                    first = false;
+                }
+                else
+                {
+                    sb.Append(", ");
+                }
+
+                sb.Append(key);
+            }
+
+            sb.Append("]");
+            throw new InvalidOperationException($"Loop dependency detected. One strongly connected components shown as follows:\n{sb}");
+        }
+
+        private void BuildReverseDependency()
+        {
+            foreach (var nonLeafNode in m_NonLeafNodes.Values)
+            {
+                foreach (var dependencyKey in nonLeafNode.Dependencies)
+                {
+                    m_Nodes[dependencyKey].ReverseDependencies.Add(nonLeafNode.Key);
+                }
+            }
+        }
+
+        private void DoAddLeaf(string key)
+        {
+            var node = new LeafNode {Key = key};
+            m_Nodes.Add(key, node);
+            m_LeafNodes.Add(key, node);
         }
 
         private void RecalcValueAndNotify(string key)
@@ -516,5 +523,7 @@ namespace COL.UnityGameWheels.Core.RedDot
                 throw new ArgumentException($"Unknown node type [{nodeType}].");
             }
         }
+
+        #endregion Private method
     }
 }

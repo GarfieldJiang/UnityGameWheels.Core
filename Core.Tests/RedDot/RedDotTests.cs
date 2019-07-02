@@ -38,7 +38,7 @@ namespace COL.UnityGameWheels.Core.Tests
         }
 
         [Test]
-        public void Basic()
+        public void TestBasic()
         {
             var keys = new[]
             {
@@ -97,7 +97,7 @@ namespace COL.UnityGameWheels.Core.Tests
         }
 
         [Test]
-        public void UseBeforeSetup()
+        public void TestUseBeforeSetup()
         {
             const string LeafNodeName = "Leaf";
             m_RedDotModule.AddLeaf(LeafNodeName);
@@ -105,15 +105,20 @@ namespace COL.UnityGameWheels.Core.Tests
         }
 
         [Test]
-        public void AddNodeAfterSetup()
+        public void TestAddNodeAfterSetup()
         {
             const string LeafNodeName = "Leaf";
+            const string NonLeafNodeName = "NonLeaf";
+            const string AnotherLeafNodeName = "AnotherLeaf";
+            m_RedDotModule.AddLeaf(LeafNodeName);
             m_RedDotModule.SetUp();
-            Assert.Throws<InvalidOperationException>(() => m_RedDotModule.AddLeaf(LeafNodeName));
+            Assert.Throws<InvalidOperationException>(() => m_RedDotModule.AddLeaf(AnotherLeafNodeName));
+            Assert.Throws<InvalidOperationException>(() => m_RedDotModule.AddNonLeaf(NonLeafNodeName,
+                NonLeafOperation.Sum, new[] {LeafNodeName}));
         }
 
         [Test]
-        public void AddNonLeafWithNoDependency()
+        public void TestAddNonLeafWithNoDependency()
         {
             const string LeafNodeName = "Leaf";
             const string NonLeafNodeName = "NonLeaf";
@@ -123,34 +128,53 @@ namespace COL.UnityGameWheels.Core.Tests
         }
 
         [Test]
-        public void LoopDependency()
+        public void TestLoopDependency()
         {
             const string LeafNodeName = "Leaf";
             const string NonLeafNodeName0 = "NonLeaf0";
             const string NonLeafNodeName1 = "NonLeaf1";
             const string NonLeafNodeName2 = "NonLeaf2";
             m_RedDotModule.AddLeaf(LeafNodeName);
-            m_RedDotModule.AddNonLeaf(NonLeafNodeName0, NonLeafOperation.Sum, new[] {NonLeafNodeName1, LeafNodeName});
-            m_RedDotModule.AddNonLeaf(NonLeafNodeName1, NonLeafOperation.Sum, new[] {NonLeafNodeName2, LeafNodeName});
-            m_RedDotModule.AddNonLeaf(NonLeafNodeName2, NonLeafOperation.Sum, new[] {NonLeafNodeName0, LeafNodeName});
+            m_RedDotModule.AddNonLeaf(NonLeafNodeName0, NonLeafOperation.Sum, new[]
+            {
+                NonLeafNodeName1, LeafNodeName
+            });
+
+            m_RedDotModule.AddNonLeaf(NonLeafNodeName1, NonLeafOperation.Sum, new[]
+            {
+                NonLeafNodeName2, LeafNodeName
+            });
+
+            m_RedDotModule.AddNonLeaf(NonLeafNodeName2, NonLeafOperation.Sum, new[]
+            {
+                NonLeafNodeName0, LeafNodeName
+            });
+
             Assert.Throws<InvalidOperationException>(() => m_RedDotModule.SetUp());
         }
 
         [Test]
-        public void NullOrEmptyNodeName()
+        public void TestNullOrEmptyNodeName()
         {
             Assert.Throws<ArgumentException>(() => m_RedDotModule.AddLeaf(null));
             Assert.Throws<ArgumentException>(() =>
-                m_RedDotModule.AddNonLeaf(string.Empty, NonLeafOperation.Or, new[] {"Anything"}));
+                m_RedDotModule.AddNonLeaf(string.Empty, NonLeafOperation.Or, new[]
+                {
+                    "Anything"
+                }));
         }
 
         [Test]
-        public void GetValueOnAddingObserver()
+        public void TestGetValueOnAddingObserver()
         {
             const string LeafNodeName = "Leaf";
             m_RedDotModule.AddLeaf(LeafNodeName);
             const string NonLeafNodeName = "NonLeaf";
-            m_RedDotModule.AddNonLeaf(NonLeafNodeName, NonLeafOperation.Sum, new[] {LeafNodeName});
+            m_RedDotModule.AddNonLeaf(NonLeafNodeName, NonLeafOperation.Sum, new[]
+            {
+                LeafNodeName
+            });
+
             m_RedDotModule.SetUp();
             m_RedDotModule.SetLeafValue(LeafNodeName, 100);
             m_RedDotModule.Update(default(TimeStruct));
@@ -160,7 +184,7 @@ namespace COL.UnityGameWheels.Core.Tests
         }
 
         [Test]
-        public void RemoveObserver()
+        public void TestRemoveObserver()
         {
             const string LeafNodeName = "Leaf";
             m_RedDotModule.AddLeaf(LeafNodeName);
@@ -175,6 +199,42 @@ namespace COL.UnityGameWheels.Core.Tests
             m_RedDotModule.SetLeafValue(LeafNodeName, 90);
             m_RedDotModule.Update(default(TimeStruct));
             Assert.AreEqual(100, getValueInOnChange);
+        }
+
+        [Test]
+        public void TestSetUpFlagAndEvent()
+        {
+            int onSetUpCallCount = 0;
+            m_RedDotModule.OnSetUp += () =>
+            {
+                Assert.True(m_RedDotModule.IsSetUp);
+                onSetUpCallCount++;
+            };
+            Assert.False(m_RedDotModule.IsSetUp);
+            Assert.Zero(onSetUpCallCount);
+            m_RedDotModule.SetUp();
+            Assert.True(m_RedDotModule.IsSetUp);
+            Assert.AreEqual(1, onSetUpCallCount);
+        }
+
+        [Test]
+        public void TestSetUpTwice()
+        {
+            m_RedDotModule.SetUp();
+            Assert.Throws<InvalidOperationException>(() => m_RedDotModule.SetUp());
+        }
+
+        [Test]
+        public void TestDependingOnSameKeyTwice()
+        {
+            m_RedDotModule.AddLeaf("Leaf0");
+            m_RedDotModule.AddNonLeaf("NonLeaf0", NonLeafOperation.Sum, new[] {"Leaf0"});
+            m_RedDotModule.AddNonLeaf("NonLeaf1", NonLeafOperation.Sum, new[] {"Leaf0"});
+            m_RedDotModule.AddNonLeaf("Root", NonLeafOperation.Sum, new[] {"NonLeaf0", "NonLeaf1"});
+            m_RedDotModule.SetUp();
+            m_RedDotModule.SetLeafValue("Leaf0", 1);
+            m_RedDotModule.Update(default(TimeStruct));
+            Assert.AreEqual(2, m_RedDotModule.GetValue("Root"));
         }
     }
 }
