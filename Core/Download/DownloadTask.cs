@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 
 namespace COL.UnityGameWheels.Core
@@ -20,6 +21,8 @@ namespace COL.UnityGameWheels.Core
         private long m_StartByteIndex = 0L;
         private long m_TempFileSize = 0L;
         private IDownloadTaskImpl m_DownloadTaskImpl;
+        private FileStream m_FileStream;
+        private long m_SizeToFlush = 0L;
 
         /// <summary>
         /// Download module this task is attached to.
@@ -91,7 +94,16 @@ namespace COL.UnityGameWheels.Core
             m_StartByteIndex = 0L;
             m_TempFileSize = 0L;
             m_TempSavePath = string.Empty;
+            m_SizeToFlush = 0L;
             m_DownloadTaskImpl.OnReset();
+            ClearFileStreamIfNeeded();
+        }
+
+        private void ClearFileStreamIfNeeded()
+        {
+            if (m_FileStream == null) return;
+            m_FileStream.Dispose();
+            m_FileStream = null;
         }
 
         /// <summary>
@@ -122,7 +134,6 @@ namespace COL.UnityGameWheels.Core
             else
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(m_TempSavePath) ?? throw new NullReferenceException());
-                File.Create(m_TempSavePath).Close();
                 m_TempFileSize = m_StartByteIndex = 0L;
             }
 
@@ -135,6 +146,7 @@ namespace COL.UnityGameWheels.Core
             }
             else
             {
+                m_FileStream = File.Open(m_TempSavePath, FileMode.Append);
                 m_Status = Status.Started;
                 m_DownloadTaskImpl.OnStart(taskInfo.UrlStr, m_StartByteIndex);
             }
@@ -157,6 +169,8 @@ namespace COL.UnityGameWheels.Core
                 m_Status = Status.Finished;
                 ErrorCode = DownloadErrorCode.StoppedByUser;
             }
+
+            ClearFileStreamIfNeeded();
         }
 
         /// <summary>
@@ -182,12 +196,14 @@ namespace COL.UnityGameWheels.Core
 
             if (DownloadModule.Timeout > 0 && TimeUsed > DownloadModule.Timeout)
             {
+                ClearFileStreamIfNeeded();
                 TackleTimeOut();
                 return;
             }
 
             if (m_DownloadTaskImpl.ErrorCode != null)
             {
+                ClearFileStreamIfNeeded();
                 TackleWebRequestError();
                 return;
             }
@@ -195,21 +211,18 @@ namespace COL.UnityGameWheels.Core
             var taskInfo = Info.Value;
             if (m_DownloadTaskImpl.IsDone)
             {
-                SaveChunkToFile();
+                SaveDownloadedDataToFile(true);
+                ClearFileStreamIfNeeded();
                 TackleDownloadingIsOver(ref taskInfo);
                 return;
             }
 
-            if (DownloadModule.ChunkSizeToSave > 0 && DownloadedSize - m_TempFileSize >= DownloadModule.ChunkSizeToSave)
-            {
-                SaveChunkToFile();
-            }
+            SaveDownloadedDataToFile(false);
         }
 
         private void TackleDownloadingIsOver(ref DownloadTaskInfo taskInfo)
         {
-            string errorMessage;
-            var errorCode = CheckDownloadedFile(ref taskInfo, out errorMessage);
+            var errorCode = CheckDownloadedFile(ref taskInfo, out var errorMessage);
             if (errorCode == null)
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(taskInfo.SavePath) ?? throw new NullReferenceException());
@@ -229,6 +242,7 @@ namespace COL.UnityGameWheels.Core
                 ErrorMessage = errorMessage;
                 File.Delete(m_TempSavePath);
             }
+
             m_Status = Status.Finished;
         }
 
@@ -258,7 +272,7 @@ namespace COL.UnityGameWheels.Core
                 else
                 {
                     errorMessage = Utility.Text.Format("CRC 32 inconsistency: expects '{0}' but actually is '{1}'.",
-                                                       taskInfo.Crc32.Value, actualCrc32);
+                        taskInfo.Crc32.Value, actualCrc32);
                     return DownloadErrorCode.WrongChecksum;
                 }
             }
@@ -279,9 +293,9 @@ namespace COL.UnityGameWheels.Core
             m_Status = Status.Finished;
         }
 
-        private void SaveChunkToFile()
+        private void SaveDownloadedDataToFile(bool forceFlush)
         {
-            long startIndex = m_TempFileSize - m_StartByteIndex;
+            long startIndex = m_TempFileSize + m_SizeToFlush - m_StartByteIndex;
             long sizeToWrite = m_DownloadTaskImpl.RealDownloadedSize - startIndex;
 
             if (sizeToWrite <= 0L)
@@ -289,21 +303,21 @@ namespace COL.UnityGameWheels.Core
                 return;
             }
 
-            using (var fs = File.Open(m_TempSavePath, FileMode.Append))
+            m_SizeToFlush += sizeToWrite;
+            try
             {
-                using (var bw = new BinaryWriter(fs))
+                m_DownloadTaskImpl.WriteDownloadedContent(m_FileStream, startIndex, sizeToWrite);
+                if (forceFlush || DownloadModule.ChunkSizeToSave > 0 && m_SizeToFlush >= DownloadModule.ChunkSizeToSave)
                 {
-                    try
-                    {
-                        m_DownloadTaskImpl.WriteDownloadedContent(bw, startIndex, sizeToWrite);
-                        m_TempFileSize += sizeToWrite;
-                    }
-                    catch (IOException e)
-                    {
-                        ErrorCode = DownloadErrorCode.FileIOException;
-                        ErrorMessage = e.Message;
-                    }
+                    m_FileStream.Flush();
+                    m_TempFileSize += m_SizeToFlush;
+                    m_SizeToFlush = 0;
                 }
+            }
+            catch (IOException e)
+            {
+                ErrorCode = DownloadErrorCode.FileIOException;
+                ErrorMessage = e.Message;
             }
         }
     }

@@ -32,12 +32,7 @@
         public void Init()
         {
             m_DownloadTaskRawPool = RefPoolModule.GetOrAdd<DownloadTask>();
-            if (m_DownloadTaskRawPool != null)
-            {
-                return;
-            }
-
-            m_DownloadTaskRawPool = RefPoolModule.Add<DownloadTask>(DownloadModule.ConcurrentDownloadCountLimit);
+            m_DownloadTaskRawPool.Capacity = DownloadModule.ConcurrentDownloadCountLimit;
             m_DownloadTaskRawPool.ApplyCapacity();
         }
 

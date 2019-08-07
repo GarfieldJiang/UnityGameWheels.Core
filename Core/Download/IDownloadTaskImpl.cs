@@ -60,12 +60,12 @@ namespace COL.UnityGameWheels.Core
         void OnDownloadError();
 
         /// <summary>
-        /// Write downloaded content to given writer.
+        /// Write downloaded content to given stream.
         /// </summary>
-        /// <param name="bw">Binary writer to write the content.</param>
+        /// <param name="stream">Stream to write the content to.</param>
         /// <param name="offset">Where to start.</param>
         /// <param name="size">How many bytes to write.</param>
-        void WriteDownloadedContent(BinaryWriter bw, long offset, long size);
+        void WriteDownloadedContent(Stream stream, long offset, long size);
 
         /// <summary>
         /// Generic tick method.

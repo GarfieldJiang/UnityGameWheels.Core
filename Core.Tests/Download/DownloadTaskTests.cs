@@ -106,7 +106,7 @@ namespace COL.UnityGameWheels.Core.Tests
                 }
             }
 
-            public void WriteDownloadedContent(BinaryWriter bw, long offset, long size)
+            public void WriteDownloadedContent(Stream stream, long offset, long size)
             {
                 var buffer = new byte[size];
                 for (int i = 0; i < buffer.Length; i++)
@@ -114,7 +114,7 @@ namespace COL.UnityGameWheels.Core.Tests
                     buffer[i] = (byte) ((offset + m_StartByteIndex + i) % (byte.MaxValue + 1));
                 }
 
-                bw.Write(buffer);
+                stream.Write(buffer, 0, buffer.Length);
             }
         }
 

@@ -109,7 +109,6 @@ namespace COL.UnityGameWheels.Core
                     throw new InvalidOperationException("Already set.");
                 }
 
-                // A non-positive value means not to save in chunks.
                 m_ChunkSizeToSave = value;
             }
         }
