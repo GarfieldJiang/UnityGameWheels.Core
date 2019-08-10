@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace COL.UnityGameWheels.Core
 {
@@ -11,6 +12,7 @@ namespace COL.UnityGameWheels.Core
         private int? m_MainThreadId = null;
         private Dictionary<int, LinkedList<OnHearEvent>> m_Listeners = null;
         private List<OnHearEvent> m_CopiedListenerCollection = null;
+        private bool m_CopiedListenerCollectionIsBeingUsed = false;
         private Queue<SenderEventPair> m_EventQueue = null;
         private Queue<SenderEventPair> m_UpdateEventQueue = null;
         private IEventArgsReleaser m_EventArgsReleaser = new DefaultEventArgsReleaser();
@@ -121,20 +123,47 @@ namespace COL.UnityGameWheels.Core
         {
             CheckMainThreadOrThrow();
             CheckStateOrThrow();
-            m_CopiedListenerCollection.Clear();
-            m_CopiedListenerCollection.AddRange(EnsureListenerCollection(eventArgs.EventId));
+            var copiedListenerCollection = PrepareCopiedListenerCollection(eventArgs);
+
             try
             {
-                foreach (var listener in m_CopiedListenerCollection)
+                foreach (var listener in copiedListenerCollection)
                 {
                     listener(sender, eventArgs);
                 }
             }
             finally
             {
-                m_CopiedListenerCollection.Clear();
+                ClearCopiedListenerCollection(copiedListenerCollection);
                 m_EventArgsReleaser.Release(eventArgs);
             }
+        }
+
+        private void ClearCopiedListenerCollection(List<OnHearEvent> copiedListenerCollection)
+        {
+            if (copiedListenerCollection == m_CopiedListenerCollection)
+            {
+                m_CopiedListenerCollectionIsBeingUsed = false;
+            }
+
+            copiedListenerCollection.Clear();
+        }
+
+        private List<OnHearEvent> PrepareCopiedListenerCollection(BaseEventArgs eventArgs)
+        {
+            List<OnHearEvent> copiedListenerCollection;
+            if (m_CopiedListenerCollectionIsBeingUsed)
+            {
+                copiedListenerCollection = new List<OnHearEvent>();
+            }
+            else
+            {
+                m_CopiedListenerCollectionIsBeingUsed = true;
+                copiedListenerCollection = m_CopiedListenerCollection;
+            }
+
+            copiedListenerCollection.AddRange(EnsureListenerCollection(eventArgs.EventId));
+            return copiedListenerCollection;
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace COL.UnityGameWheels.Core.Tests
@@ -140,15 +141,9 @@ namespace COL.UnityGameWheels.Core.Tests
         [Test]
         public void TestAddRemoveNullListener()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, null);
-            });
+            Assert.Throws<ArgumentNullException>(() => { m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, null); });
 
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, null);
-            });
+            Assert.Throws<ArgumentNullException>(() => { m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, null); });
         }
 
         [Test]
@@ -240,6 +235,84 @@ namespace COL.UnityGameWheels.Core.Tests
                 Assert.AreEqual(1, eventsReceived);
                 Assert.AreEqual(0, exceptionsCaught);
             }
+        }
+        
+        [Test]
+        public void TestSendInSendNow()
+        {
+            var eventListeners = new List<OnHearEvent>();
+            var eventRecorder = new List<int>();
+            bool hasRemovedEventListener2 = false;
+            for (int i = 0; i < 4; i++)
+            {
+                int index = i;
+                eventListeners.Add((_, e) =>
+                {
+                    eventRecorder.Add(index);
+                    if (index != 1)
+                    {
+                        return;
+                    }
+
+                    if (hasRemovedEventListener2)
+                    {
+                        return;
+                    }
+
+                    hasRemovedEventListener2 = true;
+                    // Remove eventListeners[2] and broadcast the event again.
+                    m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, eventListeners[index + 1]);
+                    m_EventModule.SendEvent(null, new OneSimpleEventArgs());
+                });
+            }
+
+            foreach (var eventListener in eventListeners)
+            {
+                m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, eventListener);
+            }
+
+            m_EventModule.SendEventNow(null, new OneSimpleEventArgs());
+            CollectionAssert.AreEqual(new[] {0, 1, 2, 3}, eventRecorder);
+            m_EventModule.Update(new TimeStruct());
+            CollectionAssert.AreEqual(new [] {0, 1, 2, 3, 0, 1, 3}, eventRecorder);
+        }
+
+        [Test]
+        public void TestSendNowInSendNow()
+        {
+            var eventListeners = new List<OnHearEvent>();
+            var eventRecorder = new List<int>();
+            bool hasRemovedEventListener2 = false;
+            for (int i = 0; i < 4; i++)
+            {
+                int index = i;
+                eventListeners.Add((_, e) =>
+                {
+                    eventRecorder.Add(index);
+                    if (index != 1)
+                    {
+                        return;
+                    }
+
+                    if (hasRemovedEventListener2)
+                    {
+                        return;
+                    }
+
+                    hasRemovedEventListener2 = true;
+                    // Remove eventListeners[2] and broadcast the event again.
+                    m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, eventListeners[index + 1]);
+                    m_EventModule.SendEventNow(null, new OneSimpleEventArgs());
+                });
+            }
+
+            foreach (var eventListener in eventListeners)
+            {
+                m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, eventListener);
+            }
+
+            m_EventModule.SendEventNow(null, new OneSimpleEventArgs());
+            CollectionAssert.AreEqual(new[] {0, 1, 0, 1, 3, 2, 3}, eventRecorder);
         }
 
         [SetUp]
