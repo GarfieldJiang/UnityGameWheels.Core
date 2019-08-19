@@ -304,6 +304,10 @@ namespace COL.UnityGameWheels.Core
             }
 
             m_SizeToFlush += sizeToWrite;
+
+#if PROFILING
+            Profiler.BeginSample();
+#endif
             try
             {
                 m_DownloadTaskImpl.WriteDownloadedContent(m_FileStream, startIndex, sizeToWrite);
@@ -318,6 +322,12 @@ namespace COL.UnityGameWheels.Core
             {
                 ErrorCode = DownloadErrorCode.FileIOException;
                 ErrorMessage = e.Message;
+            }
+            finally
+            {
+#if PROFILING
+                CoreLog.Debug($"[DownloadTask SaveDownloadedDataToFile] Writing {sizeToWrite} bytes of file takes time {Profiler.EndSample().TotalMilliseconds} ms.");
+#endif
             }
         }
     }

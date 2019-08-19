@@ -27,6 +27,9 @@ namespace COL.UnityGameWheels.Core
 
             public static uint Sum(Stream inputStream)
             {
+#if PROFILING
+                Profiler.BeginSample();
+#endif
                 if (inputStream == null)
                 {
                     throw new ArgumentNullException(nameof(inputStream));
@@ -39,12 +42,22 @@ namespace COL.UnityGameWheels.Core
 
                 uint value = HashInit();
                 int bytesRead;
+#if PROFILING
+                long totalBytes = 0L;
+#endif
                 while ((bytesRead = inputStream.Read(InternalBuffer, 0, InternalBuffer.Length)) > 0)
                 {
+#if PROFILING
+                    totalBytes += bytesRead;
+#endif
                     value = HashCore(value, InternalBuffer, 0, bytesRead);
                 }
 
-                return HashFinal(value);
+                var ret = HashFinal(value);
+#if PROFILING
+                CoreLog.Debug($"[Crc32 Sum] Hashes a stream of {totalBytes} bytes takes {Profiler.EndSample().TotalMilliseconds} ms.");
+#endif
+                return ret;
             }
 
             public static uint Sum(byte[] buffer)
@@ -91,7 +104,7 @@ namespace COL.UnityGameWheels.Core
             {
                 for (var i = offset; i < offset + length; i++)
                 {
-                    value = Crc32Tab[(byte) value ^ array[i]] ^ (value >> 8);
+                    value = Crc32Tab[(byte)value ^ array[i]] ^ (value >> 8);
                 }
 
                 return value;
