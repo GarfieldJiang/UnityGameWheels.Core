@@ -3,6 +3,7 @@ using NUnit.Framework;
 using System;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 
 namespace COL.UnityGameWheels.Core.Tests
 {
@@ -98,7 +99,7 @@ namespace COL.UnityGameWheels.Core.Tests
                 }
 
                 m_TimeUsed += timeStruct.UnscaledDeltaTime;
-                RealDownloadedSize = m_StartByteIndex + (long) (m_TimeUsed * Size / TimeNeeded);
+                RealDownloadedSize = m_StartByteIndex + (long)(m_TimeUsed * Size / TimeNeeded);
                 if (RealDownloadedSize + m_StartByteIndex > Size)
                 {
                     RealDownloadedSize = Size - m_StartByteIndex;
@@ -111,7 +112,7 @@ namespace COL.UnityGameWheels.Core.Tests
                 var buffer = new byte[size];
                 for (int i = 0; i < buffer.Length; i++)
                 {
-                    buffer[i] = (byte) ((offset + m_StartByteIndex + i) % (byte.MaxValue + 1));
+                    buffer[i] = (byte)((offset + m_StartByteIndex + i) % (byte.MaxValue + 1));
                 }
 
                 stream.Write(buffer, 0, buffer.Length);
@@ -147,6 +148,7 @@ namespace COL.UnityGameWheels.Core.Tests
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
                 m_DownloadModule.Update(new TimeStruct(.1f, .1f, time, time));
+                Thread.Sleep(100);
             }
 
             Assert.AreEqual(0, failureCount);
@@ -192,6 +194,7 @@ namespace COL.UnityGameWheels.Core.Tests
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
                 m_DownloadModule.Update(new TimeStruct(.1f, .1f, time, time));
+                Thread.Sleep(100);
             }
 
             Assert.AreEqual(0, failureCount);
@@ -238,6 +241,7 @@ namespace COL.UnityGameWheels.Core.Tests
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
                 m_DownloadModule.Update(new TimeStruct(.1f, .1f, time, time));
+                Thread.Sleep(100);
             }
 
             Assert.AreEqual(0, failureCount);
@@ -303,18 +307,18 @@ namespace COL.UnityGameWheels.Core.Tests
         private static void CheckBufferContent(long size, byte[] bytes)
         {
             Assert.AreEqual(size, bytes.LongLength);
-            for (int i = 0; i < (int) size; i++)
+            for (int i = 0; i < (int)size; i++)
             {
-                Assert.AreEqual((byte) (i % (byte.MaxValue + 1)), bytes[i]);
+                Assert.AreEqual((byte)(i % (byte.MaxValue + 1)), bytes[i]);
             }
         }
 
         private static byte[] CreateBufferContent(long size)
         {
             var ret = new byte[size];
-            for (int i = 0; i < (int) size; i++)
+            for (int i = 0; i < (int)size; i++)
             {
-                ret[i] = (byte) (i % (byte.MaxValue + 1));
+                ret[i] = (byte)(i % (byte.MaxValue + 1));
             }
 
             return ret;

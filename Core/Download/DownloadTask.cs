@@ -1,28 +1,55 @@
 ﻿using System;
-using System.Diagnostics.Eventing.Reader;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace COL.UnityGameWheels.Core
 {
     /// <summary>
     /// Default implementation of <see cref="IDownloadTask"/>.
     /// </summary>
-    public sealed class DownloadTask : IDownloadTask
+    public sealed partial class DownloadTask : IDownloadTask
     {
+        // Only set in worker threads for checking file sizes and check sums.
+        // Therefore this is not a protection of downloading the same file twice simultaneously.
+        private static readonly ConcurrentDictionary<string, bool> s_DownloadedFileBeingChecked
+            = new ConcurrentDictionary<string, bool>();
+
         private enum Status
         {
             None,
+            WaitingForSameNameChecking,
             Started,
+            Checking,
             Finished,
         }
 
         private Status m_Status = Status.None;
+
+        private Status ItsStatus
+        {
+            get => m_Status;
+            set
+            {
+                if (value != m_Status)
+                {
+                    CoreLog.Debug($"[DownloadTask set_ItsStatus] ID: {DownloadTaskId}, State: {m_Status} --> {value}");
+                }
+
+                m_Status = value;
+            }
+        }
+
         private string m_TempSavePath = string.Empty;
         private long m_StartByteIndex = 0L;
         private long m_TempFileSize = 0L;
         private IDownloadTaskImpl m_DownloadTaskImpl;
         private FileStream m_FileStream;
         private long m_SizeToFlush = 0L;
+        private CancellationTokenSource m_CheckingSubtaskCancellationTokenSource = null;
+        private Task<CheckingSubtaskResult> m_CheckingSubtask = null;
 
         /// <summary>
         /// Download module this task is attached to.
@@ -82,11 +109,14 @@ namespace COL.UnityGameWheels.Core
         /// </summary>
         public void Reset()
         {
-            m_Status = Status.None;
+            ItsStatus = Status.None;
             DownloadTaskId = 0;
             Info = null;
             ErrorCode = null;
             ErrorMessage = string.Empty;
+
+            ClearCheckingSubtask();
+
             DownloadedSize = 0L;
             IsDone = false;
             DownloadModule = null;
@@ -97,6 +127,21 @@ namespace COL.UnityGameWheels.Core
             m_SizeToFlush = 0L;
             m_DownloadTaskImpl.OnReset();
             ClearFileStreamIfNeeded();
+        }
+
+        private void ClearCheckingSubtask()
+        {
+            if (m_CheckingSubtaskCancellationTokenSource != null)
+            {
+                if (!m_CheckingSubtaskCancellationTokenSource.IsCancellationRequested)
+                {
+                    m_CheckingSubtaskCancellationTokenSource.Cancel();
+                }
+
+                m_CheckingSubtaskCancellationTokenSource.Dispose();
+                m_CheckingSubtaskCancellationTokenSource = null;
+                m_CheckingSubtask = null;
+            }
         }
 
         private void ClearFileStreamIfNeeded()
@@ -111,9 +156,9 @@ namespace COL.UnityGameWheels.Core
         /// </summary>
         public void Start()
         {
-            if (m_Status != Status.None)
+            if (ItsStatus != Status.None)
             {
-                throw new InvalidOperationException(Utility.Text.Format("Cannot start in status '{0}'", m_Status));
+                throw new InvalidOperationException(Utility.Text.Format("Cannot start in status '{0}'", ItsStatus));
             }
 
             if (DownloadModule == null)
@@ -138,18 +183,34 @@ namespace COL.UnityGameWheels.Core
             }
 
             var taskInfo = Info.Value;
-            if (taskInfo.Size > 0L && taskInfo.Size <= m_TempFileSize)
+            if (s_DownloadedFileBeingChecked.ContainsKey(m_TempSavePath))
             {
-                m_Status = Status.Finished;
-                DownloadedSize = m_TempFileSize;
-                TackleDownloadingIsOver(ref taskInfo);
+                ItsStatus = Status.WaitingForSameNameChecking;
             }
             else
             {
-                m_FileStream = File.Open(m_TempSavePath, FileMode.Append);
-                m_Status = Status.Started;
-                m_DownloadTaskImpl.OnStart(taskInfo.UrlStr, m_StartByteIndex);
+                CheckOrStart(taskInfo);
             }
+        }
+
+        private void CheckOrStart(DownloadTaskInfo taskInfo)
+        {
+            if (taskInfo.Size > 0L && taskInfo.Size <= m_TempFileSize)
+            {
+                DownloadedSize = m_TempFileSize;
+                TackleDownloadingIsOver(taskInfo);
+            }
+            else
+            {
+                SwitchToStartedStatus(taskInfo);
+            }
+        }
+
+        private void SwitchToStartedStatus(DownloadTaskInfo taskInfo)
+        {
+            m_FileStream = File.Open(m_TempSavePath, FileMode.Append);
+            ItsStatus = Status.Started;
+            m_DownloadTaskImpl.OnStart(taskInfo.UrlStr, m_StartByteIndex);
         }
 
         /// <summary>
@@ -157,16 +218,30 @@ namespace COL.UnityGameWheels.Core
         /// </summary>
         public void Stop()
         {
-            if (m_Status == Status.None)
+            if (ItsStatus == Status.None)
             {
-                throw new InvalidOperationException(Utility.Text.Format("Cannot stop in status '{0}'", m_Status));
+                throw new InvalidOperationException(Utility.Text.Format("Cannot stop in status '{0}'", ItsStatus));
             }
 
-            if (m_Status == Status.Started)
+            if (ItsStatus != Status.Finished)
             {
-                m_DownloadTaskImpl.OnStop();
+                switch (ItsStatus)
+                {
+                    case Status.Started:
+                        m_DownloadTaskImpl.OnStop();
+                        IsDone = false;
+                        break;
+                    case Status.WaitingForSameNameChecking:
+                        m_CheckingSubtaskCancellationTokenSource.Cancel();
+                        m_CheckingSubtaskCancellationTokenSource.Dispose();
+                        m_CheckingSubtaskCancellationTokenSource = null;
+                        break;
+                    case Status.Checking:
+                        break;
+                }
+
                 IsDone = false;
-                m_Status = Status.Finished;
+                ItsStatus = Status.Finished;
                 ErrorCode = DownloadErrorCode.StoppedByUser;
             }
 
@@ -179,13 +254,30 @@ namespace COL.UnityGameWheels.Core
         /// <param name="timeStruct">Time struct.</param>
         public void Update(TimeStruct timeStruct)
         {
-            if (m_Status == Status.None)
+            if (ItsStatus == Status.None)
             {
-                throw new InvalidOperationException(Utility.Text.Format("Cannot tick in status '{0}'", m_Status));
+                throw new InvalidOperationException(Utility.Text.Format("Cannot tick in status '{0}'", ItsStatus));
             }
 
-            if (m_Status == Status.Finished)
+            if (ItsStatus == Status.Finished)
             {
+                return;
+            }
+
+            var taskInfo = Info.Value;
+            if (ItsStatus == Status.WaitingForSameNameChecking)
+            {
+                if (!s_DownloadedFileBeingChecked.ContainsKey(m_TempSavePath))
+                {
+                    CheckOrStart(taskInfo);
+                }
+
+                return;
+            }
+
+            if (ItsStatus == Status.Checking)
+            {
+                UpdateChecking(taskInfo);
                 return;
             }
 
@@ -208,73 +300,110 @@ namespace COL.UnityGameWheels.Core
                 return;
             }
 
-            var taskInfo = Info.Value;
             if (m_DownloadTaskImpl.IsDone)
             {
                 SaveDownloadedDataToFile(true);
                 ClearFileStreamIfNeeded();
-                TackleDownloadingIsOver(ref taskInfo);
+                TackleDownloadingIsOver(taskInfo);
                 return;
             }
 
             SaveDownloadedDataToFile(false);
         }
 
-        private void TackleDownloadingIsOver(ref DownloadTaskInfo taskInfo)
+        private void UpdateChecking(DownloadTaskInfo taskInfo)
         {
-            var errorCode = CheckDownloadedFile(ref taskInfo, out var errorMessage);
-            if (errorCode == null)
+            if (m_CheckingSubtask.IsFaulted)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(taskInfo.SavePath) ?? throw new NullReferenceException());
-                if (File.Exists(taskInfo.SavePath))
+                foreach (var e in m_CheckingSubtask.Exception.InnerExceptions)
                 {
-                    File.Delete(taskInfo.SavePath);
+                    throw e;
                 }
-
-                File.Move(m_TempSavePath, taskInfo.SavePath);
-                IsDone = true;
-                ErrorCode = null;
             }
-            else
+            else if (m_CheckingSubtask.IsCompleted)
             {
-                IsDone = false;
-                ErrorCode = errorCode;
-                ErrorMessage = errorMessage;
-                File.Delete(m_TempSavePath);
-            }
-
-            m_Status = Status.Finished;
-        }
-
-        private DownloadErrorCode? CheckDownloadedFile(ref DownloadTaskInfo taskInfo, out string errorMessage)
-        {
-            bool sizeCheck = taskInfo.Size <= 0L || taskInfo.Size == DownloadedSize;
-            errorMessage = string.Empty;
-
-            if (!sizeCheck)
-            {
-                errorMessage = Utility.Text.Format("Expected size is '{0}' while actual size is '{1}'", taskInfo.Size, DownloadedSize);
-                return DownloadErrorCode.WrongSize;
-            }
-
-            if (taskInfo.Crc32 == null)
-            {
-                return null;
-            }
-
-            using (var fs = File.OpenRead(m_TempSavePath))
-            {
-                var actualCrc32 = Algorithm.Crc32.Sum(fs);
-                if (actualCrc32 == taskInfo.Crc32.Value)
+                var result = m_CheckingSubtask.Result;
+                if (result.ErrorCode == null)
                 {
-                    return null;
+                    Directory.CreateDirectory(Path.GetDirectoryName(taskInfo.SavePath) ?? throw new NullReferenceException());
+                    if (File.Exists(taskInfo.SavePath))
+                    {
+                        File.Delete(taskInfo.SavePath);
+                    }
+
+                    File.Move(m_TempSavePath, taskInfo.SavePath);
+                    IsDone = true;
+                    ErrorCode = null;
                 }
                 else
                 {
+                    IsDone = false;
+                    ErrorCode = result.ErrorCode;
+                    ErrorMessage = result.ErrorMessage;
+                    File.Delete(m_TempSavePath);
+                }
+
+                ItsStatus = Status.Finished;
+            }
+        }
+
+        private void TackleDownloadingIsOver(DownloadTaskInfo taskInfo)
+        {
+            ItsStatus = Status.Checking;
+            m_CheckingSubtaskCancellationTokenSource = new CancellationTokenSource();
+            m_CheckingSubtask = Task.Run(() =>
+                    CheckDownloadedFile(taskInfo, m_TempSavePath, m_CheckingSubtaskCancellationTokenSource.Token),
+                m_CheckingSubtaskCancellationTokenSource.Token);
+        }
+
+        private CheckingSubtaskResult CheckDownloadedFile(DownloadTaskInfo taskInfo, string tempSavePath, CancellationToken cancellationToken)
+        {
+            var keyAdded = s_DownloadedFileBeingChecked.TryAdd(m_TempSavePath, true);
+            if (!keyAdded)
+            {
+                throw new InvalidOperationException("Oops. Cannot add temp save path to dictionary.");
+            }
+
+            try
+            {
+                bool sizeCheck = taskInfo.Size <= 0L || taskInfo.Size == DownloadedSize;
+                var errorMessage = string.Empty;
+
+                if (!sizeCheck)
+                {
+                    errorMessage = Utility.Text.Format("Expected size is '{0}' while actual size is '{1}'", taskInfo.Size, DownloadedSize);
+                    return new CheckingSubtaskResult
+                    {
+                        ErrorCode = DownloadErrorCode.WrongSize,
+                        ErrorMessage = errorMessage
+                    };
+                }
+
+                if (taskInfo.Crc32 == null || cancellationToken.IsCancellationRequested)
+                {
+                    return default(CheckingSubtaskResult);
+                }
+
+                using (var fs = File.OpenRead(m_TempSavePath))
+                {
+                    var actualCrc32 = Algorithm.Crc32.Sum(fs);
+                    if (actualCrc32 == taskInfo.Crc32.Value)
+                    {
+                        return default(CheckingSubtaskResult);
+                    }
+
                     errorMessage = Utility.Text.Format("CRC 32 inconsistency: expects '{0}' but actually is '{1}'.",
                         taskInfo.Crc32.Value, actualCrc32);
-                    return DownloadErrorCode.WrongChecksum;
+                    return new CheckingSubtaskResult
+                    {
+                        ErrorCode = DownloadErrorCode.WrongChecksum,
+                        ErrorMessage = errorMessage
+                    };
                 }
+            }
+            finally
+            {
+                s_DownloadedFileBeingChecked.TryRemove(tempSavePath, out _);
             }
         }
 
@@ -282,7 +411,7 @@ namespace COL.UnityGameWheels.Core
         {
             ErrorCode = m_DownloadTaskImpl.ErrorCode;
             ErrorMessage = m_DownloadTaskImpl.ErrorMessage;
-            m_Status = Status.Finished;
+            ItsStatus = Status.Finished;
         }
 
         private void TackleTimeOut()
@@ -290,7 +419,7 @@ namespace COL.UnityGameWheels.Core
             ErrorCode = DownloadErrorCode.Timeout;
             ErrorMessage = string.Empty;
             m_DownloadTaskImpl.OnTimeOut();
-            m_Status = Status.Finished;
+            ItsStatus = Status.Finished;
         }
 
         private void SaveDownloadedDataToFile(bool forceFlush)
