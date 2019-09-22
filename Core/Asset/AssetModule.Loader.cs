@@ -51,6 +51,8 @@
             private readonly HashSet<string> m_DFSVisitedFlags = null;
             private bool m_ShouldForceUnloadUnusedResources;
 
+            private readonly Dictionary<string, int> m_AssetPathToResourceGroupIdMap = new Dictionary<string, int>();
+
             internal Loader(AssetModule owner)
             {
                 m_Owner = owner;
@@ -253,6 +255,28 @@
                 }
 
                 m_AssetAccessorsToRelease.Add(assetAccessor);
+            }
+
+            internal int GetAssetResourceGroupId(string assetPath)
+            {
+                if (string.IsNullOrEmpty(assetPath))
+                {
+                    throw new ArgumentException("Shouldn't be null or empty.", nameof(assetPath));
+                }
+
+                if (!ReadWriteIndex.AssetInfos.TryGetValue(assetPath, out var assetInfo))
+                {
+                    return Constant.InvalidResourceGroupId;
+                }
+
+                if (m_AssetPathToResourceGroupIdMap.TryGetValue(assetPath, out int resourceGroupId))
+                {
+                    return resourceGroupId;
+                }
+
+                resourceGroupId = ReadWriteIndex.ResourceBasicInfos[assetInfo.ResourcePath].GroupId;
+                m_AssetPathToResourceGroupIdMap.Add(assetPath, resourceGroupId);
+                return resourceGroupId;
             }
 
             private AssetCache EnsureAssetCache(string assetPath)

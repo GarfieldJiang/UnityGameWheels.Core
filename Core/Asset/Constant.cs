@@ -34,5 +34,15 @@
         /// The extension of any resource file.
         /// </summary>
         public const string ResourceFileExtension = ".dat";
+
+        /// <summary>
+        /// Invalid resource group ID.
+        /// </summary>
+        public const int InvalidResourceGroupId = -1;
+
+        /// <summary>
+        /// Common resource group ID.
+        /// </summary>
+        public const int CommonResourceGroupId = 0;
     }
 }

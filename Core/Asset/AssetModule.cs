@@ -605,6 +605,17 @@ namespace COL.UnityGameWheels.Core.Asset
         }
 
         /// <inheritdoc />
+        public int GetAssetResourceGroupId(string assetPath)
+        {
+            if (m_UpdateChecker.Status != UpdateCheckerStatus.Success)
+            {
+                throw new InvalidOperationException("Update checking not successfully done.");
+            }
+
+            return m_Loader.GetAssetResourceGroupId(assetPath);
+        }
+
+        /// <inheritdoc />
         public IAssetAccessor LoadSceneAsset(string sceneAssetPath, LoadAssetCallbackSet callbackSet, object context)
         {
             if (m_UpdateChecker.Status != UpdateCheckerStatus.Success)

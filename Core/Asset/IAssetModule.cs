@@ -153,6 +153,13 @@ namespace COL.UnityGameWheels.Core.Asset
         IAssetAccessor LoadSceneAsset(string sceneAssetPath, LoadAssetCallbackSet callbackSet, object context);
 
         /// <summary>
+        /// Get the resource group ID which the given asset belongs.
+        /// </summary>
+        /// <param name="assetPath">Asset path.</param>
+        /// <returns>Resource group ID, or <see cref="Constant.InvalidResourceGroupId"/> if asset doesn't exist.</returns>
+        int GetAssetResourceGroupId(string assetPath);
+
+        /// <summary>
         /// Reduces a reference to the given asset.
         /// </summary>
         /// <param name="assetAccessor">The asset accessor.</param>
