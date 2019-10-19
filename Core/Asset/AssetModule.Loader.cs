@@ -15,7 +15,6 @@
             private readonly HashSet<AssetCache> m_UnretainedAssetCaches = new HashSet<AssetCache>();
             private readonly List<AssetCache> m_TempAssetCaches = new List<AssetCache>();
             private readonly HashSet<ResourceCache> m_UnretainedResourceCaches = new HashSet<ResourceCache>();
-            private readonly List<ResourceCache> m_TempResourceCaches = new List<ResourceCache>();
             private readonly List<Action<TimeStruct>> m_TickDelegates = new List<Action<TimeStruct>>();
             private readonly List<Action<TimeStruct>> m_TempTickDelegates = new List<Action<TimeStruct>>();
             private readonly List<IAssetLoadingTaskImpl> m_RunningAssetLoadingTasks = null;
@@ -47,8 +46,10 @@
             private readonly IRefPool<AssetAccessor> m_AssetAccessorPool = null;
             private readonly IRefPool<AssetLoadingTask> m_AssetLoadingTaskPool = null;
             private readonly IRefPool<ResourceLoadingTask> m_ResourceLoadingTaskPool = null;
+
             private float m_LastReleaseResourcesTime = 0;
-            private readonly HashSet<string> m_DFSVisitedFlags = null;
+
+            //private readonly HashSet<string> m_DFSVisitedFlags = null;
             private bool m_ShouldForceUnloadUnusedResources;
 
             private readonly Dictionary<string, int> m_AssetPathToResourceGroupIdMap = new Dictionary<string, int>();
@@ -65,7 +66,7 @@
                 m_AssetAccessorPool = m_Owner.RefPoolModule.Add<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity);
                 m_AssetLoadingTaskPool = m_Owner.RefPoolModule.Add<AssetLoadingTask>(m_RunningAssetLoadingTasks.Capacity);
                 m_ResourceLoadingTaskPool = m_Owner.RefPoolModule.Add<ResourceLoadingTask>(m_RunningResourceLoadingTasks.Capacity);
-                m_DFSVisitedFlags = new HashSet<string>();
+                //m_DFSVisitedFlags = new HashSet<string>();
                 m_AssetAccessorsToRelease = new List<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity / 8);
             }
 
@@ -95,71 +96,15 @@
                     return;
                 }
 
-                //CoreLog.Debug($"Unretained count: {m_UnretainedResourceCaches.Count}");
-                m_TempResourceCaches.Clear();
-                DFSUnretainedResourceCaches();
-                //CoreLog.Debug($"To-release count: {m_TempResourceCaches.Count}");
-                foreach (var resourceCache in m_TempResourceCaches)
+                CoreLog.Debug($"Unretained count: {m_UnretainedResourceCaches.Count}");
+                foreach (var resourceCache in m_UnretainedResourceCaches)
                 {
                     m_ResourceCaches.Remove(resourceCache.Path);
-                    m_UnretainedResourceCaches.Remove(resourceCache);
                     resourceCache.Reset();
                     m_ResourceCachePool.Release(resourceCache);
                 }
 
-                m_TempResourceCaches.Clear();
-            }
-
-            private void DFSUnretainedResourceCaches()
-            {
-                m_DFSVisitedFlags.Clear();
-                foreach (var resourceCache in m_UnretainedResourceCaches)
-                {
-                    if (m_DFSVisitedFlags.Contains(resourceCache.Path))
-                    {
-                        continue;
-                    }
-
-                    DFSVisitUnretainedResourceCache(resourceCache);
-                }
-            }
-
-            private void DFSVisitUnretainedResourceCache(ResourceCache resourceCache)
-            {
-                //CoreLog.Debug($"start visit {resourceCache.Path}");
-                m_DFSVisitedFlags.Add(resourceCache.Path);
-                var dependingPaths = ReadWriteIndex.ResourceBasicInfos[resourceCache.Path].DependingResourcePaths;
-                bool additionalCanReleaseFlag = true;
-                foreach (var dependingPath in dependingPaths)
-                {
-                    if (m_DFSVisitedFlags.Contains(dependingPath))
-                    {
-                        continue;
-                    }
-
-                    // Resource that depends on this resource is not used.
-                    if (!m_ResourceCaches.TryGetValue(dependingPath, out ResourceCache dependingResourceCache))
-                    {
-                        m_DFSVisitedFlags.Add(dependingPath);
-                        continue;
-                    }
-
-                    DFSVisitUnretainedResourceCache(dependingResourceCache);
-
-                    if (!m_TempResourceCaches.Contains(dependingResourceCache))
-                    {
-                        additionalCanReleaseFlag = false;
-                    }
-                }
-
-                if (additionalCanReleaseFlag && m_UnretainedResourceCaches.Contains(resourceCache))
-                {
-                    //CoreLog.Debug($"Can release {resourceCache.Path}");
-                    m_TempResourceCaches.Add(resourceCache);
-                }
-
-
-                //CoreLog.Debug($"end visit {resourceCache.Path}");
+                m_UnretainedResourceCaches.Clear();
             }
 
             private void ReleaseUnretainedAssetCaches()

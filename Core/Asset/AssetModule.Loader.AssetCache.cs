@@ -9,6 +9,7 @@ namespace COL.UnityGameWheels.Core.Asset
         {
             internal class AssetCache : BaseCache
             {
+                private static readonly HashSet<string> s_DFSVisitedFlag = new HashSet<string>();
                 internal HashSet<string> DependencyAssetPaths = null;
                 internal object AssetObject = null;
                 private AssetLoadingTask m_LoadingTask = null;
@@ -16,6 +17,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 private readonly List<AssetCache> m_CopiedAssetObservers = new List<AssetCache>();
                 private readonly List<AssetAccessor> m_AssetAccessors = new List<AssetAccessor>();
                 private readonly List<AssetAccessor> m_CopiedAssetAccessors = new List<AssetAccessor>();
+                private readonly HashSet<string> m_DependencyResourcePaths = new HashSet<string>();
 
                 private int m_DependencyAssetReadyCount = 0;
 
@@ -63,6 +65,33 @@ namespace COL.UnityGameWheels.Core.Asset
                         depAssetCache.IncreaseRetainCount();
                         depAssetCache.AddObserver(this);
                     }
+
+                    DFSAddResourceRetainCounts(resourceCache);
+                }
+
+                private void DFSAddResourceRetainCountsInternal(ResourceCache resourceCache, IDictionary<string, ResourceBasicInfo> resourceBasicInfos)
+                {
+                    s_DFSVisitedFlag.Add(resourceCache.Path);
+                    var resourceBasicInfo = resourceBasicInfos[resourceCache.Path];
+                    foreach (var dependencyResourcePath in resourceBasicInfo.DependencyResourcePaths)
+                    {
+                        if (s_DFSVisitedFlag.Contains(dependencyResourcePath))
+                        {
+                            continue;
+                        }
+
+                        var dependencyResourceCache = Owner.EnsureResourceCache(dependencyResourcePath);
+                        dependencyResourceCache.IncreaseRetainCount();
+                        m_DependencyResourcePaths.Add(dependencyResourcePath);
+                        DFSAddResourceRetainCountsInternal(dependencyResourceCache, resourceBasicInfos);
+                    }
+                }
+
+                private void DFSAddResourceRetainCounts(ResourceCache resourceCache)
+                {
+                    s_DFSVisitedFlag.Clear();
+                    var resourceBasicInfos = Owner.ReadWriteIndex.ResourceBasicInfos;
+                    DFSAddResourceRetainCountsInternal(resourceCache, resourceBasicInfos);
                 }
 
                 protected override void Update(TimeStruct timeStruct)
@@ -130,6 +159,20 @@ namespace COL.UnityGameWheels.Core.Asset
                     var resourceCache = Owner.EnsureResourceCache(ResourcePath);
                     resourceCache.RemoveObserver(this);
                     resourceCache.ReduceRetainCount();
+
+                    foreach (var dependencyResourcePath in m_DependencyResourcePaths)
+                    {
+                        var dependencyResourceCache = Owner.m_ResourceCaches[dependencyResourcePath];
+#if DEBUG
+                        if (dependencyResourceCache.Status == ResourceCacheStatus.None)
+                        {
+                            throw new InvalidOperationException($"Resource cache of path [{dependencyResourcePath}] is invalid.");
+                        }
+#endif
+                        dependencyResourceCache.ReduceRetainCount();
+                    }
+
+                    m_DependencyResourcePaths.Clear();
 
                     DependencyAssetPaths = null;
                     Status = AssetCacheStatus.None;

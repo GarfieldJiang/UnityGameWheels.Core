@@ -11,6 +11,21 @@ namespace COL.UnityGameWheels.Core.Asset
 
         public HashSet<string> DependingResourcePaths { get; } = new HashSet<string>();
 
+        private HashSet<string> m_DependencyResourcePaths = null;
+
+        internal HashSet<string> DependencyResourcePaths
+        {
+            get
+            {
+                if (m_DependencyResourcePaths == null)
+                {
+                    m_DependencyResourcePaths = new HashSet<string>();
+                }
+
+                return m_DependencyResourcePaths;
+            }
+        }
+
         public void FromBinary(BinaryReader br)
         {
             Path = br.ReadString();

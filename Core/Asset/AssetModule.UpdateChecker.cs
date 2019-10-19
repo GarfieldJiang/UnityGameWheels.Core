@@ -148,8 +148,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     return;
                 }
 
-                Status = UpdateCheckerStatus.Success;
-                m_CallbackSet.OnSuccess?.Invoke(m_Context);
+                Succeed();
             }
 
             private void OnDownloadSuccess(int downloadTaskId, DownloadTaskInfo taskInfo)
@@ -259,8 +258,23 @@ namespace COL.UnityGameWheels.Core.Asset
                 }
             }
 
+            private void BuildResourceDependencyData()
+            {
+                CoreLog.Debug("[AssetModule.UpdateChecker BuildResourceDependencyData]");
+                var resourceBasicInfos = m_Owner.m_ReadWriteIndex.ResourceBasicInfos;
+                foreach (var kv in resourceBasicInfos)
+                {
+                    var resourceBasicInfo = kv.Value;
+                    foreach (var dependingResourcePath in resourceBasicInfo.DependingResourcePaths)
+                    {
+                        resourceBasicInfos[dependingResourcePath].DependencyResourcePaths.Add(resourceBasicInfo.Path);
+                    }
+                }
+            }
+
             private void Succeed()
             {
+                BuildResourceDependencyData();
                 Status = UpdateCheckerStatus.Success;
                 m_CallbackSet.OnSuccess?.Invoke(m_Context);
             }
