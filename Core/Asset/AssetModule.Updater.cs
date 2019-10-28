@@ -132,15 +132,20 @@ namespace COL.UnityGameWheels.Core.Asset
                     "Download failed for '{0}' from '{1}'. Inner error code is '{2}'. Inner error message is '{3}'.",
                     downloadContext.ResourcePath, downloadTaskInfo.UrlStr, errorCode, errorMessage);
 
-                if (downloadContext.RootUrlIndex >= RootUrls.Count - 1)
+                if (downloadContext.RetryTimes >= m_Owner.DownloadRetryCount)
                 {
-                    SingleFail(resourceGroup, downloadContext.ResourcePath, errorMessage);
-                    ClearBeingUpdated(resourceGroup.GroupId);
-                    Fail(resourceGroup, null, errorMessage);
-                    return;
+                    downloadContext.RetryTimes = -1;
+                    downloadContext.RootUrlIndex++;
+                    if (downloadContext.RootUrlIndex >= RootUrls.Count)
+                    {
+                        SingleFail(resourceGroup, downloadContext.ResourcePath, errorMessage);
+                        ClearBeingUpdated(resourceGroup.GroupId);
+                        Fail(resourceGroup, null, errorMessage);
+                        return;
+                    }
                 }
 
-                downloadContext.RootUrlIndex++;
+                downloadContext.RetryTimes++;
                 var newDownloadTaskInfo = new DownloadTaskInfo(
                     Utility.Text.Format("{0}/{1}_{2}{3}", RootUrls[downloadContext.RootUrlIndex], downloadContext.ResourcePath,
                         downloadTaskInfo.Crc32.Value, Constant.ResourceFileExtension),
@@ -291,6 +296,7 @@ namespace COL.UnityGameWheels.Core.Asset
                         RootUrlIndex = 0,
                         ResourcePath = resourceToUpdate.Key,
                         ResourceGroupId = groupId,
+                        RetryTimes = 0,
                     };
                     var resourceInfo = m_Owner.m_RemoteIndex.ResourceInfos[resourceToUpdate.Key];
                     var downloadTaskInfo = new DownloadTaskInfo(
