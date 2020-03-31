@@ -277,6 +277,13 @@ namespace COL.UnityGameWheels.Core
         /// </summary>
         public override void ShutDown()
         {
+            foreach (var kv in m_OngoingDownloadTasks)
+            {
+                var task = kv.Value;
+                task.Stop();
+            }
+
+            m_OngoingDownloadTasks.Clear();
             m_DownloadTaskInfoSlotPool.Clear();
             m_DownloadTaskInfoSlotPool = null;
             m_DownloadTaskPool.ShutDown();
