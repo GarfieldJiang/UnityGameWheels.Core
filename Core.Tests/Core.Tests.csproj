@@ -77,6 +77,7 @@
     <Compile Include="Common\Algorithm\Crc32Tests.cs" />
     <Compile Include="Common\Algorithm\TarjanSccTests.cs" />
     <Compile Include="Common\Collections\PriorityQueueTests.cs" />
+    <Compile Include="Common\GuardTests.cs" />
     <Compile Include="Common\RemoveEmptyFolderTests.cs" />
     <Compile Include="Download\DownloadTaskTests.cs" />
     <Compile Include="Download\DownloadModuleTests.cs" />

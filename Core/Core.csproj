@@ -69,6 +69,7 @@
     <Compile Include="Asset\Constant.cs" />
     <Compile Include="Asset\LoadAssetIndexForInstallerCallbackSet.cs" />
     <Compile Include="Asset\IAssetIndexForInstallerLoader.cs" />
+    <Compile Include="Common\Guard\Guard.cs" />
     <Compile Include="Common\Profiler.cs" />
     <Compile Include="Download\CheckingSubtaskResult.cs" />
     <Compile Include="Event\DefaultEventArgsReleaser.cs" />
