@@ -71,6 +71,7 @@
     <Compile Include="Asset\IAssetIndexForInstallerLoader.cs" />
     <Compile Include="Common\BaseLifeCycleService.cs" />
     <Compile Include="Common\Guard\Guard.cs" />
+    <Compile Include="Common\Interfaces\IConfigReader.cs" />
     <Compile Include="Common\Interfaces\ILifeCycle.cs" />
     <Compile Include="Common\Interfaces\IModule.cs" />
     <Compile Include="Common\Interfaces\IObjectDestroyer.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="Common\Interfaces\ITickable.cs" />
     <Compile Include="Common\Profiler.cs" />
     <Compile Include="Download\CheckingSubtaskResult.cs" />
+    <Compile Include="Download\IDownloadServiceConfigReader.cs" />
     <Compile Include="Event\DefaultEventArgsReleaser.cs" />
     <Compile Include="Event\IEventArgsReleaser.cs" />
     <Compile Include="Ioc\BindingData.cs" />
@@ -119,15 +121,13 @@
     <Compile Include="Common\Utility\Utility.Text.cs" />
     <Compile Include="Download\DownloadCallbackSet.cs" />
     <Compile Include="Download\DownloadErrorCode.cs" />
-    <Compile Include="Download\DownloadModule.cs" />
-    <Compile Include="Download\DownloadModule.DownloadTaskInfoSlot.cs" />
+    <Compile Include="Download\DownloadService.cs" />
+    <Compile Include="Download\DownloadService.DownloadTaskInfoSlot.cs" />
     <Compile Include="Download\DownloadTask.cs" />
     <Compile Include="Download\DownloadTaskInfo.cs" />
-    <Compile Include="Download\DownloadTaskPool.cs" />
-    <Compile Include="Download\IDownloadModule.cs" />
+    <Compile Include="Download\IDownloadService.cs" />
     <Compile Include="Download\IDownloadTask.cs" />
     <Compile Include="Download\IDownloadTaskImpl.cs" />
-    <Compile Include="Download\IDownloadTaskPool.cs" />
     <Compile Include="Event\BaseEventArgs.cs" />
     <Compile Include="Event\EventIdToTypeMap.cs" />
     <Compile Include="Event\EventModule.cs" />

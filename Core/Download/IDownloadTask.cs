@@ -8,7 +8,7 @@
         /// <summary>
         /// Download module this task is attached to.
         /// </summary>
-        IDownloadModule DownloadModule { get; set; }
+        IDownloadService DownloadService { get; set; }
 
         /// <summary>
         /// ID of the download task.

@@ -10,7 +10,7 @@ namespace COL.UnityGameWheels.Core.Asset
         /// <summary>
         /// Download module.
         /// </summary>
-        IDownloadModule DownloadModule { get; set; }
+        IDownloadService DownloadService { get; set; }
 
         /// <summary>
         /// Reference pool module.

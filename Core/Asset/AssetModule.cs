@@ -6,7 +6,7 @@ namespace COL.UnityGameWheels.Core.Asset
 {
     public sealed partial class AssetModule : BaseModule, IAssetModule
     {
-        private IDownloadModule m_DownloadModule = null;
+        private IDownloadService m_DownloadService = null;
         private IRefPoolService m_RefPoolService = null;
         private ISimpleFactory<IAssetLoadingTaskImpl> m_AssetLoadingTaskImplFactory = null;
         private ISimpleFactory<IResourceLoadingTaskImpl> m_ResourceLoadingTaskImplFactory = null;
@@ -45,18 +45,18 @@ namespace COL.UnityGameWheels.Core.Asset
             new Dictionary<int, ResourceGroupUpdateSummary>();
 
         /// <inheritdoc />
-        public IDownloadModule DownloadModule
+        public IDownloadService DownloadService
         {
-            get { return m_DownloadModule ?? throw new InvalidOperationException("Not set."); }
+            get { return m_DownloadService ?? throw new InvalidOperationException("Not set."); }
 
             set
             {
-                if (m_DownloadModule != null)
+                if (m_DownloadService != null)
                 {
                     throw new InvalidOperationException("Already set.");
                 }
 
-                m_DownloadModule = value ?? throw new ArgumentNullException(nameof(value));
+                m_DownloadService = value ?? throw new ArgumentNullException(nameof(value));
             }
         }
 

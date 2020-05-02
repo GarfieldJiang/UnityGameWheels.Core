@@ -84,7 +84,7 @@ namespace COL.UnityGameWheels.Core
         /// <summary>
         /// Download module this task is attached to.
         /// </summary>
-        public IDownloadModule DownloadModule { get; set; }
+        public IDownloadService DownloadService { get; set; }
 
         /// <summary>
         /// Time used in seconds.
@@ -98,10 +98,10 @@ namespace COL.UnityGameWheels.Core
         {
             if (m_DownloadTaskImpl == null)
             {
-                m_DownloadTaskImpl = DownloadModule.DownloadTaskImplFactory.Get();
+                m_DownloadTaskImpl = DownloadService.DownloadTaskImplFactory.Get();
             }
 
-            m_DownloadTaskImpl.ChunkSizeToSave = DownloadModule.ChunkSizeToSave;
+            m_DownloadTaskImpl.ChunkSizeToSave = DownloadService.ChunkSizeToSave;
         }
 
         /// <summary>
@@ -119,7 +119,7 @@ namespace COL.UnityGameWheels.Core
 
             DownloadedSize = 0L;
             IsDone = false;
-            DownloadModule = null;
+            DownloadService = null;
             TimeUsed = 0f;
             m_StartByteIndex = 0L;
             m_TempFileSize = 0L;
@@ -161,7 +161,7 @@ namespace COL.UnityGameWheels.Core
                 throw new InvalidOperationException(Utility.Text.Format("Cannot start in status '{0}'", ItsStatus));
             }
 
-            if (DownloadModule == null)
+            if (DownloadService == null)
             {
                 throw new InvalidOperationException("Download module is invalid.");
             }
@@ -171,7 +171,7 @@ namespace COL.UnityGameWheels.Core
                 throw new InvalidOperationException("Download task info is invalid.");
             }
 
-            m_TempSavePath = Info.Value.SavePath + DownloadModule.TempFileExtension;
+            m_TempSavePath = Info.Value.SavePath + DownloadService.TempFileExtension;
             if (File.Exists(m_TempSavePath))
             {
                 m_TempFileSize = m_StartByteIndex = new FileInfo(m_TempSavePath).Length;
@@ -286,7 +286,7 @@ namespace COL.UnityGameWheels.Core
             TimeUsed += timeStruct.UnscaledDeltaTime;
             DownloadedSize = m_StartByteIndex + m_DownloadTaskImpl.RealDownloadedSize;
 
-            if (DownloadModule.Timeout > 0 && TimeUsed > DownloadModule.Timeout)
+            if (DownloadService.Timeout > 0 && TimeUsed > DownloadService.Timeout)
             {
                 ClearFileStreamIfNeeded();
                 TackleTimeOut();
@@ -440,7 +440,7 @@ namespace COL.UnityGameWheels.Core
             try
             {
                 m_DownloadTaskImpl.WriteDownloadedContent(m_FileStream, startIndex, sizeToWrite);
-                if (forceFlush || DownloadModule.ChunkSizeToSave > 0 && m_SizeToFlush >= DownloadModule.ChunkSizeToSave)
+                if (forceFlush || DownloadService.ChunkSizeToSave > 0 && m_SizeToFlush >= DownloadService.ChunkSizeToSave)
                 {
                     m_FileStream.Flush();
                     m_TempFileSize += m_SizeToFlush;

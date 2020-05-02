@@ -8,13 +8,14 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// Default implementation of download module.
     /// </summary>
-    public partial class DownloadModule : BaseModule, IDownloadModule
+    public partial class DownloadService : BaseLifeCycleService, IDownloadService
     {
         private IRefPoolService m_RefPoolService = null;
 
         /// <summary>
         /// Get or set the reference pool module.
         /// </summary>
+        [Ioc.Inject]
         public IRefPoolService RefPoolService
         {
             get => m_RefPoolService;
@@ -30,125 +31,35 @@ namespace COL.UnityGameWheels.Core
             }
         }
 
+        [Ioc.Inject]
+        public IDownloadServiceConfigReader ConfigReader { get; set; }
+
         private string m_TempFileExtension = null;
 
-        /// <summary>
-        /// Temporary file extension, starting with a full stop.
-        /// </summary>
-        public string TempFileExtension
-        {
-            get => m_TempFileExtension ?? throw new InvalidOperationException("Temp file extension is not set.");
+        private int m_ConcurrentDownloadCountLimit = 1;
 
-            set
-            {
-                if (m_TempFileExtension != null)
-                {
-                    throw new InvalidOperationException("Temp file extension can be set only once.");
-                }
+        private int m_ChunkSizeToSave = 0;
 
-                if (string.IsNullOrEmpty(value))
-                {
-                    throw new ArgumentException("Temp file extension is invalid.");
-                }
+        private float m_Timeout = 0f;
 
-                if (!value.StartsWith("."))
-                {
-                    throw new ArgumentException("Temp file extension must start with a full stop.");
-                }
+        private IRefPool<DownloadTask> m_DownloadTaskPool = null;
 
-                foreach (var invalidChar in Path.GetInvalidFileNameChars())
-                {
-                    if (value.Contains(invalidChar))
-                    {
-                        throw new ArgumentException("Temp file extension contains invalid characters.");
-                    }
-                }
+        /// <inheritdoc />
+        public int ConcurrentDownloadCountLimit => m_ConcurrentDownloadCountLimit;
 
-                m_TempFileExtension = value;
-            }
-        }
+        /// <inheritdoc />
+        public int ChunkSizeToSave => m_ChunkSizeToSave;
 
-        private int? m_ConcurrentDownloadCountLimit = null;
+        /// <inheritdoc />
+        public string TempFileExtension => m_TempFileExtension;
 
-        /// <summary>
-        /// The upper limit of the number of concurrent downloading tasks.
-        /// </summary>
-        public int ConcurrentDownloadCountLimit
-        {
-            get => m_ConcurrentDownloadCountLimit ?? throw new InvalidOperationException("Concurrent download count limit is not set.");
-
-            set
-            {
-                if (m_ConcurrentDownloadCountLimit != null)
-                {
-                    throw new InvalidOperationException("Concurrent download count limit can be set only once.");
-                }
-
-                if (value <= 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(value));
-                }
-
-                m_ConcurrentDownloadCountLimit = value;
-            }
-        }
-
-        private int? m_ChunkSizeToSave = null;
-
-        /// <summary>
-        /// The chunk size in bytes to save to the disk. A value that is less than or equal to 0 means the download won't be chunk based.
-        /// </summary>
-        public int ChunkSizeToSave
-        {
-            get => m_ChunkSizeToSave ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_ChunkSizeToSave != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_ChunkSizeToSave = value;
-            }
-        }
-
-        private float? m_Timeout = null;
-
-        /// <summary>
-        /// Default time limit of any task.
-        /// </summary>
-        public float Timeout
-        {
-            get => m_Timeout ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_Timeout != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                // A non-positive value, or Single.PositiveInfinity means not to have a timeout.
-                m_Timeout = value;
-            }
-        }
-
-        private IDownloadTaskPool m_DownloadTaskPool = null;
-
-        /// <summary>
-        /// Download task pool.
-        /// </summary>
-        public IDownloadTaskPool DownloadTaskPool
-        {
-            get { return m_DownloadTaskPool; }
-
-            set { m_DownloadTaskPool = value; }
-        }
+        /// <inheritdoc />
+        public float Timeout => m_Timeout;
 
         /// <summary>
         /// Factory for a <see cref="IDownloadTaskImpl"/> instance.
         /// </summary>
+        [Ioc.Inject]
         public ISimpleFactory<IDownloadTaskImpl> DownloadTaskImplFactory { get; set; }
 
         private readonly SortedDictionary<int, DownloadTaskInfoSlot> m_WaitingDownloadTaskInfoSlots = new SortedDictionary<int, DownloadTaskInfoSlot>();
@@ -163,7 +74,7 @@ namespace COL.UnityGameWheels.Core
 
         private int m_CurrentDownloadTaskId = 0;
 
-        private readonly HashSet<int> m_QuitelyStopTaskIds = new HashSet<int>();
+        private readonly HashSet<int> m_QuietlyStopTaskIds = new HashSet<int>();
 
         /// <summary>
         /// Start a downloading task.
@@ -221,7 +132,7 @@ namespace COL.UnityGameWheels.Core
                 downloadTask.Stop();
                 if (quiet)
                 {
-                    m_QuitelyStopTaskIds.Add(taskId);
+                    m_QuietlyStopTaskIds.Add(taskId);
                 }
 
                 return true;
@@ -239,11 +150,6 @@ namespace COL.UnityGameWheels.Core
             if (m_TempFileExtension == null)
             {
                 throw new InvalidOperationException("Temp file extension is not set.");
-            }
-
-            if (m_ConcurrentDownloadCountLimit == null)
-            {
-                throw new InvalidOperationException("Concurrent download count limit is not set.");
             }
 
             if (m_ChunkSizeToSave == null)
@@ -265,17 +171,60 @@ namespace COL.UnityGameWheels.Core
         /// <summary>
         /// Initialize this module.
         /// </summary>
-        public override void Init()
+        public override void OnInit()
         {
-            base.Init();
+            base.OnInit();
+
+            // Read config.
+            InitTempfileExtension();
+            InitConcurrentDownloadCountLimit();
+            m_ChunkSizeToSave = ConfigReader.ChunkSizeToSave;
+            m_Timeout = ConfigReader.Timeout;
+
+            // Initialize pools.
             m_DownloadTaskInfoSlotPool = RefPoolService.Add<DownloadTaskInfoSlot>(1024);
-            m_DownloadTaskPool.Init();
+            m_DownloadTaskPool = RefPoolService.Add<DownloadTask>(m_ConcurrentDownloadCountLimit);
+        }
+
+        private void InitConcurrentDownloadCountLimit()
+        {
+            var concurrentDownloadCountLimit = ConfigReader.ConcurrentDownloadCountLimit;
+            if (concurrentDownloadCountLimit <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(concurrentDownloadCountLimit));
+            }
+
+            m_ConcurrentDownloadCountLimit = concurrentDownloadCountLimit;
+        }
+
+        private void InitTempfileExtension()
+        {
+            var tempFileExtension = ConfigReader.TempFileExtension;
+            if (string.IsNullOrEmpty(tempFileExtension))
+            {
+                throw new ArgumentException("Temp file extension is invalid.");
+            }
+
+            if (!tempFileExtension.StartsWith("."))
+            {
+                throw new ArgumentException("Temp file extension must start with a full stop.");
+            }
+
+            foreach (var invalidChar in Path.GetInvalidFileNameChars())
+            {
+                if (tempFileExtension.Contains(invalidChar))
+                {
+                    throw new ArgumentException("Temp file extension contains invalid characters.");
+                }
+            }
+
+            m_TempFileExtension = tempFileExtension;
         }
 
         /// <summary>
         /// Shut down this module.
         /// </summary>
-        public override void ShutDown()
+        public override void OnShutdown()
         {
             foreach (var kv in m_OngoingDownloadTasks)
             {
@@ -286,19 +235,17 @@ namespace COL.UnityGameWheels.Core
             m_OngoingDownloadTasks.Clear();
             m_DownloadTaskInfoSlotPool.Clear();
             m_DownloadTaskInfoSlotPool = null;
-            m_DownloadTaskPool.ShutDown();
             m_DownloadTaskPool = null;
-            base.ShutDown();
+            base.OnShutdown();
         }
 
         /// <summary>
         /// Generic tick method.
         /// </summary>
         /// <param name="timeStruct">Time struct.</param>
-        public override void Update(TimeStruct timeStruct)
+        public void OnUpdate(TimeStruct timeStruct)
         {
-            base.Update(timeStruct);
-
+            CheckStateOrThrow();
             m_DownloadTaskIdsToRemove.Clear();
             foreach (var kv in m_OngoingDownloadTasks)
             {
@@ -316,13 +263,13 @@ namespace COL.UnityGameWheels.Core
                 }
                 else if (task.ErrorCode != null)
                 {
-                    if (!m_QuitelyStopTaskIds.Contains(taskId))
+                    if (!m_QuietlyStopTaskIds.Contains(taskId))
                     {
                         taskInfo.CallbackSet.OnFailure?.Invoke(taskId, taskInfo, task.ErrorCode.Value, task.ErrorMessage);
                     }
                     else
                     {
-                        m_QuitelyStopTaskIds.Remove(taskId);
+                        m_QuietlyStopTaskIds.Remove(taskId);
                     }
 
                     m_DownloadTaskIdsToRemove.Add(taskId);
@@ -339,17 +286,17 @@ namespace COL.UnityGameWheels.Core
                 m_OngoingDownloadTasks.Remove(taskId);
                 m_CachedOngoingDownloadedSizes.Remove(taskId);
                 task.Reset();
-                DownloadTaskPool.Release(task);
+                m_DownloadTaskPool.Release((DownloadTask)task);
             }
 
-            while (m_OngoingDownloadTasks.Count < ConcurrentDownloadCountLimit && m_WaitingDownloadTaskInfoSlots.Count > 0)
+            while (m_OngoingDownloadTasks.Count < m_ConcurrentDownloadCountLimit && m_WaitingDownloadTaskInfoSlots.Count > 0)
             {
                 var first = m_WaitingDownloadTaskInfoSlots.First();
                 m_WaitingDownloadTaskInfoSlots.Remove(first.Key);
-                var downloadTask = DownloadTaskPool.Acquire();
+                var downloadTask = m_DownloadTaskPool.Acquire();
                 downloadTask.DownloadTaskId = first.Value.DownloadTaskId;
                 downloadTask.Info = first.Value.DownloadTaskInfo;
-                downloadTask.DownloadModule = this;
+                downloadTask.DownloadService = this;
                 downloadTask.Init();
                 downloadTask.Start();
                 m_OngoingDownloadTasks.Add(downloadTask.DownloadTaskId, downloadTask);

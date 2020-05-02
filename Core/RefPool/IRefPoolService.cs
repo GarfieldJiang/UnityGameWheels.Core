@@ -8,6 +8,10 @@ namespace COL.UnityGameWheels.Core
     /// </summary>
     public interface IRefPoolService : ILifeCycle, IEnumerable<IBaseRefPool>
     {
+        /// <summary>
+        /// Config reader.
+        /// </summary>
+        [Ioc.Inject]
         IRefPoolServiceConfigReader ConfigReader { get; set; }
 
         /// <summary>

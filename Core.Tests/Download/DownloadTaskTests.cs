@@ -10,9 +10,8 @@ namespace COL.UnityGameWheels.Core.Tests
     [TestFixture]
     public class DownloadTaskTests
     {
-        private IDownloadModule m_DownloadModule = null;
-        private IRefPoolService m_ObjectPoolService = null;
-        private IDownloadTaskPool m_DownloadTaskPool = null;
+        private IDownloadService m_DownloadService = null;
+        private IRefPoolService m_RefPoolService = null;
         private ISimpleFactory<IDownloadTaskImpl> m_DownloadTaskImplFactory = null;
         private DirectoryInfo m_DirectoryInfo = null;
 
@@ -132,7 +131,7 @@ namespace COL.UnityGameWheels.Core.Tests
             int successCount = 0;
             int failureCount = 0;
 
-            m_DownloadModule.StartDownloading(new DownloadTaskInfo(
+            m_DownloadService.StartDownloading(new DownloadTaskInfo(
                 urlStr: "urlStr",
                 savePath: savePath,
                 size: size,
@@ -147,7 +146,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                m_DownloadModule.Update(new TimeStruct(.1f, .1f, time, time));
+                m_DownloadService.OnUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 
@@ -166,7 +165,7 @@ namespace COL.UnityGameWheels.Core.Tests
             long alreadyDownloadedSize = 35L;
             float timeNeeded = 1f;
             string savePath = Path.Combine(m_DirectoryInfo.FullName, fileName);
-            string tempSavePath = savePath + m_DownloadModule.TempFileExtension;
+            string tempSavePath = savePath + m_DownloadService.TempFileExtension;
 
             // Fake already downloaded file.
             File.Create(tempSavePath).Close();
@@ -178,7 +177,7 @@ namespace COL.UnityGameWheels.Core.Tests
             int successCount = 0;
             int failureCount = 0;
 
-            m_DownloadModule.StartDownloading(new DownloadTaskInfo(
+            m_DownloadService.StartDownloading(new DownloadTaskInfo(
                 urlStr: "urlStr",
                 savePath: savePath,
                 size: size,
@@ -193,7 +192,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                m_DownloadModule.Update(new TimeStruct(.1f, .1f, time, time));
+                m_DownloadService.OnUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 
@@ -212,7 +211,7 @@ namespace COL.UnityGameWheels.Core.Tests
             long alreadyDownloadedSize = size;
             float timeNeeded = 1f;
             string savePath = Path.Combine(m_DirectoryInfo.FullName, fileName);
-            string tempSavePath = savePath + m_DownloadModule.TempFileExtension;
+            string tempSavePath = savePath + m_DownloadService.TempFileExtension;
 
             // Fake already downloaded file.
             File.Create(tempSavePath).Close();
@@ -225,7 +224,7 @@ namespace COL.UnityGameWheels.Core.Tests
             int successCount = 0;
             int failureCount = 0;
 
-            m_DownloadModule.StartDownloading(new DownloadTaskInfo(
+            m_DownloadService.StartDownloading(new DownloadTaskInfo(
                 urlStr: "urlStr",
                 savePath: savePath,
                 size: size,
@@ -240,7 +239,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                m_DownloadModule.Update(new TimeStruct(.1f, .1f, time, time));
+                m_DownloadService.OnUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 
@@ -266,36 +265,36 @@ namespace COL.UnityGameWheels.Core.Tests
 
             m_DirectoryInfo = new DirectoryInfo(SavePathRoot);
 
-            m_ObjectPoolService = new RefPoolService();
-            m_ObjectPoolService.OnInit();
+            m_RefPoolService = new RefPoolService();
+            var refPoolServiceConfigReader = Substitute.For<IRefPoolServiceConfigReader>();
+            refPoolServiceConfigReader.DefaultCapacity.Returns(1);
+            m_RefPoolService.ConfigReader = refPoolServiceConfigReader;
+            m_RefPoolService.OnInit();
 
-            m_DownloadModule = new DownloadModule();
-            m_DownloadModule.ChunkSizeToSave = 32;
-            m_DownloadModule.ConcurrentDownloadCountLimit = 2;
-            m_DownloadModule.TempFileExtension = ".tmp";
-            m_DownloadModule.Timeout = 10000f;
-
-            m_DownloadTaskPool = Substitute.For<IDownloadTaskPool>();
-            m_DownloadTaskPool.Acquire().Returns(callInfo => new DownloadTask());
+            m_DownloadService = new DownloadService();
+            var configReader = Substitute.For<IDownloadServiceConfigReader>();
+            configReader.TempFileExtension.Returns(".tmp");
+            configReader.Timeout.Returns(10000f);
+            configReader.ChunkSizeToSave.Returns(32);
+            configReader.ConcurrentDownloadCountLimit.Returns(2);
+            m_DownloadService.ConfigReader = configReader;
 
             m_DownloadTaskImplFactory = new MockDownloadTaskImplFactory();
             var mockDownloadTaskImplFactory = m_DownloadTaskImplFactory as MockDownloadTaskImplFactory;
             mockDownloadTaskImplFactory.TaskShouldNeverStart = false;
 
-            m_DownloadModule.DownloadTaskPool = m_DownloadTaskPool;
-            m_DownloadModule.RefPoolService = m_ObjectPoolService;
-            m_DownloadModule.DownloadTaskImplFactory = m_DownloadTaskImplFactory;
-            m_DownloadModule.Init();
+            m_DownloadService.RefPoolService = m_RefPoolService;
+            m_DownloadService.DownloadTaskImplFactory = m_DownloadTaskImplFactory;
+            m_DownloadService.OnInit();
         }
 
         [TearDown]
         public void TearDown()
         {
-            m_DownloadTaskPool = null;
-            m_DownloadModule.ShutDown();
-            m_DownloadModule = null;
-            m_ObjectPoolService.OnShutdown();
-            m_ObjectPoolService = null;
+            m_DownloadService.OnShutdown();
+            m_DownloadService = null;
+            m_RefPoolService.OnShutdown();
+            m_RefPoolService = null;
             m_DownloadTaskImplFactory = null;
             m_DirectoryInfo = null;
             if (Directory.Exists(SavePathRoot))

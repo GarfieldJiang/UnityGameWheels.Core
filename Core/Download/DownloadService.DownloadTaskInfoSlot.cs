@@ -1,6 +1,6 @@
 ﻿namespace COL.UnityGameWheels.Core
 {
-    public partial class DownloadModule
+    public partial class DownloadService
     {
         private class DownloadTaskInfoSlot
         {

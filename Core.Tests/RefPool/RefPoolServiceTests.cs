@@ -1,11 +1,11 @@
 ﻿using NUnit.Framework;
-using Moq;
 using System;
+using NSubstitute;
 
 namespace COL.UnityGameWheels.Core.Tests
 {
     [TestFixture]
-    public class RefPoolModuleTests
+    public class RefPoolServiceTests
     {
         private IRefPoolService m_RefPoolService = null;
         private const int DefaultCapacity = 4;
@@ -107,9 +107,9 @@ namespace COL.UnityGameWheels.Core.Tests
         public void SetUp()
         {
             m_RefPoolService = new RefPoolService();
-            var configReader = new Mock<IRefPoolServiceConfigReader>();
-            configReader.Setup(config => config.DefaultCapacity).Returns(1);
-            m_RefPoolService.ConfigReader = configReader.Object;
+            var configReader = Substitute.For<IRefPoolServiceConfigReader>();
+            configReader.DefaultCapacity.Returns(1);
+            m_RefPoolService.ConfigReader = configReader;
             m_RefPoolService.OnInit();
         }
 

@@ -1,10 +1,35 @@
 ﻿namespace COL.UnityGameWheels.Core
 {
     /// <summary>
-    /// Interface of a download module.
+    /// Interface of a download service.
     /// </summary>
-    public interface IDownloadModule : IModule
+    public interface IDownloadService : ILifeCycle, ITickable
     {
+        /// <summary>
+        /// Config reader.
+        /// </summary>
+        IDownloadServiceConfigReader ConfigReader { get; set; }
+
+        /// <summary>
+        /// The upper limit of the number of concurrent downloading tasks.
+        /// </summary>
+        int ConcurrentDownloadCountLimit { get; }
+
+        /// <summary>
+        /// The chunk size in bytes to save to the disk. A value that is less than or equal to 0 means the download won't be chunk based.
+        /// </summary>
+        int ChunkSizeToSave { get; }
+
+        /// <summary>
+        /// Temporary file extension, starting with a full stop.
+        /// </summary>
+        string TempFileExtension { get; }
+
+        /// <summary>
+        /// Default time limit of any task.
+        /// </summary>
+        float Timeout { get; }
+
         /// <summary>
         /// Factory for a <see cref="IDownloadTaskImpl"/> instance.
         /// </summary>
@@ -14,31 +39,6 @@
         /// Get or set the object pool module.
         /// </summary>
         IRefPoolService RefPoolService { get; set; }
-
-        /// <summary>
-        /// Download task pool.
-        /// </summary>
-        IDownloadTaskPool DownloadTaskPool { get; set; }
-
-        /// <summary>
-        /// Temporary file extension, starting with a fullstop.
-        /// </summary>
-        string TempFileExtension { get; set; }
-
-        /// <summary>
-        /// The upper limit of the number of concurrent downloading tasks.
-        /// </summary>
-        int ConcurrentDownloadCountLimit { get; set; }
-
-        /// <summary>
-        /// The chunk size in bytes to save to the disk. A value that is less than or equal to 0 means the download won't be chunk based.
-        /// </summary>
-        int ChunkSizeToSave { get; set; }
-
-        /// <summary>
-        /// Default time limit of any task.
-        /// </summary>
-        float Timeout { get; set; }
 
         /// <summary>
         /// Start a downloading task.
