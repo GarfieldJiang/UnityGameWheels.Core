@@ -10,7 +10,7 @@
         /// <summary>
         /// Reference pool module.
         /// </summary>
-        public IRefPoolModule RefPoolModule { get; set; }
+        public IRefPoolService RefPoolService { get; set; }
 
         /// <summary>
         /// Download module this task is attached to.
@@ -31,7 +31,7 @@
         /// </summary>
         public void Init()
         {
-            m_DownloadTaskRawPool = RefPoolModule.GetOrAdd<DownloadTask>();
+            m_DownloadTaskRawPool = RefPoolService.GetOrAdd<DownloadTask>();
             m_DownloadTaskRawPool.Capacity = DownloadModule.ConcurrentDownloadCountLimit;
             m_DownloadTaskRawPool.ApplyCapacity();
         }
@@ -52,7 +52,7 @@
         {
             m_DownloadTaskRawPool.Clear();
             m_DownloadTaskRawPool = null;
-            RefPoolModule = null;
+            RefPoolService = null;
             DownloadModule = null;
         }
     }

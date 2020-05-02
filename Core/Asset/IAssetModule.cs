@@ -15,7 +15,7 @@ namespace COL.UnityGameWheels.Core.Asset
         /// <summary>
         /// Reference pool module.
         /// </summary>
-        IRefPoolModule RefPoolModule { get; set; }
+        IRefPoolService RefPoolService { get; set; }
 
         /// <summary>
         /// This factory creates instances of <see cref="IAssetLoadingTaskImpl"/>.

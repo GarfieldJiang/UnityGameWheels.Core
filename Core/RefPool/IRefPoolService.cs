@@ -4,14 +4,11 @@ using System.Collections.Generic;
 namespace COL.UnityGameWheels.Core
 {
     /// <summary>
-    /// Reference pool module interface.
+    /// Reference pool service interface.
     /// </summary>
-    public interface IRefPoolModule : IModule, IEnumerable<IBaseRefPool>
+    public interface IRefPoolService : ILifeCycle, IEnumerable<IBaseRefPool>
     {
-        /// <summary>
-        /// Default capacity of newly added pools.
-        /// </summary>
-        int DefaultCapacity { get; set; }
+        IRefPoolServiceConfigReader ConfigReader { get; set; }
 
         /// <summary>
         /// How many pools we have.

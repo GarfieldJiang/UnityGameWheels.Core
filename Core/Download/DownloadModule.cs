@@ -10,23 +10,23 @@ namespace COL.UnityGameWheels.Core
     /// </summary>
     public partial class DownloadModule : BaseModule, IDownloadModule
     {
-        private IRefPoolModule m_RefPoolModule = null;
+        private IRefPoolService m_RefPoolService = null;
 
         /// <summary>
         /// Get or set the reference pool module.
         /// </summary>
-        public IRefPoolModule RefPoolModule
+        public IRefPoolService RefPoolService
         {
-            get => m_RefPoolModule;
+            get => m_RefPoolService;
 
             set
             {
-                if (m_RefPoolModule != null)
+                if (m_RefPoolService != null)
                 {
                     throw new InvalidOperationException("Object pool module is already set.");
                 }
 
-                m_RefPoolModule = value ?? throw new ArgumentNullException(nameof(value));
+                m_RefPoolService = value ?? throw new ArgumentNullException(nameof(value));
             }
         }
 
@@ -256,7 +256,7 @@ namespace COL.UnityGameWheels.Core
                 throw new InvalidOperationException("Timeout is not set.");
             }
 
-            if (m_RefPoolModule == null)
+            if (m_RefPoolService == null)
             {
                 throw new InvalidOperationException("Object pool module is not set.");
             }
@@ -268,7 +268,7 @@ namespace COL.UnityGameWheels.Core
         public override void Init()
         {
             base.Init();
-            m_DownloadTaskInfoSlotPool = RefPoolModule.Add<DownloadTaskInfoSlot>(1024);
+            m_DownloadTaskInfoSlotPool = RefPoolService.Add<DownloadTaskInfoSlot>(1024);
             m_DownloadTaskPool.Init();
         }
 

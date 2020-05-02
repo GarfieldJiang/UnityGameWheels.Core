@@ -69,6 +69,7 @@
     <Compile Include="Asset\Constant.cs" />
     <Compile Include="Asset\LoadAssetIndexForInstallerCallbackSet.cs" />
     <Compile Include="Asset\IAssetIndexForInstallerLoader.cs" />
+    <Compile Include="Common\BaseLifeCycleService.cs" />
     <Compile Include="Common\Guard\Guard.cs" />
     <Compile Include="Common\Interfaces\ILifeCycle.cs" />
     <Compile Include="Common\Interfaces\IModule.cs" />
@@ -95,6 +96,7 @@
     <Compile Include="RedDot\RedDotModule.Node.cs" />
     <Compile Include="RedDot\RedDotModule.NonLeafNode.cs" />
     <Compile Include="RedDot\RedDotNodeType.cs" />
+    <Compile Include="RefPool\IRefPoolServiceConfigReader.cs" />
     <Compile Include="RefPool\RefPoolStatistics.cs" />
     <Compile Include="RefPool\RefPoolStatisticsInternal.cs" />
     <Compile Include="Common\Algorithm\Algorithm.Graph.TarjanSccExecutor.cs" />
@@ -134,8 +136,8 @@
     <Compile Include="RefPool\RefPool.cs" />
     <Compile Include="RefPool\IRefPool.cs" />
     <Compile Include="RefPool\IBaseRefPool.cs" />
-    <Compile Include="RefPool\IRefPoolModule.cs" />
-    <Compile Include="RefPool\RefPoolModule.cs" />
+    <Compile Include="RefPool\IRefPoolService.cs" />
+    <Compile Include="RefPool\RefPoolService.cs" />
     <Compile Include="RefPool\RequireThreadSafeRefPoolAttribute.cs" />
     <Compile Include="RefPool\ThreadSafeRefObjectPool.cs" />
     <Compile Include="Asset\IAssetModule.cs" />

@@ -7,7 +7,7 @@ namespace COL.UnityGameWheels.Core.Asset
     public sealed partial class AssetModule : BaseModule, IAssetModule
     {
         private IDownloadModule m_DownloadModule = null;
-        private IRefPoolModule m_RefPoolModule = null;
+        private IRefPoolService m_RefPoolService = null;
         private ISimpleFactory<IAssetLoadingTaskImpl> m_AssetLoadingTaskImplFactory = null;
         private ISimpleFactory<IResourceLoadingTaskImpl> m_ResourceLoadingTaskImplFactory = null;
         private int? m_ConcurrentAssetLoaderCount = null;
@@ -61,18 +61,18 @@ namespace COL.UnityGameWheels.Core.Asset
         }
 
         /// <inheritdoc />
-        public IRefPoolModule RefPoolModule
+        public IRefPoolService RefPoolService
         {
-            get { return m_RefPoolModule ?? throw new InvalidOperationException("Not set."); }
+            get { return m_RefPoolService ?? throw new InvalidOperationException("Not set."); }
 
             set
             {
-                if (m_RefPoolModule != null)
+                if (m_RefPoolService != null)
                 {
                     throw new InvalidOperationException("Already set.");
                 }
 
-                m_RefPoolModule = value ?? throw new ArgumentNullException(nameof(value));
+                m_RefPoolService = value ?? throw new ArgumentNullException(nameof(value));
             }
         }
 

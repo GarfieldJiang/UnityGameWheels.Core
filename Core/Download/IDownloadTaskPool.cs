@@ -8,7 +8,7 @@
         /// <summary>
         /// Reference pool module.
         /// </summary>
-        IRefPoolModule RefPoolModule { get; set; }
+        IRefPoolService RefPoolService { get; set; }
 
         /// <summary>
         /// Download module this task is attached to.

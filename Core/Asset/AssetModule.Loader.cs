@@ -61,11 +61,11 @@
                     new List<IAssetLoadingTaskImpl>(ConcurrentAssetLoaderCount > 0 ? ConcurrentAssetLoaderCount : 16);
                 m_RunningResourceLoadingTasks =
                     new List<IResourceLoadingTaskImpl>(ConcurrentResourceLoaderCount > 0 ? ConcurrentResourceLoaderCount : 8);
-                m_AssetCachePool = m_Owner.RefPoolModule.Add<AssetCache>(owner.AssetCachePoolCapacity);
-                m_ResourceCachePool = m_Owner.RefPoolModule.Add<ResourceCache>(owner.ResourceCachePoolCapacity);
-                m_AssetAccessorPool = m_Owner.RefPoolModule.Add<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity);
-                m_AssetLoadingTaskPool = m_Owner.RefPoolModule.Add<AssetLoadingTask>(m_RunningAssetLoadingTasks.Capacity);
-                m_ResourceLoadingTaskPool = m_Owner.RefPoolModule.Add<ResourceLoadingTask>(m_RunningResourceLoadingTasks.Capacity);
+                m_AssetCachePool = m_Owner.RefPoolService.Add<AssetCache>(owner.AssetCachePoolCapacity);
+                m_ResourceCachePool = m_Owner.RefPoolService.Add<ResourceCache>(owner.ResourceCachePoolCapacity);
+                m_AssetAccessorPool = m_Owner.RefPoolService.Add<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity);
+                m_AssetLoadingTaskPool = m_Owner.RefPoolService.Add<AssetLoadingTask>(m_RunningAssetLoadingTasks.Capacity);
+                m_ResourceLoadingTaskPool = m_Owner.RefPoolService.Add<ResourceLoadingTask>(m_RunningResourceLoadingTasks.Capacity);
                 //m_DFSVisitedFlags = new HashSet<string>();
                 m_AssetAccessorsToRelease = new List<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity / 8);
             }

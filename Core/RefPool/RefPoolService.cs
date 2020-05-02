@@ -5,28 +5,17 @@ using System.Collections.Generic;
 namespace COL.UnityGameWheels.Core
 {
     /// <summary>
-    /// Default implementation of <see cref="IRefPoolModule"/> interface.
+    /// Default implementation of <see cref="IRefPoolService"/> interface.
     /// </summary>
-    public class RefPoolModule : BaseModule, IRefPoolModule
+    public class RefPoolService : BaseLifeCycleService, IRefPoolService
     {
         private Dictionary<Type, IBaseRefPool> m_RefPools = null;
 
         private int m_DefaultCapacity = 1;
 
         /// <inheritdoc />
-        public int DefaultCapacity
-        {
-            get => m_DefaultCapacity;
-            set
-            {
-                if (value < 0)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(value), "Must be non-negative.");
-                }
-
-                m_DefaultCapacity = value;
-            }
-        }
+        [Ioc.Inject]
+        public IRefPoolServiceConfigReader ConfigReader { get; set; }
 
         /// <inheritdoc />
         public int PoolCount => m_RefPools.Count;
@@ -79,13 +68,13 @@ namespace COL.UnityGameWheels.Core
         /// <inheritdoc />
         public IRefPool<T> Add<T>() where T : class, new()
         {
-            return Add<T>(DefaultCapacity);
+            return Add<T>(m_DefaultCapacity);
         }
 
         /// <inheritdoc />
         public IBaseRefPool Add(Type objectType)
         {
-            return Add(objectType, DefaultCapacity);
+            return Add(objectType, m_DefaultCapacity);
         }
 
         /// <inheritdoc />
@@ -145,7 +134,7 @@ namespace COL.UnityGameWheels.Core
                 return (IRefPool<T>)baseRefPool;
             }
 
-            return DoAdd<T>(DefaultCapacity);
+            return DoAdd<T>(m_DefaultCapacity);
         }
 
         /// <inheritdoc />
@@ -159,7 +148,7 @@ namespace COL.UnityGameWheels.Core
                 return ret;
             }
 
-            return DoAdd(objectType, DefaultCapacity);
+            return DoAdd(objectType, m_DefaultCapacity);
         }
 
         private IRefPool<T> DoAdd<T>(int initCapacity) where T : class, new()
@@ -196,18 +185,24 @@ namespace COL.UnityGameWheels.Core
         }
 
         /// <inheritdoc />
-        public override void Init()
+        public override void OnInit()
         {
-            base.Init();
+            base.OnInit();
             m_RefPools = new Dictionary<Type, IBaseRefPool>();
+            if (ConfigReader.DefaultCapacity <= 0)
+            {
+                throw new InvalidOperationException($"{nameof(ConfigReader.DefaultCapacity)} must be positive.");
+            }
+
+            m_DefaultCapacity = ConfigReader.DefaultCapacity;
         }
 
         /// <inheritdoc />
-        public override void ShutDown()
+        public override void OnShutdown()
         {
             ClearAll();
             m_RefPools.Clear();
-            base.ShutDown();
+            base.OnShutdown();
         }
 
         public IEnumerator<IBaseRefPool> GetEnumerator()

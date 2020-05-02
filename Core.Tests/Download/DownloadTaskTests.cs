@@ -11,7 +11,7 @@ namespace COL.UnityGameWheels.Core.Tests
     public class DownloadTaskTests
     {
         private IDownloadModule m_DownloadModule = null;
-        private IRefPoolModule m_ObjectPoolModule = null;
+        private IRefPoolService m_ObjectPoolService = null;
         private IDownloadTaskPool m_DownloadTaskPool = null;
         private ISimpleFactory<IDownloadTaskImpl> m_DownloadTaskImplFactory = null;
         private DirectoryInfo m_DirectoryInfo = null;
@@ -266,8 +266,8 @@ namespace COL.UnityGameWheels.Core.Tests
 
             m_DirectoryInfo = new DirectoryInfo(SavePathRoot);
 
-            m_ObjectPoolModule = new RefPoolModule();
-            m_ObjectPoolModule.Init();
+            m_ObjectPoolService = new RefPoolService();
+            m_ObjectPoolService.OnInit();
 
             m_DownloadModule = new DownloadModule();
             m_DownloadModule.ChunkSizeToSave = 32;
@@ -283,7 +283,7 @@ namespace COL.UnityGameWheels.Core.Tests
             mockDownloadTaskImplFactory.TaskShouldNeverStart = false;
 
             m_DownloadModule.DownloadTaskPool = m_DownloadTaskPool;
-            m_DownloadModule.RefPoolModule = m_ObjectPoolModule;
+            m_DownloadModule.RefPoolService = m_ObjectPoolService;
             m_DownloadModule.DownloadTaskImplFactory = m_DownloadTaskImplFactory;
             m_DownloadModule.Init();
         }
@@ -294,8 +294,8 @@ namespace COL.UnityGameWheels.Core.Tests
             m_DownloadTaskPool = null;
             m_DownloadModule.ShutDown();
             m_DownloadModule = null;
-            m_ObjectPoolModule.ShutDown();
-            m_ObjectPoolModule = null;
+            m_ObjectPoolService.OnShutdown();
+            m_ObjectPoolService = null;
             m_DownloadTaskImplFactory = null;
             m_DirectoryInfo = null;
             if (Directory.Exists(SavePathRoot))

@@ -13,7 +13,7 @@
         /// <summary>
         /// Get or set the object pool module.
         /// </summary>
-        IRefPoolModule RefPoolModule { get; set; }
+        IRefPoolService RefPoolService { get; set; }
 
         /// <summary>
         /// Download task pool.
