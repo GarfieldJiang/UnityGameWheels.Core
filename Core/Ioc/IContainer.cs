@@ -34,6 +34,22 @@ namespace COL.UnityGameWheels.Core.Ioc
         IBindingData BindSingleton(Type interfaceType, Type implType);
 
         /// <summary>
+        /// Binds an instance.
+        /// </summary>
+        /// <param name="interfaceType">The interface type.</param>
+        /// <param name="instance">The instance.</param>
+        /// <returns>The binding data.</returns>
+        IBindingData BindInstance(Type interfaceType, object instance);
+
+        /// <summary>
+        /// Binds an instance.
+        /// </summary>
+        /// <param name="serviceName">The service name.</param>
+        /// <param name="instance">The instance.</param>
+        /// <returns>The binding data.</returns>
+        IBindingData BindInstance(string serviceName, object instance);
+
+        /// <summary>
         /// Gets the binding data of a service.
         /// </summary>
         /// <param name="serviceName">The service name or alias.</param>

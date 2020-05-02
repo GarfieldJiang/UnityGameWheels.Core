@@ -124,5 +124,24 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             Assert.False(container.IsShuttingDown);
             Assert.True(container.IsShut);
         }
+
+        [Test]
+        public void TestBindInstance()
+        {
+            var container = new TickableContainer();
+            container.BindInstance(new TickableServiceDependingOnNonTickableService());
+            var tickableService = container.Make<TickableServiceDependingOnNonTickableService>();
+            Assert.IsNull(tickableService.NonTickableService);
+
+            container.BindInstance(new NonTickableService());
+            tickableService.NonTickableService = container.Make<NonTickableService>();
+
+            container.OnUpdate(default);
+            container.OnUpdate(default);
+            container.OnUpdate(default);
+
+            // Yeah, you got to tick yourself if you use BindInstance.
+            Assert.AreEqual(0, tickableService.TickCount);
+        }
     }
 }

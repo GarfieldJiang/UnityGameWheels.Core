@@ -19,6 +19,12 @@ namespace COL.UnityGameWheels.Core.Ioc
             return container.BindSingleton(typeof(TInterface), typeof(TImpl));
         }
 
+        public static IBindingData BindInstance<TInterface>(this IContainer container, TInterface instance)
+            where TInterface : class
+        {
+            return container.BindInstance(typeof(TInterface), instance);
+        }
+
         public static TService Make<TService>(this IContainer container)
             where TService : class
         {

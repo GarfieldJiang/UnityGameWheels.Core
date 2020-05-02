@@ -81,6 +81,21 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             }
         }
 
+        [Test]
+        public void TestBindInstance()
+        {
+            foreach (IContainer container in GetContainerImpls())
+            {
+                container.BindSingleton<IServiceA, ServiceA>();
+                container.BindInstance(new ServiceB());
+                var serviceB = container.Make<ServiceB>();
+
+                // Life cycle is not managed. Dependency is not handled.
+                Assert.False(serviceB.IsInited);
+                Assert.IsNull(serviceB.ServiceA);
+            }
+        }
+
         private static IEnumerable<IContainer> GetContainerImpls()
         {
             return new IContainer[] {new Container(), new TickableContainer()};

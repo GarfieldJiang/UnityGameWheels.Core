@@ -9,7 +9,7 @@ namespace COL.UnityGameWheels.Core.Ioc
     /// <remarks>NOT thread-safe.</remarks>
     public class TickableContainer : ITickableContainer
     {
-        private readonly List<ITickable> m_TickableInstances;
+        private readonly HashSet<ITickable> m_TickableInstances;
         private readonly List<ITickable> m_TickableInstancesCopied;
         private readonly Container m_InternalContainer;
         private bool m_IsRequestingShutdown = false;
@@ -21,7 +21,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         public TickableContainer(int estimatedServiceCount = 64)
         {
             m_InternalContainer = new Container(estimatedServiceCount);
-            m_TickableInstances = new List<ITickable>(estimatedServiceCount);
+            m_TickableInstances = new HashSet<ITickable>();
             m_TickableInstancesCopied = new List<ITickable>(estimatedServiceCount);
         }
 
@@ -43,6 +43,20 @@ namespace COL.UnityGameWheels.Core.Ioc
         }
 
         /// <inheritdoc />
+        public IBindingData BindInstance(Type interfaceType, object instance)
+        {
+            GuardNotRequestingShutdown();
+            return m_InternalContainer.BindInstance(interfaceType, instance);
+        }
+
+        /// <inheritdoc />
+        public IBindingData BindInstance(string serviceName, object instance)
+        {
+            GuardNotRequestingShutdown();
+            return m_InternalContainer.BindInstance(serviceName, instance);
+        }
+
+        /// <inheritdoc />
         public IBindingData GetBindingData(string serviceName)
         {
             GuardNotRequestingShutdown();
@@ -52,6 +66,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData GetBindingData(Type interfaceType)
         {
+            GuardNotRequestingShutdown();
             return m_InternalContainer.GetBindingData(interfaceType);
         }
 
@@ -83,8 +98,9 @@ namespace COL.UnityGameWheels.Core.Ioc
         public object Make(string serviceName)
         {
             GuardNotRequestingShutdown();
+            var bindingData = m_InternalContainer.GetBindingData(serviceName);
             var serviceInstance = m_InternalContainer.Make(serviceName);
-            if (serviceInstance is ITickable tickableService)
+            if (((BindingData)bindingData).LifeCycleManaged && serviceInstance is ITickable tickableService)
             {
                 m_TickableInstances.Add(tickableService);
             }
@@ -96,8 +112,9 @@ namespace COL.UnityGameWheels.Core.Ioc
         public object Make(Type interfaceType)
         {
             GuardNotRequestingShutdown();
+            var bindingData = m_InternalContainer.GetBindingData(interfaceType);
             var serviceInstance = m_InternalContainer.Make(interfaceType);
-            if (serviceInstance is ITickable tickableService)
+            if (((BindingData)bindingData).LifeCycleManaged && serviceInstance is ITickable tickableService)
             {
                 m_TickableInstances.Add(tickableService);
             }
@@ -190,8 +207,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             if (m_InternalContainer.ServicesToShutdown.Count == 0)
             {
                 m_IsRequestingShutdown = false;
-                m_InternalContainer.ShutDown();
-                m_OnShutdownComplete?.Invoke();
+                ShutDown();
             }
         }
 

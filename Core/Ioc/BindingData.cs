@@ -15,6 +15,8 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         internal HashSet<string> Aliases;
 
+        internal bool LifeCycleManaged;
+
         internal BindingData(IContainer container)
         {
             m_Container = container;
