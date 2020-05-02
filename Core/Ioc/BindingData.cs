@@ -5,17 +5,17 @@ namespace COL.UnityGameWheels.Core.Ioc
 {
     internal class BindingData : IBindingData
     {
-        private IContainer m_Container;
+        private readonly IContainer m_Container;
 
-        internal Type InterfaceType;
+        public Type InterfaceType { get; internal set; }
 
-        internal Type ImplType;
+        public Type ImplType { get; internal set; }
 
-        internal string ServiceName;
+        public string ServiceName { get; internal set; }
+
+        public bool LifeCycleManaged { get; internal set; }
 
         internal HashSet<string> Aliases;
-
-        internal bool LifeCycleManaged;
 
         internal BindingData(IContainer container)
         {

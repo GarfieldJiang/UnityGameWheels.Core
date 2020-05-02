@@ -1,3 +1,5 @@
+using System;
+
 namespace COL.UnityGameWheels.Core.Ioc
 {
     /// <summary>
@@ -11,5 +13,25 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <param name="alias">The alias.</param>
         /// <returns>Self.</returns>
         IBindingData Alias(string alias);
+
+        /// <summary>
+        /// The interface type.
+        /// </summary>
+        Type InterfaceType { get; }
+
+        /// <summary>
+        /// The implementation type.
+        /// </summary>
+        Type ImplType { get; }
+
+        /// <summary>
+        /// The service name.
+        /// </summary>
+        string ServiceName { get; }
+
+        /// <summary>
+        /// Whether the service life cycle is managed by the container.
+        /// </summary>
+        bool LifeCycleManaged { get; }
     }
 }
