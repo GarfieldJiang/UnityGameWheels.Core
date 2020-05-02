@@ -1,4 +1,4 @@
-﻿namespace COL.UnityGameWheels.Core
+namespace COL.UnityGameWheels.Core
 {
     public interface ISimpleFactory<T> where T : class
     {

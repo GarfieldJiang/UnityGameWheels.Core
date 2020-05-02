@@ -1,4 +1,4 @@
-﻿namespace COL.UnityGameWheels.Core
+namespace COL.UnityGameWheels.Core
 {
     /// <summary>
     /// Interface to destroy an object.

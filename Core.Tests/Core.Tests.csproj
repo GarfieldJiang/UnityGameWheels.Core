@@ -16,6 +16,7 @@
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
     <DebugSymbols>true</DebugSymbols>
@@ -82,6 +83,8 @@
     <Compile Include="Download\DownloadTaskTests.cs" />
     <Compile Include="Download\DownloadModuleTests.cs" />
     <Compile Include="Event\EventTests.cs" />
+    <Compile Include="Ioc\ContainerTests.cs" />
+    <Compile Include="Ioc\TickableTests.cs" />
     <Compile Include="RedDot\RedDotTests.cs" />
     <Compile Include="RefPool\RefPoolTests.cs" />
     <Compile Include="RefPool\RefPoolModuleTests.cs" />

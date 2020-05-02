@@ -27,6 +27,24 @@ namespace COL.UnityGameWheels.Core
             throw CreateException(typeof(TException), message, innerException);
         }
 
+        public static void RequireNotNullOrEmpty<TException>(string stringVal, string message = null, Exception innerException = null)
+            where TException : Exception, new()
+        {
+            RequireTrue<TException>(!string.IsNullOrEmpty(stringVal), message, innerException);
+        }
+
+        public static void RequireNotNull<TException>(object obj, string message = null, Exception innerException = null)
+            where TException : Exception, new()
+        {
+            RequireTrue<TException>(obj != null, message, innerException);
+        }
+
+        public static void RequireNull<TException>(object obj, string message = null, Exception innerException = null)
+            where TException : Exception, new()
+        {
+            RequireTrue<TException>(obj == null, message, innerException);
+        }
+
         private static Exception CreateException(Type exceptionType, string message, Exception innerException)
         {
             var ret = (Exception)Activator.CreateInstance(exceptionType);
