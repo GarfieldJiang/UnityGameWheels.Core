@@ -149,6 +149,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_TickableInstances.Clear();
             m_InternalContainer.ShutDown();
             m_OnShutdownComplete?.Invoke();
+            m_OnShutdownComplete = null;
         }
 
         /// <inheritdoc />
