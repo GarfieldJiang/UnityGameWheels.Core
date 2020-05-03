@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.Ioc
 {
@@ -140,5 +141,11 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <param name="serviceName">The service name or alias.</param>
         /// <returns></returns>
         string Dealias(string serviceName);
+
+        /// <summary>
+        /// Get all existing singletons.
+        /// </summary>
+        /// <returns>All existing singletons.</returns>
+        IEnumerable<KeyValuePair<string, object>> GetSingletons();
     }
 }

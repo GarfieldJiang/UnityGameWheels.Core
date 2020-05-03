@@ -337,6 +337,15 @@ namespace COL.UnityGameWheels.Core.Ioc
             return m_AliasToServiceNameMap.TryGetValue(serviceName, out var realServiceName) ? realServiceName : serviceName;
         }
 
+        /// <inheritdoc />
+        public IEnumerable<KeyValuePair<string, object>> GetSingletons()
+        {
+            foreach (var kv in m_ServiceNameToSingletonMap)
+            {
+                yield return kv;
+            }
+        }
+
         internal void GuardNotShuttingDownOrShut()
         {
             Guard.RequireFalse<InvalidOperationException>(m_IsShuttingDown || m_IsShut, "The container is shutting down or already shut.");

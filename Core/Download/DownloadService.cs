@@ -152,16 +152,6 @@ namespace COL.UnityGameWheels.Core
                 throw new InvalidOperationException("Temp file extension is not set.");
             }
 
-            if (m_ChunkSizeToSave == null)
-            {
-                throw new InvalidOperationException("Chunk size to save is not set.");
-            }
-
-            if (m_Timeout == null)
-            {
-                throw new InvalidOperationException("Timeout is not set.");
-            }
-
             if (m_RefPoolService == null)
             {
                 throw new InvalidOperationException("Object pool module is not set.");

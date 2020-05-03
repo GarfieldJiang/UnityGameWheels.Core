@@ -173,6 +173,12 @@ namespace COL.UnityGameWheels.Core.Ioc
         }
 
         /// <inheritdoc />
+        public IEnumerable<KeyValuePair<string, object>> GetSingletons()
+        {
+            return m_InternalContainer.GetSingletons();
+        }
+
+        /// <inheritdoc />
         public void OnUpdate(TimeStruct timeStruct)
         {
             m_TickableInstancesCopied.Clear();
