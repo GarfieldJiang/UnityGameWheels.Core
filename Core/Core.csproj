@@ -89,6 +89,7 @@
     <Compile Include="Ioc\IContainer.cs" />
     <Compile Include="Ioc\InjectAttribute.cs" />
     <Compile Include="Ioc\ITickableContainer.cs" />
+    <Compile Include="Ioc\PropertyInjection.cs" />
     <Compile Include="Ioc\TickableContainer.cs" />
     <Compile Include="RedDot\IRedDotModule.cs" />
     <Compile Include="RedDot\IRedDotObserver.cs" />
@@ -130,8 +131,8 @@
     <Compile Include="Download\IDownloadTaskImpl.cs" />
     <Compile Include="Event\BaseEventArgs.cs" />
     <Compile Include="Event\EventIdToTypeMap.cs" />
-    <Compile Include="Event\EventModule.cs" />
-    <Compile Include="Event\IEventModule.cs" />
+    <Compile Include="Event\EventService.cs" />
+    <Compile Include="Event\IEventService.cs" />
     <Compile Include="Event\OnHearEvent.cs" />
     <Compile Include="RefPool\RefPool.cs" />
     <Compile Include="RefPool\IRefPool.cs" />

@@ -12,11 +12,25 @@ namespace COL.UnityGameWheels.Core.Ioc
             return container.BindSingleton(type, type);
         }
 
+        public static IBindingData BindSingleton<TService>(this IContainer container, params PropertyInjection[] propertyInjections)
+            where TService : class, new()
+        {
+            var type = typeof(TService);
+            return container.BindSingleton(type, type, propertyInjections);
+        }
+
         public static IBindingData BindSingleton<TInterface, TImpl>(this IContainer container)
             where TInterface : class
             where TImpl : class, new()
         {
             return container.BindSingleton(typeof(TInterface), typeof(TImpl));
+        }
+
+        public static IBindingData BindSingleton<TInterface, TImpl>(this IContainer container, params PropertyInjection[] propertyInjections)
+            where TInterface : class
+            where TImpl : class, new()
+        {
+            return container.BindSingleton(typeof(TInterface), typeof(TImpl), propertyInjections);
         }
 
         public static IBindingData BindInstance<TInterface>(this IContainer container, TInterface instance)

@@ -36,10 +36,24 @@ namespace COL.UnityGameWheels.Core.Ioc
         }
 
         /// <inheritdoc />
+        public IBindingData BindSingleton(string serviceName, Type implType, params PropertyInjection[] propertyInjections)
+        {
+            GuardNotRequestingShutdown();
+            return m_InternalContainer.BindSingleton(serviceName, implType, propertyInjections);
+        }
+
+        /// <inheritdoc />
         public IBindingData BindSingleton(Type interfaceType, Type implType)
         {
             GuardNotRequestingShutdown();
             return m_InternalContainer.BindSingleton(interfaceType, implType);
+        }
+
+        /// <inheritdoc />
+        public IBindingData BindSingleton(Type interfaceType, Type implType, params PropertyInjection[] propertyInjections)
+        {
+            GuardNotRequestingShutdown();
+            return m_InternalContainer.BindSingleton(interfaceType, implType, propertyInjections);
         }
 
         /// <inheritdoc />

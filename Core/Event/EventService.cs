@@ -7,13 +7,13 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// The default implementation of an event manager.
     /// </summary>
-    public partial class EventModule : BaseModule, IEventModule
+    public partial class EventService : BaseLifeCycleService, IEventService
     {
         private int? m_MainThreadId = null;
         private Dictionary<int, LinkedList<OnHearEvent>> m_Listeners = null;
         private List<OnHearEvent> m_CopiedListenerCollection = null;
         private bool m_CopiedListenerCollectionIsBeingUsed = false;
-        private Queue<SenderEventPair> m_EventQueue = null;
+        private readonly Queue<SenderEventPair> m_EventQueue = new Queue<SenderEventPair>();
         private Queue<SenderEventPair> m_UpdateEventQueue = null;
         private IEventArgsReleaser m_EventArgsReleaser = new DefaultEventArgsReleaser();
 
@@ -32,6 +32,7 @@ namespace COL.UnityGameWheels.Core
         }
 
         /// <inheritdoc />
+        [Ioc.Inject]
         public IEventArgsReleaser EventArgsReleaser
         {
             get => m_EventArgsReleaser;
@@ -43,18 +44,17 @@ namespace COL.UnityGameWheels.Core
         }
 
         /// <inheritdoc />
-        public override void Init()
+        public override void OnInit()
         {
             CheckMainThreadOrThrow();
-            base.Init();
+            base.OnInit();
             m_Listeners = new Dictionary<int, LinkedList<OnHearEvent>>();
             m_CopiedListenerCollection = new List<OnHearEvent>();
-            m_EventQueue = new Queue<SenderEventPair>();
             m_UpdateEventQueue = new Queue<SenderEventPair>();
         }
 
         /// <inheritdoc />
-        public override void ShutDown()
+        public override void OnShutdown()
         {
             CheckMainThreadOrThrow();
             CheckStateOrThrow();
@@ -71,7 +71,7 @@ namespace COL.UnityGameWheels.Core
                 m_EventQueue.Clear();
             }
 
-            base.ShutDown();
+            base.OnShutdown();
         }
 
         /// <summary>
@@ -166,14 +166,10 @@ namespace COL.UnityGameWheels.Core
             return copiedListenerCollection;
         }
 
-        /// <summary>
-        /// Generic tick method.
-        /// </summary>
-        /// <param name="timeStruct">Time struct.</param>
-        public override void Update(TimeStruct timeStruct)
+        /// <inheritdoc />
+        public void OnUpdate(TimeStruct timeStruct)
         {
             CheckMainThreadOrThrow();
-            base.Update(timeStruct);
             m_UpdateEventQueue.Clear();
             lock (m_EventQueue)
             {

@@ -93,6 +93,23 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 // Life cycle is not managed. Dependency is not handled.
                 Assert.False(serviceB.IsInited);
                 Assert.IsNull(serviceB.ServiceA);
+                container.ShutDown();
+            }
+        }
+
+        [Test]
+        public void TestPropertyInjection()
+        {
+            foreach (IContainer container in GetContainerImpls())
+            {
+                container.BindSingleton<IServiceA, ServiceA>(new PropertyInjection
+                {
+                    PropertyName = "IntProperty",
+                    Value = 125,
+                });
+
+                Assert.AreEqual(125, container.Make<IServiceA>().IntProperty);
+                container.ShutDown();
             }
         }
 
@@ -103,6 +120,8 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
 
         private interface IServiceA : ILifeCycle
         {
+            int IntProperty { get; set; }
+
             bool IsExecuted { get; }
 
             bool IsInited { get; }
@@ -114,6 +133,8 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
 
         private class ServiceA : IServiceA
         {
+            public int IntProperty { get; set; }
+
             public void OnInit()
             {
                 Assert.True(!IsInited);

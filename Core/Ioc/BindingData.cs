@@ -16,6 +16,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         public bool LifeCycleManaged { get; internal set; }
 
         internal HashSet<string> Aliases;
+        internal Dictionary<string, object> PropertyInjections;
 
         internal BindingData(IContainer container)
         {
@@ -36,6 +37,16 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
 
             return Aliases.Add(alias);
+        }
+
+        internal void AddPropertyInjection(PropertyInjection propertyInjection)
+        {
+            if (PropertyInjections == null)
+            {
+                PropertyInjections = new Dictionary<string, object>();
+            }
+
+            PropertyInjections.Add(propertyInjection.PropertyName, propertyInjection.Value);
         }
     }
 }

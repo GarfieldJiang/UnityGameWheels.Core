@@ -64,6 +64,51 @@ namespace COL.UnityGameWheels.Core.Ioc
             return bindingData;
         }
 
+        /// <inheritdoc />
+        public IBindingData BindSingleton(string serviceName, Type implType, params PropertyInjection[] propertyInjections)
+        {
+            GuardNotShuttingDownOrShut();
+            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
+            GuardUnbound(Dealias(serviceName));
+            GuardImplType(implType);
+            var bindingData = new BindingData(this)
+            {
+                ServiceName = serviceName,
+                ImplType = implType,
+                LifeCycleManaged = true,
+            };
+            int propertyInjectionIndex = 0;
+            foreach (var propertyInjection in propertyInjections)
+            {
+                if (string.IsNullOrEmpty(propertyInjection.PropertyName))
+                {
+                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a invalid property name.");
+                }
+
+                if (propertyInjection.Value == null)
+                {
+                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a null value.");
+                }
+
+                var propertyInfo = implType.GetProperty(propertyInjection.PropertyName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty);
+                if (propertyInfo == null)
+                {
+                    throw new ArgumentException($"Cannot find property named '{propertyInjection.PropertyName}' at index {propertyInjectionIndex}.");
+                }
+
+                if (!propertyInfo.PropertyType.IsInstanceOfType(propertyInjection.Value))
+                {
+                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a value that doesn't have a feasible type.");
+                }
+
+                bindingData.AddPropertyInjection(propertyInjection);
+                propertyInjectionIndex++;
+            }
+
+            m_ServiceNameToBindingDataMap[serviceName] = bindingData;
+            return bindingData;
+        }
+
 
         /// <inheritdoc />
         public IBindingData BindSingleton(Type interfaceType, Type implType)
@@ -77,6 +122,22 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
 
             var bindingData = (BindingData)BindSingleton(TypeToServiceName(interfaceType), implType);
+            bindingData.InterfaceType = interfaceType;
+            m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
+            return bindingData;
+        }
+
+        public IBindingData BindSingleton(Type interfaceType, Type implType, params PropertyInjection[] propertyInjections)
+        {
+            GuardNotShuttingDownOrShut();
+            GuardInterfaceType(interfaceType);
+            GuardImplType(implType);
+            if (!interfaceType.IsAssignableFrom(implType))
+            {
+                throw new InvalidOperationException($"{nameof(interfaceType)} is not assignable from {nameof(implType)}.");
+            }
+
+            var bindingData = (BindingData)BindSingleton(TypeToServiceName(interfaceType), implType, propertyInjections);
             bindingData.InterfaceType = interfaceType;
             m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
             return bindingData;
@@ -248,6 +309,12 @@ namespace COL.UnityGameWheels.Core.Ioc
                 ret = Activator.CreateInstance(instanceType);
                 foreach (var property in instanceType.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty))
                 {
+                    if (bindingData.PropertyInjections != null && bindingData.PropertyInjections.TryGetValue(property.Name, out var value))
+                    {
+                        property.SetValue(ret, value);
+                        continue;
+                    }
+
                     if (property.GetCustomAttribute<InjectAttribute>() == null)
                     {
                         continue;

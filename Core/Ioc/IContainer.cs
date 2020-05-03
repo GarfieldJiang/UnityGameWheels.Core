@@ -29,10 +29,28 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <summary>
         /// Binds a singleton service.
         /// </summary>
+        /// <param name="serviceName">The service name.</param>
+        /// <param name="implType">The implementation type.</param>
+        /// <param name="propertyInjections">The property injections.</param>
+        /// <returns>The binding data.</returns>
+        IBindingData BindSingleton(string serviceName, Type implType, params PropertyInjection[] propertyInjections);
+
+        /// <summary>
+        /// Binds a singleton service.
+        /// </summary>
         /// <param name="interfaceType">The interface type.</param>
         /// <param name="implType">The implementation type.</param>
         /// <returns>The binding data.</returns>
         IBindingData BindSingleton(Type interfaceType, Type implType);
+
+        /// <summary>
+        /// Binds a singleton service.
+        /// </summary>
+        /// <param name="interfaceType">The interface type.</param>
+        /// <param name="implType">The implementation type.</param>
+        /// <param name="propertyInjections">The property injections.</param>
+        /// <returns>The binding data.</returns>
+        IBindingData BindSingleton(Type interfaceType, Type implType, params PropertyInjection[] propertyInjections);
 
         /// <summary>
         /// Binds an instance.

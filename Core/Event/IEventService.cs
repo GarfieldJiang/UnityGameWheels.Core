@@ -3,12 +3,12 @@
     /// <summary>
     /// The interface of an event manager.
     /// </summary>
-    public interface IEventModule : IModule
+    public interface IEventService : ILifeCycle, ITickable
     {
         /// <summary>
         /// Set the main thread ID.
         /// </summary>
-        /// <remarks>Should be called before doing anything else. Only <see cref="IEventModule.SendEvent"/> can be called in another thread.</remarks>
+        /// <remarks>Should be called before doing anything else. Only <see cref="IEventService.SendEvent"/> can be called in another thread.</remarks>
         int MainThreadId { set; }
 
         /// <summary>

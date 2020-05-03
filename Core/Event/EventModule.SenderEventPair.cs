@@ -1,6 +1,6 @@
 ﻿namespace COL.UnityGameWheels.Core
 {
-    public partial class EventModule
+    public partial class EventService
     {
         private struct SenderEventPair
         {

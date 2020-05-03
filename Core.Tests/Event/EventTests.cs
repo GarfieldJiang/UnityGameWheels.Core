@@ -8,7 +8,7 @@ namespace COL.UnityGameWheels.Core.Tests
     [TestFixture]
     public class EventTests
     {
-        private IEventModule m_EventModule = null;
+        private IEventService m_EventService = null;
 
         private class OneSimpleEventArgs : BaseEventArgs
         {
@@ -72,41 +72,41 @@ namespace COL.UnityGameWheels.Core.Tests
                 secondEventCount++;
             };
 
-            m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
+            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
 
-            m_EventModule.SendEvent(this, new OneSimpleEventArgs());
-            m_EventModule.SendEvent(this, new AnotherSimpleEventArgs());
+            m_EventService.SendEvent(this, new OneSimpleEventArgs());
+            m_EventService.SendEvent(this, new AnotherSimpleEventArgs());
 
             Assert.AreEqual(0, firstEventCount);
             Assert.AreEqual(0, secondEventCount);
 
-            m_EventModule.Update(new TimeStruct(0f, 0f, 0f, 0f));
+            m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
 
             Assert.AreEqual(1, firstEventCount);
             Assert.AreEqual(0, secondEventCount);
 
-            m_EventModule.AddEventListener(AnotherSimpleEventArgs.TheEventId, onHearSecondEvent);
+            m_EventService.AddEventListener(AnotherSimpleEventArgs.TheEventId, onHearSecondEvent);
 
-            m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
+            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
 
-            m_EventModule.SendEvent(this, new OneSimpleEventArgs());
-            m_EventModule.SendEvent(this, new AnotherSimpleEventArgs());
+            m_EventService.SendEvent(this, new OneSimpleEventArgs());
+            m_EventService.SendEvent(this, new AnotherSimpleEventArgs());
 
             Assert.AreEqual(1, firstEventCount);
             Assert.AreEqual(0, secondEventCount);
 
-            m_EventModule.Update(new TimeStruct(0f, 0f, 0f, 0f));
+            m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
 
             Assert.AreEqual(3, firstEventCount);
             Assert.AreEqual(1, secondEventCount);
 
-            m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
-            m_EventModule.RemoveEventListener(AnotherSimpleEventArgs.TheEventId, onHearSecondEvent);
+            m_EventService.RemoveEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
+            m_EventService.RemoveEventListener(AnotherSimpleEventArgs.TheEventId, onHearSecondEvent);
 
-            m_EventModule.SendEvent(this, new OneSimpleEventArgs());
-            m_EventModule.SendEvent(this, new AnotherSimpleEventArgs());
+            m_EventService.SendEvent(this, new OneSimpleEventArgs());
+            m_EventService.SendEvent(this, new AnotherSimpleEventArgs());
 
-            m_EventModule.Update(new TimeStruct(0f, 0f, 0f, 0f));
+            m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
 
             Assert.AreEqual(4, firstEventCount);
             Assert.AreEqual(1, secondEventCount);
@@ -124,10 +124,10 @@ namespace COL.UnityGameWheels.Core.Tests
                 firstEventCount++;
             };
 
-            m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
-            m_EventModule.SendEventNow(this, new OneSimpleEventArgs());
+            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
+            m_EventService.SendEventNow(this, new OneSimpleEventArgs());
             Assert.AreEqual(1, firstEventCount);
-            m_EventModule.Update(new TimeStruct(0f, 0f, 0f, 0f));
+            m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
             Assert.AreEqual(1, firstEventCount);
         }
 
@@ -135,41 +135,41 @@ namespace COL.UnityGameWheels.Core.Tests
         public void TestRemoveUnaddedListener()
         {
             OnHearEvent onHearFirstEvent = (sender, e) => { };
-            m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
+            m_EventService.RemoveEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
         }
 
         [Test]
         public void TestAddRemoveNullListener()
         {
-            Assert.Throws<ArgumentNullException>(() => { m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, null); });
+            Assert.Throws<ArgumentNullException>(() => { m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, null); });
 
-            Assert.Throws<ArgumentNullException>(() => { m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, null); });
+            Assert.Throws<ArgumentNullException>(() => { m_EventService.RemoveEventListener(OneSimpleEventArgs.TheEventId, null); });
         }
 
         [Test]
         public void TestInitBeforeSettingMainThreadId()
         {
-            IEventModule anotherEventModule = new EventModule();
-            Assert.Throws<InvalidOperationException>(() => anotherEventModule.Init());
+            IEventService anotherEventService = new EventService();
+            Assert.Throws<InvalidOperationException>(() => anotherEventService.OnInit());
         }
 
         [Test]
         public void TestUseWithoutInit()
         {
-            IEventModule anotherEventModule = new EventModule();
-            anotherEventModule.MainThreadId = Thread.CurrentThread.ManagedThreadId;
-            Assert.Throws<InvalidOperationException>(() => anotherEventModule.SendEvent(null, new OneSimpleEventArgs()));
-            Assert.Throws<InvalidOperationException>(() => anotherEventModule.ShutDown());
+            IEventService anotherEventService = new EventService();
+            anotherEventService.MainThreadId = Thread.CurrentThread.ManagedThreadId;
+            Assert.Throws<InvalidOperationException>(() => anotherEventService.SendEvent(null, new OneSimpleEventArgs()));
+            Assert.Throws<InvalidOperationException>(() => anotherEventService.OnShutdown());
         }
 
         [Test]
         public void TestShutdownTwice()
         {
-            IEventModule anotherEventModule = new EventModule();
-            anotherEventModule.MainThreadId = Thread.CurrentThread.ManagedThreadId;
-            anotherEventModule.Init();
-            anotherEventModule.ShutDown();
-            Assert.Throws<InvalidOperationException>(() => anotherEventModule.ShutDown());
+            IEventService anotherEventService = new EventService();
+            anotherEventService.MainThreadId = Thread.CurrentThread.ManagedThreadId;
+            anotherEventService.OnInit();
+            anotherEventService.OnShutdown();
+            Assert.Throws<InvalidOperationException>(() => anotherEventService.OnShutdown());
         }
 
         [Test]
@@ -181,7 +181,7 @@ namespace COL.UnityGameWheels.Core.Tests
                 {
                     try
                     {
-                        m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, (sender, e) => { });
+                        m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, (sender, e) => { });
                     }
                     catch (InvalidOperationException)
                     {
@@ -190,7 +190,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
                     try
                     {
-                        m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, (sender, e) => { });
+                        m_EventService.RemoveEventListener(OneSimpleEventArgs.TheEventId, (sender, e) => { });
                     }
                     catch (InvalidOperationException)
                     {
@@ -199,7 +199,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
                     try
                     {
-                        m_EventModule.SendEventNow(null, new OneSimpleEventArgs());
+                        m_EventService.SendEventNow(null, new OneSimpleEventArgs());
                     }
                     catch (InvalidOperationException)
                     {
@@ -215,12 +215,12 @@ namespace COL.UnityGameWheels.Core.Tests
             {
                 int exceptionsCaught = 0;
                 int eventsReceived = 0;
-                m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, (sender, o) => { eventsReceived++; });
+                m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, (sender, o) => { eventsReceived++; });
                 var thread = new Thread(() =>
                 {
                     try
                     {
-                        m_EventModule.SendEvent(null, new OneSimpleEventArgs());
+                        m_EventService.SendEvent(null, new OneSimpleEventArgs());
                     }
                     catch (InvalidOperationException)
                     {
@@ -231,12 +231,12 @@ namespace COL.UnityGameWheels.Core.Tests
                 thread.Start();
                 thread.Join();
                 Assert.AreEqual(0, eventsReceived);
-                m_EventModule.Update(new TimeStruct(0f, 0f, 0f, 0f));
+                m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
                 Assert.AreEqual(1, eventsReceived);
                 Assert.AreEqual(0, exceptionsCaught);
             }
         }
-        
+
         [Test]
         public void TestSendInSendNow()
         {
@@ -261,20 +261,20 @@ namespace COL.UnityGameWheels.Core.Tests
 
                     hasRemovedEventListener2 = true;
                     // Remove eventListeners[2] and broadcast the event again.
-                    m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, eventListeners[index + 1]);
-                    m_EventModule.SendEvent(null, new OneSimpleEventArgs());
+                    m_EventService.RemoveEventListener(OneSimpleEventArgs.TheEventId, eventListeners[index + 1]);
+                    m_EventService.SendEvent(null, new OneSimpleEventArgs());
                 });
             }
 
             foreach (var eventListener in eventListeners)
             {
-                m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, eventListener);
+                m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, eventListener);
             }
 
-            m_EventModule.SendEventNow(null, new OneSimpleEventArgs());
+            m_EventService.SendEventNow(null, new OneSimpleEventArgs());
             CollectionAssert.AreEqual(new[] {0, 1, 2, 3}, eventRecorder);
-            m_EventModule.Update(new TimeStruct());
-            CollectionAssert.AreEqual(new [] {0, 1, 2, 3, 0, 1, 3}, eventRecorder);
+            m_EventService.OnUpdate(new TimeStruct());
+            CollectionAssert.AreEqual(new[] {0, 1, 2, 3, 0, 1, 3}, eventRecorder);
         }
 
         [Test]
@@ -301,35 +301,35 @@ namespace COL.UnityGameWheels.Core.Tests
 
                     hasRemovedEventListener2 = true;
                     // Remove eventListeners[2] and broadcast the event again.
-                    m_EventModule.RemoveEventListener(OneSimpleEventArgs.TheEventId, eventListeners[index + 1]);
-                    m_EventModule.SendEventNow(null, new OneSimpleEventArgs());
+                    m_EventService.RemoveEventListener(OneSimpleEventArgs.TheEventId, eventListeners[index + 1]);
+                    m_EventService.SendEventNow(null, new OneSimpleEventArgs());
                 });
             }
 
             foreach (var eventListener in eventListeners)
             {
-                m_EventModule.AddEventListener(OneSimpleEventArgs.TheEventId, eventListener);
+                m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, eventListener);
             }
 
-            m_EventModule.SendEventNow(null, new OneSimpleEventArgs());
+            m_EventService.SendEventNow(null, new OneSimpleEventArgs());
             CollectionAssert.AreEqual(new[] {0, 1, 0, 1, 3, 2, 3}, eventRecorder);
         }
 
         [SetUp]
         public void SetUp()
         {
-            Assert.IsNull(m_EventModule);
-            m_EventModule = new EventModule();
-            m_EventModule.MainThreadId = Thread.CurrentThread.ManagedThreadId;
-            m_EventModule.Init();
+            Assert.IsNull(m_EventService);
+            m_EventService = new EventService();
+            m_EventService.MainThreadId = Thread.CurrentThread.ManagedThreadId;
+            m_EventService.OnInit();
         }
 
         [TearDown]
         public void TearDown()
         {
-            Assert.IsNotNull(m_EventModule);
-            m_EventModule.ShutDown();
-            m_EventModule = null;
+            Assert.IsNotNull(m_EventService);
+            m_EventService.OnShutdown();
+            m_EventService = null;
         }
     }
 }
