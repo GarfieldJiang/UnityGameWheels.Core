@@ -346,6 +346,15 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
         }
 
+        /// <inheritdoc />
+        public IEnumerable<KeyValuePair<string, IBindingData>> GetBindingDatas()
+        {
+            foreach (var kv in m_ServiceNameToBindingDataMap)
+            {
+                yield return kv;
+            }
+        }
+
         internal void GuardNotShuttingDownOrShut()
         {
             Guard.RequireFalse<InvalidOperationException>(m_IsShuttingDown || m_IsShut, "The container is shutting down or already shut.");

@@ -179,6 +179,12 @@ namespace COL.UnityGameWheels.Core.Ioc
         }
 
         /// <inheritdoc />
+        public IEnumerable<KeyValuePair<string, IBindingData>> GetBindingDatas()
+        {
+            return m_InternalContainer.GetBindingDatas();
+        }
+
+        /// <inheritdoc />
         public void OnUpdate(TimeStruct timeStruct)
         {
             m_TickableInstancesCopied.Clear();

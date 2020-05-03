@@ -147,5 +147,11 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// </summary>
         /// <returns>All existing singletons.</returns>
         IEnumerable<KeyValuePair<string, object>> GetSingletons();
+
+        /// <summary>
+        /// Get all binding data items.
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<KeyValuePair<string, IBindingData>> GetBindingDatas();
     }
 }
