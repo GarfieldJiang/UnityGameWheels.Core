@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 
 namespace COL.UnityGameWheels.Core
 {
@@ -16,10 +17,7 @@ namespace COL.UnityGameWheels.Core
 
         private static ILoggerImpl Logger
         {
-            get
-            {
-                return s_Logger ?? DummyLoggerImpl.Instance;
-            }
+            get { return s_Logger ?? DummyLoggerImpl.Instance; }
         }
 
         [Conditional("LOG_DEBUG")]
@@ -188,6 +186,16 @@ namespace COL.UnityGameWheels.Core
         public static void FatalFormat(string format, params object[] args)
         {
             Logger.WriteLog(LogLevel.Fatal, Utility.Text.Format(format, args));
+        }
+
+        public static void Exception(Exception e)
+        {
+            Logger.WriteException(e);
+        }
+
+        public static void Exception(Exception e, object context)
+        {
+            Logger.WriteException(e, context);
         }
     }
 }

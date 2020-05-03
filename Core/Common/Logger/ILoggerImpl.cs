@@ -1,4 +1,6 @@
-﻿namespace COL.UnityGameWheels.Core
+﻿using System;
+
+namespace COL.UnityGameWheels.Core
 {
     /// <summary>
     /// Simple logger interface.
@@ -8,5 +10,9 @@
         void WriteLog(LogLevel logLevel, object message);
 
         void WriteLog(LogLevel logLevel, object message, object context);
+
+        void WriteException(Exception exception);
+
+        void WriteException(Exception exception, object context);
     }
 }

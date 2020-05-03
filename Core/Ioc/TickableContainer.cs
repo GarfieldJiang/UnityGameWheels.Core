@@ -191,7 +191,14 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_TickableInstancesCopied.AddRange(m_TickableInstances);
             foreach (var tickableInstance in m_TickableInstancesCopied)
             {
-                tickableInstance.OnUpdate(timeStruct);
+                try
+                {
+                    tickableInstance.OnUpdate(timeStruct);
+                }
+                catch (Exception e)
+                {
+                    CoreLog.Exception(e);
+                }
             }
 
             m_TickableInstancesCopied.Clear();

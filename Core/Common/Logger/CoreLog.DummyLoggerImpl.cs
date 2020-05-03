@@ -1,4 +1,6 @@
-﻿namespace COL.UnityGameWheels.Core
+﻿using System;
+
+namespace COL.UnityGameWheels.Core
 {
     /// <summary>
     /// Simple log interfaces.
@@ -28,6 +30,16 @@
             }
 
             public void WriteLog(LogLevel logLevel, object message, object context)
+            {
+                // Empty.
+            }
+
+            public void WriteException(Exception exception)
+            {
+                // Empty.
+            }
+
+            public void WriteException(Exception exception, object context)
             {
                 // Empty.
             }
