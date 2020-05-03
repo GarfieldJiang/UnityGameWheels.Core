@@ -3,9 +3,9 @@
 namespace COL.UnityGameWheels.Core.Net
 {
     /// <summary>
-    /// Interface of the network module that manages persistent network connections as <see cref="INetChannel"/>s.
+    /// Interface of the network service that manages persistent network connections as <see cref="INetChannel"/>s.
     /// </summary>
-    public interface INetModule : IModule
+    public interface INetService : ILifeCycle
     {
         INetChannelFactory ChannelFactory { get; set; }
 

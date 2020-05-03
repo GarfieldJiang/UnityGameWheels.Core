@@ -3,12 +3,13 @@ using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.Net
 {
-    public class NetModule : INetModule
+    public class NetService : BaseLifeCycleService, INetService, ITickable
     {
         private readonly List<INetChannel> m_Channels = new List<INetChannel>();
         private readonly List<INetChannel> m_CopiedChannels = new List<INetChannel>();
         private INetChannelFactory m_ChannelFactory = null;
 
+        [Ioc.Inject]
         public INetChannelFactory ChannelFactory
         {
             get
@@ -86,12 +87,12 @@ namespace COL.UnityGameWheels.Core.Net
             return false;
         }
 
-        public void Init()
+        public override void OnInit()
         {
-            // Empty.
+            base.OnInit();
         }
 
-        public void ShutDown()
+        public override void OnShutdown()
         {
             CoreLog.Debug("[NetModule ShutDown] channel count is " + m_Channels.Count);
             foreach (var channel in m_Channels)
@@ -100,6 +101,7 @@ namespace COL.UnityGameWheels.Core.Net
             }
 
             m_Channels.Clear();
+            base.OnShutdown();
         }
 
         public bool TryGetChannel(string name, out INetChannel channel)
@@ -117,7 +119,7 @@ namespace COL.UnityGameWheels.Core.Net
             return false;
         }
 
-        public void Update(TimeStruct timeStruct)
+        public void OnUpdate(TimeStruct timeStruct)
         {
             GetChannels(m_CopiedChannels);
             foreach (var channel in m_CopiedChannels)
