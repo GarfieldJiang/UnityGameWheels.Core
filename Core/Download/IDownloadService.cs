@@ -3,7 +3,7 @@
     /// <summary>
     /// Interface of a download service.
     /// </summary>
-    public interface IDownloadService : ILifeCycle, ITickable
+    public interface IDownloadService : ILifeCycle
     {
         /// <summary>
         /// Config reader.

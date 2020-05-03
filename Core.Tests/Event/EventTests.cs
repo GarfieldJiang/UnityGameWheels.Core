@@ -80,7 +80,7 @@ namespace COL.UnityGameWheels.Core.Tests
             Assert.AreEqual(0, firstEventCount);
             Assert.AreEqual(0, secondEventCount);
 
-            m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
+            ((ITickable)m_EventService).OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
 
             Assert.AreEqual(1, firstEventCount);
             Assert.AreEqual(0, secondEventCount);
@@ -95,7 +95,7 @@ namespace COL.UnityGameWheels.Core.Tests
             Assert.AreEqual(1, firstEventCount);
             Assert.AreEqual(0, secondEventCount);
 
-            m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
+            ((ITickable)m_EventService).OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
 
             Assert.AreEqual(3, firstEventCount);
             Assert.AreEqual(1, secondEventCount);
@@ -106,7 +106,7 @@ namespace COL.UnityGameWheels.Core.Tests
             m_EventService.SendEvent(this, new OneSimpleEventArgs());
             m_EventService.SendEvent(this, new AnotherSimpleEventArgs());
 
-            m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
+            ((ITickable)m_EventService).OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
 
             Assert.AreEqual(4, firstEventCount);
             Assert.AreEqual(1, secondEventCount);
@@ -127,7 +127,7 @@ namespace COL.UnityGameWheels.Core.Tests
             m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
             m_EventService.SendEventNow(this, new OneSimpleEventArgs());
             Assert.AreEqual(1, firstEventCount);
-            m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
+            ((ITickable)m_EventService).OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
             Assert.AreEqual(1, firstEventCount);
         }
 
@@ -231,7 +231,7 @@ namespace COL.UnityGameWheels.Core.Tests
                 thread.Start();
                 thread.Join();
                 Assert.AreEqual(0, eventsReceived);
-                m_EventService.OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
+                ((ITickable)m_EventService).OnUpdate(new TimeStruct(0f, 0f, 0f, 0f));
                 Assert.AreEqual(1, eventsReceived);
                 Assert.AreEqual(0, exceptionsCaught);
             }
@@ -273,7 +273,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             m_EventService.SendEventNow(null, new OneSimpleEventArgs());
             CollectionAssert.AreEqual(new[] {0, 1, 2, 3}, eventRecorder);
-            m_EventService.OnUpdate(new TimeStruct());
+            ((ITickable)m_EventService).OnUpdate(new TimeStruct());
             CollectionAssert.AreEqual(new[] {0, 1, 2, 3, 0, 1, 3}, eventRecorder);
         }
 

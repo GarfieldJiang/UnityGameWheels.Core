@@ -146,7 +146,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                m_DownloadService.OnUpdate(new TimeStruct(.1f, .1f, time, time));
+                ((ITickable)m_DownloadService).OnUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 
@@ -192,7 +192,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                m_DownloadService.OnUpdate(new TimeStruct(.1f, .1f, time, time));
+                ((ITickable)m_DownloadService).OnUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 
@@ -239,7 +239,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                m_DownloadService.OnUpdate(new TimeStruct(.1f, .1f, time, time));
+                ((ITickable)m_DownloadService).OnUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 

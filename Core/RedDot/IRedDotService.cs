@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.RedDot
 {
-    public interface IRedDotModule : IModule
+    public interface IRedDotService : ILifeCycle
     {
         bool IsSetUp { get; }
         event Action OnSetUp;

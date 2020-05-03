@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.RedDot
 {
-    public partial class RedDotModule
+    public partial class RedDotService
     {
         private class NonLeafNode : Node
         {

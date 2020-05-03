@@ -3,7 +3,7 @@
     /// <summary>
     /// The interface of an event manager.
     /// </summary>
-    public interface IEventService : ILifeCycle, ITickable
+    public interface IEventService : ILifeCycle
     {
         /// <summary>
         /// Set the main thread ID.

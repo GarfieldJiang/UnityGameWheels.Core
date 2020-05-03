@@ -8,7 +8,7 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// Default implementation of download module.
     /// </summary>
-    public partial class DownloadService : BaseLifeCycleService, IDownloadService
+    public partial class DownloadService : BaseLifeCycleService, IDownloadService, ITickable
     {
         private IRefPoolService m_RefPoolService = null;
 
