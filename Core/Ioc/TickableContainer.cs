@@ -21,8 +21,17 @@ namespace COL.UnityGameWheels.Core.Ioc
         public TickableContainer(int estimatedServiceCount = 64)
         {
             m_InternalContainer = new Container(estimatedServiceCount);
+            m_InternalContainer.OnInstanceCreated += OnInstanceCreatedCallback;
             m_TickableInstances = new HashSet<ITickable>();
             m_TickableInstancesCopied = new List<ITickable>(estimatedServiceCount);
+        }
+
+        private void OnInstanceCreatedCallback(IBindingData bindingData, object serviceInstance)
+        {
+            if (serviceInstance is ITickable tickableService && bindingData.LifeCycleManaged)
+            {
+                m_TickableInstances.Add(tickableService);
+            }
         }
 
         public bool IsShuttingDown => m_InternalContainer.IsShuttingDown;
@@ -126,14 +135,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         public object Make(Type interfaceType)
         {
             GuardNotRequestingShutdown();
-            var bindingData = m_InternalContainer.GetBindingData(interfaceType);
-            var serviceInstance = m_InternalContainer.Make(interfaceType);
-            if (((BindingData)bindingData).LifeCycleManaged && serviceInstance is ITickable tickableService)
-            {
-                m_TickableInstances.Add(tickableService);
-            }
-
-            return serviceInstance;
+            return m_InternalContainer.Make(interfaceType);
         }
 
         /// <inheritdoc />
@@ -234,7 +236,10 @@ namespace COL.UnityGameWheels.Core.Ioc
                     break;
                 }
 
+                var bindingData = (BindingData)m_InternalContainer.GetBindingData(node.Key);
+                Container.InvokeCallbacks(node.Value, bindingData.OnPreShutdownCallbacks);
                 node.Value.OnShutdown();
+                Container.InvokeCallbacks(bindingData.OnPostShutdownCallbacks);
                 m_InternalContainer.ServicesToShutdown.Remove(node.Key);
             }
 

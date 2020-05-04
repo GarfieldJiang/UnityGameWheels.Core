@@ -5,11 +5,11 @@ using System.Linq;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
-    public partial class AssetModule
+    public partial class AssetService
     {
         private partial class Updater : IResourceUpdater
         {
-            private readonly AssetModule m_Owner;
+            private readonly AssetService m_Owner;
             private int[] m_AvailableResourceGroupIds;
             private readonly Dictionary<int, ResourceGroupBeingUpdated> m_ResourceGroupsBeingUpdated = new Dictionary<int, ResourceGroupBeingUpdated>();
 
@@ -27,7 +27,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private long m_UpdatedBytesBeforeSavingReadWriteIndex = 0;
 
-            public Updater(AssetModule owner)
+            public Updater(AssetService owner)
             {
                 m_Owner = owner;
                 m_OnDownloadFailure = OnDownloadFailure;

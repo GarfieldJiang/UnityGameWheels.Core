@@ -1,7 +1,7 @@
 ﻿namespace COL.UnityGameWheels.Core.Asset
 {
     using System;
-    using AssetCache = AssetModule.Loader.AssetCache;
+    using AssetCache = AssetService.Loader.AssetCache;
 
     /// <summary>
     /// Asset accessor.

@@ -18,6 +18,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         private readonly Stack<IBindingData> m_BindingDatasToBuild;
         private readonly Queue<string> m_ServicesToInit;
         internal readonly MinPriorityQueue<string, ILifeCycle> ServicesToShutdown;
+        internal event Action<IBindingData, object> OnInstanceCreated;
         private int m_ServiceInitCounter = 0;
 
         private bool m_IsShuttingDown = false;
@@ -253,7 +254,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             return MakeInternal((BindingData)GetBindingData(interfaceType));
         }
 
-        private object MakeInternal(BindingData bindingData)
+        internal object MakeInternal(BindingData bindingData)
         {
             object serviceInstance;
             try
@@ -276,9 +277,9 @@ namespace COL.UnityGameWheels.Core.Ioc
             {
                 var serviceNameToInit = m_ServicesToInit.Dequeue();
                 var serviceInstance = m_ServiceNameToSingletonMap[serviceNameToInit];
-                var bindingData = m_ServiceNameToBindingDataMap[serviceNameToInit];
+                var bindingData = (BindingData)m_ServiceNameToBindingDataMap[serviceNameToInit];
 
-                if (!((BindingData)bindingData).LifeCycleManaged)
+                if (!bindingData.LifeCycleManaged)
                 {
                     continue;
                 }
@@ -289,7 +290,9 @@ namespace COL.UnityGameWheels.Core.Ioc
                 }
 
                 m_ServiceInitCounter++;
+                InvokeCallbacks(serviceInstance, bindingData.OnPreInitCallbacks);
                 lifeCycleInstance.OnInit();
+                InvokeCallbacks(serviceInstance, bindingData.OnPostInitCallbacks);
                 ServicesToShutdown.Insert(serviceNameToInit, lifeCycleInstance, -m_ServiceInitCounter);
             }
         }
@@ -326,6 +329,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 
                 m_ServiceNameToSingletonMap[bindingData.ServiceName] = ret;
                 m_ServicesToInit.Enqueue(bindingData.ServiceName);
+                OnInstanceCreated?.Invoke(bindingData, ret);
             }
 
             m_BindingDatasToBuild.Pop();
@@ -381,9 +385,12 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
 
             m_ServiceNameToSingletonMap.Remove(serviceName);
+            var bindingData = (BindingData)m_ServiceNameToBindingDataMap[serviceName];
             if (serviceInstance is ILifeCycle lifeCycleInstance)
             {
+                InvokeCallbacks(serviceInstance, bindingData.OnPreShutdownCallbacks);
                 lifeCycleInstance.OnShutdown();
+                InvokeCallbacks(bindingData.OnPostShutdownCallbacks);
             }
 
             return true;
@@ -446,6 +453,32 @@ namespace COL.UnityGameWheels.Core.Ioc
         {
             Guard.RequireFalse<InvalidOperationException>(m_ServiceNameToBindingDataMap.ContainsKey(Dealias(serviceName)),
                 $"Service name or alias '{serviceName}' is already bound.");
+        }
+
+        internal static void InvokeCallbacks(object param, IList<Action<object>> callbackList)
+        {
+            if (callbackList == null)
+            {
+                return;
+            }
+
+            foreach (var callback in callbackList)
+            {
+                callback(param);
+            }
+        }
+
+        internal static void InvokeCallbacks(IList<Action> callbackList)
+        {
+            if (callbackList == null)
+            {
+                return;
+            }
+
+            foreach (var callback in callbackList)
+            {
+                callback();
+            }
         }
     }
 }

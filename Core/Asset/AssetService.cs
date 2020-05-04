@@ -4,7 +4,7 @@ using System.IO;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
-    public sealed partial class AssetModule : BaseModule, IAssetModule
+    public sealed partial class AssetService : BaseLifeCycleService, IAssetService, ITickable
     {
         private IDownloadService m_DownloadService = null;
         private IRefPoolService m_RefPoolService = null;
@@ -44,7 +44,7 @@ namespace COL.UnityGameWheels.Core.Asset
         private readonly Dictionary<int, ResourceGroupUpdateSummary> ResourceGroupUpdateSummaries =
             new Dictionary<int, ResourceGroupUpdateSummary>();
 
-        /// <inheritdoc />
+        [Ioc.Inject]
         public IDownloadService DownloadService
         {
             get { return m_DownloadService ?? throw new InvalidOperationException("Not set."); }
@@ -60,7 +60,7 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
+        [Ioc.Inject]
         public IRefPoolService RefPoolService
         {
             get { return m_RefPoolService ?? throw new InvalidOperationException("Not set."); }
@@ -76,7 +76,7 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
+        [Ioc.Inject]
         public ISimpleFactory<IAssetLoadingTaskImpl> AssetLoadingTaskImplFactory
         {
             get { return m_AssetLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set."); }
@@ -92,7 +92,7 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
+        [Ioc.Inject]
         public ISimpleFactory<IResourceLoadingTaskImpl> ResourceLoadingTaskImplFactory
         {
             get { return m_ResourceLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set."); }
@@ -185,7 +185,7 @@ namespace COL.UnityGameWheels.Core.Asset
         /// <inheritdoc />
         public float ReleaseResourceInterval { get; set; }
 
-        /// <inheritdoc />
+        [Ioc.Inject]
         public IAssetIndexForInstallerLoader IndexForInstallerLoader
         {
             get
@@ -208,7 +208,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public IObjectDestroyer<object> ResourceDestroyer
         {
             get
@@ -549,9 +548,9 @@ namespace COL.UnityGameWheels.Core.Asset
         public IResourceUpdater ResourceUpdater => m_Updater;
 
         /// <inheritdoc />
-        public override void Init()
+        public override void OnInit()
         {
-            base.Init();
+            base.OnInit();
             m_Preparer = new Preparer(this);
             m_UpdateChecker = new UpdateChecker(this);
             m_Updater = new Updater(this);
@@ -559,11 +558,20 @@ namespace COL.UnityGameWheels.Core.Asset
         }
 
         /// <inheritdoc />
-        public override void Update(TimeStruct timeStruct)
+        public void OnUpdate(TimeStruct timeStruct)
         {
-            base.Update(timeStruct);
+            CheckStateOrThrow();
             m_Loader.Update(timeStruct);
         }
+
+        /// <inheritdoc />
+        public override void OnShutdown()
+        {
+            base.OnShutdown();
+        }
+
+        /// <inheritdoc />
+        public override bool CanSafelyShutDown => !IsLoadingAnyAsset;
 
         /// <inheritdoc />
         public void AddUpdateServerRootUrl(string updateServerRootUrl)
@@ -572,7 +580,7 @@ namespace COL.UnityGameWheels.Core.Asset
         }
 
         /// <inheritdoc />
-        public void Prepare(AssetModulePrepareCallbackSet callbackSet, object context)
+        public void Prepare(AssetServicePrepareCallbackSet callbackSet, object context)
         {
             if (m_Preparer.Status != PreparerStatus.None)
             {
@@ -728,13 +736,21 @@ namespace COL.UnityGameWheels.Core.Asset
             return true;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Get all asset cache queries.
+        /// </summary>
+        /// <returns></returns>
+        /// <remarks>For debug use.</remarks>
         public IDictionary<string, AssetCacheQuery> GetAssetCacheQueries()
         {
             return m_Loader == null ? new Dictionary<string, AssetCacheQuery>() : m_Loader.GetAssetCacheQueries();
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Get all resource cache queries.
+        /// </summary>
+        /// <returns></returns>
+        /// <remarks>For debug use.</remarks>
         public IDictionary<string, ResourceCacheQuery> GetResourceCacheQueries()
         {
             return m_Loader == null ? new Dictionary<string, ResourceCacheQuery>() : m_Loader.GetResourceCacheQueries();

@@ -4,11 +4,11 @@ using System.IO;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
-    public partial class AssetModule
+    public partial class AssetService
     {
         private class UpdateChecker
         {
-            private readonly AssetModule m_Owner;
+            private readonly AssetService m_Owner;
             private AssetIndexRemoteFileInfo m_RemoteIndexFileInfo;
             private UpdateCheckCallbackSet m_CallbackSet;
             private object m_Context;
@@ -33,7 +33,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private readonly HashSet<string> m_ResourcesToDelete = new HashSet<string>();
 
-            public UpdateChecker(AssetModule owner)
+            public UpdateChecker(AssetService owner)
             {
                 m_Owner = owner;
                 ResetStatus();

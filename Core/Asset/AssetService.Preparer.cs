@@ -3,15 +3,15 @@
     using System;
     using System.IO;
 
-    public partial class AssetModule
+    public partial class AssetService
     {
         private class Preparer
         {
             public PreparerStatus Status { get; private set; }
 
-            private readonly AssetModule m_Owner = null;
+            private readonly AssetService m_Owner = null;
             private object m_Context = null;
-            private AssetModulePrepareCallbackSet m_CallbackSet;
+            private AssetServicePrepareCallbackSet m_CallbackSet;
 
             private IAssetIndexForInstallerLoader IndexForInstallerLoader => m_Owner.IndexForInstallerLoader;
 
@@ -19,13 +19,13 @@
 
             private AssetIndexForReadWrite ReadWriteIndex => m_Owner.m_ReadWriteIndex;
 
-            public Preparer(AssetModule owner)
+            public Preparer(AssetService owner)
             {
                 m_Owner = owner;
                 Status = PreparerStatus.None;
             }
 
-            public void Run(AssetModulePrepareCallbackSet callbackSet, object context)
+            public void Run(AssetServicePrepareCallbackSet callbackSet, object context)
             {
                 if (Status != PreparerStatus.None)
                 {

@@ -3,11 +3,11 @@
     using System;
     using System.Collections.Generic;
 
-    public partial class AssetModule
+    public partial class AssetService
     {
         internal sealed partial class Loader
         {
-            private readonly AssetModule m_Owner = null;
+            private readonly AssetService m_Owner = null;
             private readonly Dictionary<string, AssetCache> m_AssetCaches = new Dictionary<string, AssetCache>();
             private readonly Dictionary<string, ResourceCache> m_ResourceCaches = new Dictionary<string, ResourceCache>();
             private readonly HashSet<string> m_AssetPathsNotReadyOrFailure = new HashSet<string>();
@@ -54,7 +54,7 @@
 
             private readonly Dictionary<string, int> m_AssetPathToResourceGroupIdMap = new Dictionary<string, int>();
 
-            internal Loader(AssetModule owner)
+            internal Loader(AssetService owner)
             {
                 m_Owner = owner;
                 m_RunningAssetLoadingTasks =

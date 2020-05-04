@@ -142,6 +142,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
 
             // Yeah, you got to tick yourself if you use BindInstance.
             Assert.AreEqual(0, tickableService.TickCount);
+            container.ShutDown();
         }
     }
 }

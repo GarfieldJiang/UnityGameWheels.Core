@@ -1,8 +1,8 @@
 ﻿namespace COL.UnityGameWheels.Core.Asset
 {
-    public partial class AssetModule
+    public partial class AssetService
     {
-        private enum PreparerStatus
+        private enum UpdateCheckerStatus
         {
             None,
             Running,

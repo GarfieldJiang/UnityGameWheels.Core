@@ -5,41 +5,10 @@ namespace COL.UnityGameWheels.Core.Asset
     /// <summary>
     /// Asset module interface.
     /// </summary>
-    public interface IAssetModule : IModule
+    public interface IAssetService : ILifeCycle
     {
-        /// <summary>
-        /// Download module.
-        /// </summary>
-        IDownloadService DownloadService { get; set; }
-
-        /// <summary>
-        /// Reference pool module.
-        /// </summary>
-        IRefPoolService RefPoolService { get; set; }
-
-        /// <summary>
-        /// This factory creates instances of <see cref="IAssetLoadingTaskImpl"/>.
-        /// </summary>
-        ISimpleFactory<IAssetLoadingTaskImpl> AssetLoadingTaskImplFactory { get; set; }
-
-        /// <summary>
-        /// This factory creates instances of <see cref="IResourceLoadingTaskImpl"/>.
-        /// </summary>
-        ISimpleFactory<IResourceLoadingTaskImpl> ResourceLoadingTaskImplFactory { get; set; }
-
-        /// <summary>
-        /// The implementation of how a resource object should be destroyed/unloaded.
-        /// </summary>
-        IObjectDestroyer<object> ResourceDestroyer { get; set; }
-
-        /// <summary>
-        /// How many <see cref="IAssetLoadingTaskImpl"/> instances can be run concurrently.
-        /// </summary>
         int ConcurrentAssetLoaderCount { get; set; }
 
-        /// <summary>
-        /// How many <see cref="IResourceLoadingTaskImpl"/> instances can be run concurrently.
-        /// </summary>
         int ConcurrentResourceLoaderCount { get; set; }
 
         /// <summary>
@@ -120,7 +89,7 @@ namespace COL.UnityGameWheels.Core.Asset
         /// </summary>
         /// <param name="callbackSet">Callback set.</param>
         /// <param name="context">Context.</param>
-        void Prepare(AssetModulePrepareCallbackSet callbackSet, object context);
+        void Prepare(AssetServicePrepareCallbackSet callbackSet, object context);
 
         /// <summary>
         /// Check which resources need to be updated.

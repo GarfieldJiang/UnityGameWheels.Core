@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
-    public partial class AssetModule
+    public partial class AssetService
     {
         internal partial class Loader
         {
