@@ -7,7 +7,7 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// The default implementation of an event manager.
     /// </summary>
-    public partial class EventService : BaseLifeCycleService, IEventService
+    public partial class EventService : BaseLifeCycleService, IEventService, ITickable
     {
         private int? m_MainThreadId = null;
         private Dictionary<int, LinkedList<OnHearEvent>> m_Listeners = null;
