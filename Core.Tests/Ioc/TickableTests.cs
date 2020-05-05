@@ -73,6 +73,20 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             }
         }
 
+
+        private class TickableServiceDependingOnTickableService : ITickable
+        {
+            [Inject]
+            public TickableServiceWithLifeCycle TickableServiceWithLifeCycle { get; set; }
+
+            public int TickCount;
+
+            public void OnUpdate(TimeStruct timeStruct)
+            {
+                ++TickCount;
+            }
+        }
+
         [Test]
         public void TestBasic()
         {
@@ -142,6 +156,25 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
 
             // Yeah, you got to tick yourself if you use BindInstance.
             Assert.AreEqual(0, tickableService.TickCount);
+            container.ShutDown();
+        }
+
+        [Test]
+        public void TestRecursiveTickables()
+        {
+            var container = new TickableContainer();
+            container.BindSingleton<TickableServiceDependingOnTickableService>();
+            container.BindSingleton<TickableServiceWithLifeCycle>();
+            container.BindSingleton<NonTickableService>();
+
+            // Make the main service. And don't make the dependency explicitly.
+            var mainService = container.Make<TickableServiceDependingOnTickableService>();
+
+            container.OnUpdate(default);
+
+            // The dependency should also have been ticked.
+            Assert.AreEqual(1, container.Make<TickableServiceWithLifeCycle>().TickCount);
+
             container.ShutDown();
         }
     }
