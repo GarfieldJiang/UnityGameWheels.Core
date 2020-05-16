@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
@@ -20,7 +21,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 public override float LoadingProgress => m_LoadingTask?.Progress ?? 0f;
 
-                public ResourceCache() : base()
+                public ResourceCache()
                 {
                 }
 
@@ -29,7 +30,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     CoreLog.DebugFormat("[ResourceCache Reuse] {0}", Path);
                     Owner.m_ResourcePathsNotReadyOrFailure.Add(Path);
                     Status = ResourceCacheStatus.WaitingForSlot;
-                    StartTicking();
+                    Owner.m_WaitingForSlotResourceCaches.Enqueue(this);
                 }
 
                 internal override void Reset()
@@ -55,21 +56,24 @@ namespace COL.UnityGameWheels.Core.Asset
                     base.Reset();
                 }
 
+                internal override void OnSlotReady()
+                {
+                    if (Status != ResourceCacheStatus.WaitingForSlot)
+                    {
+                        throw new InvalidOperationException($"Oops! '{nameof(OnSlotReady)}' cannot be called on status '{Status}'.");
+                    }
+
+                    m_LoadingTask = Owner.RunResourceLoadingTask(Path,
+                        ShouldLoadFromReadWritePath ? Owner.ReadWritePath : Owner.InstallerPath);
+                    CoreLog.DebugFormat("[ResourceCache Update] {0} start loading", Path);
+                    Status = ResourceCacheStatus.Loading;
+                    StartTicking();
+                }
+
                 protected override void Update(TimeStruct timeStruct)
                 {
                     switch (Status)
                     {
-                        case ResourceCacheStatus.WaitingForSlot:
-                            if (Owner.m_RunningResourceLoadingTasks.Count < Owner.m_RunningResourceLoadingTasks.Capacity)
-                            {
-                                m_LoadingTask = Owner.RunResourceLoadingTask(Path,
-                                    ShouldLoadFromReadWritePath ? Owner.ReadWritePath : Owner.InstallerPath);
-                                CoreLog.DebugFormat("[ResourceCache Update] {0} start loading", Path);
-                                Status = ResourceCacheStatus.Loading;
-                            }
-
-                            break;
-
                         case ResourceCacheStatus.Loading:
                             if (!string.IsNullOrEmpty(m_LoadingTask.ErrorMessage))
                             {
@@ -147,7 +151,11 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 private void StopAndResetLoadingTask()
                 {
-                    if (m_LoadingTask == null) return;
+                    if (m_LoadingTask == null)
+                    {
+                        return;
+                    }
+
                     Owner.StopAndResetResourceLoadingTask(m_LoadingTask);
                     m_LoadingTask = null;
                 }
@@ -181,6 +189,8 @@ namespace COL.UnityGameWheels.Core.Asset
                 {
                     Status = ResourceCacheStatus.Ready;
                     Owner.m_ResourcePathsNotReadyOrFailure.Remove(Path);
+
+                    StopTicking();
                     StopAndResetLoadingTask();
 
                     m_CopiedResourceObservers.Clear();

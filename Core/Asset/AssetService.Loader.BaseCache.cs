@@ -34,6 +34,7 @@ namespace COL.UnityGameWheels.Core.Asset
                         return;
                     }
 
+                    m_Ticking = true;
                     Owner.m_TickDelegates.Add(m_UpdateFunc);
                 }
 
@@ -45,6 +46,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
 
                     Owner.m_TickDelegates.Remove(m_UpdateFunc);
+                    m_Ticking = false;
                 }
 
                 internal abstract void Init();
@@ -87,6 +89,8 @@ namespace COL.UnityGameWheels.Core.Asset
                     ErrorMessage = null;
                     Owner = null;
                 }
+
+                internal abstract void OnSlotReady();
             }
         }
     }

@@ -20,6 +20,8 @@
             private readonly List<IAssetLoadingTaskImpl> m_RunningAssetLoadingTasks = null;
             private readonly List<IResourceLoadingTaskImpl> m_RunningResourceLoadingTasks = null;
             private readonly List<AssetAccessor> m_AssetAccessorsToRelease = null;
+            private readonly Queue<AssetCache> m_WaitingForSlotAssetCaches = new Queue<AssetCache>();
+            private readonly Queue<ResourceCache> m_WaitingForSlotResourceCaches = new Queue<ResourceCache>();
 
             private AssetIndexForInstaller InstallerIndex => m_Owner.m_InstallerIndex;
 
@@ -78,6 +80,7 @@
                 UpdateRunningAssetLoadingTasks(timeStruct);
                 UpdateRunningResourceLoadingTasks(timeStruct);
                 UpdateTickDelegates(timeStruct);
+                RunWaitingForSlotCaches();
                 ReleaseUnretainedAssetCaches();
 
                 if (m_ShouldForceUnloadUnusedResources ||
@@ -86,6 +89,19 @@
                     m_LastReleaseResourcesTime = timeStruct.UnscaledTime;
                     m_ShouldForceUnloadUnusedResources = false;
                     ReleaseUnusedResourceCaches();
+                }
+            }
+
+            private void RunWaitingForSlotCaches()
+            {
+                while (m_RunningResourceLoadingTasks.Count < m_RunningResourceLoadingTasks.Capacity && m_WaitingForSlotResourceCaches.Count > 0)
+                {
+                    m_WaitingForSlotResourceCaches.Dequeue().OnSlotReady();
+                }
+
+                while (m_RunningAssetLoadingTasks.Count < m_RunningAssetLoadingTasks.Capacity && m_WaitingForSlotAssetCaches.Count > 0)
+                {
+                    m_WaitingForSlotAssetCaches.Dequeue().OnSlotReady();
                 }
             }
 

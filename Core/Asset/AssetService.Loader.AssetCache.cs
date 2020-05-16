@@ -31,11 +31,6 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 public bool IsScene { get; internal set; }
 
-                public IEnumerable<string> GetDependencyAssetPaths()
-                {
-                    return DependencyAssetPaths == null ? new List<string>() : new List<string>(DependencyAssetPaths);
-                }
-
                 public AssetCache()
                 {
                 }
@@ -94,24 +89,30 @@ namespace COL.UnityGameWheels.Core.Asset
                     DFSAddResourceRetainCountsInternal(resourceCache, resourceBasicInfos);
                 }
 
+                internal override void OnSlotReady()
+                {
+                    if (Status != AssetCacheStatus.WaitingForSlot)
+                    {
+                        throw new InvalidOperationException($"Oops! '{nameof(OnSlotReady)}' cannot be called on status '{Status}'.");
+                    }
+
+                    if (IsScene)
+                    {
+                        SucceedAndNotify();
+                    }
+                    else
+                    {
+                        m_LoadingTask = Owner.RunAssetLoadingTask(Path, Owner.EnsureResourceCache(ResourcePath).ResourceObject);
+                        CoreLog.DebugFormat("[AssetCache Update] {0} start loading.", Path);
+                        Status = AssetCacheStatus.Loading;
+                        StartTicking();
+                    }
+                }
+
                 protected override void Update(TimeStruct timeStruct)
                 {
                     switch (Status)
                     {
-                        case AssetCacheStatus.WaitingForSlot:
-                            if (IsScene)
-                            {
-                                SucceedAndNotify();
-                            }
-                            else if (Owner.m_RunningAssetLoadingTasks.Count < Owner.m_RunningAssetLoadingTasks.Capacity)
-                            {
-                                m_LoadingTask = Owner.RunAssetLoadingTask(Path, Owner.EnsureResourceCache(ResourcePath).ResourceObject);
-                                CoreLog.DebugFormat("[AssetCache Update] {0} start loading.", Path);
-                                Status = AssetCacheStatus.Loading;
-                            }
-
-                            break;
-
                         case AssetCacheStatus.Loading:
                             if (!string.IsNullOrEmpty(m_LoadingTask.ErrorMessage))
                             {
@@ -262,7 +263,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
 
                     Status = AssetCacheStatus.WaitingForSlot;
-                    StartTicking();
+                    Owner.m_WaitingForSlotAssetCaches.Enqueue(this);
                 }
 
                 internal void OnLoadResourceFailure(string resourcePath, string errorMessage)
@@ -316,6 +317,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 {
                     Status = AssetCacheStatus.Ready;
                     Owner.m_AssetPathsNotReadyOrFailure.Remove(Path);
+                    StopTicking();
                     StopAndResetLoadingTask();
 
                     m_CopiedAssetObservers.Clear();
