@@ -37,7 +37,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 internal override void Init()
                 {
-                    CoreLog.DebugFormat("[AssetCache Init] {0}", Path);
+                    InternalLog.DebugFormat("[AssetCache Init] {0}", Path);
                     m_LastLoadingProgress = 0f;
                     Owner.m_AssetPathsNotReadyOrFailure.Add(Path);
                     var resourceCache = Owner.EnsureResourceCache(ResourcePath);
@@ -45,7 +45,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                     if (DependencyAssetPaths.Count <= 0)
                     {
-                        CoreLog.DebugFormat("[AssetCache Init] {0} no dep. observe resource.", Path);
+                        InternalLog.DebugFormat("[AssetCache Init] {0} no dep. observe resource.", Path);
                         Status = AssetCacheStatus.WaitingForResource;
 
                         resourceCache.AddObserver(this);
@@ -103,7 +103,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     else
                     {
                         m_LoadingTask = Owner.RunAssetLoadingTask(Path, Owner.EnsureResourceCache(ResourcePath).ResourceObject);
-                        CoreLog.DebugFormat("[AssetCache Update] {0} start loading.", Path);
+                        InternalLog.DebugFormat("[AssetCache Update] {0} start loading.", Path);
                         Status = AssetCacheStatus.Loading;
                         StartTicking();
                     }
@@ -117,13 +117,13 @@ namespace COL.UnityGameWheels.Core.Asset
                             if (!string.IsNullOrEmpty(m_LoadingTask.ErrorMessage))
                             {
                                 ErrorMessage = m_LoadingTask.ErrorMessage;
-                                CoreLog.DebugFormat("[AssetCache Update] {0} loading fail.", Path);
+                                InternalLog.DebugFormat("[AssetCache Update] {0} loading fail.", Path);
                                 FailAndNotify();
                             }
                             else if (m_LoadingTask.IsDone)
                             {
                                 AssetObject = m_LoadingTask.AssetObject;
-                                CoreLog.DebugFormat("[AssetCache Update] {0} loading success.", Path);
+                                InternalLog.DebugFormat("[AssetCache Update] {0} loading success.", Path);
                                 SucceedAndNotify();
                             }
                             else
@@ -141,7 +141,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 internal override void Reset()
                 {
-                    CoreLog.DebugFormat("[AssetCache Reset] {0}", Path);
+                    InternalLog.DebugFormat("[AssetCache Reset] {0}", Path);
                     m_CopiedAssetObservers.Clear();
                     m_AssetObservers.Clear();
                     m_CopiedAssetAccessors.Clear();

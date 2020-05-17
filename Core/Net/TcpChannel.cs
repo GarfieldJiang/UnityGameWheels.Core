@@ -161,7 +161,7 @@ namespace COL.UnityGameWheels.Core.Net
         {
             lock (m_StateLock)
             {
-                CoreLog.Debug("[TcpChannel OnClose] Start.");
+                InternalLog.Debug("[TcpChannel OnClose] Start.");
                 if (m_State == NetChannelState.Unknown || m_State == NetChannelState.Closed
                                                        || m_State == NetChannelState.Closing ||
                                                        m_State == NetChannelState.Disconnected)
@@ -181,7 +181,7 @@ namespace COL.UnityGameWheels.Core.Net
             m_ReceiveStream.Dispose();
             m_SendingStream.Dispose();
 
-            CoreLog.Debug("[TcpChannel OnClose] Before socket shutdown and close.");
+            InternalLog.Debug("[TcpChannel OnClose] Before socket shutdown and close.");
             try
             {
                 m_Socket.Shutdown(SocketShutdown.Both);
@@ -193,7 +193,7 @@ namespace COL.UnityGameWheels.Core.Net
             }
             finally
             {
-                CoreLog.Debug("[TcpChannel OnClose] finally block.");
+                InternalLog.Debug("[TcpChannel OnClose] finally block.");
                 m_Socket = null;
 
                 lock (m_StateLock)
@@ -201,7 +201,7 @@ namespace COL.UnityGameWheels.Core.Net
                     m_State = NetChannelState.Closed;
                 }
 
-                CoreLog.Debug("[TcpChannel OnClose] End.");
+                InternalLog.Debug("[TcpChannel OnClose] End.");
             }
         }
 
@@ -299,13 +299,13 @@ namespace COL.UnityGameWheels.Core.Net
 
         private void Receive()
         {
-            CoreLog.Debug("[TcpChannel Receive]");
+            InternalLog.Debug("[TcpChannel Receive]");
             m_Socket.ReceiveAsync(m_ReceiveEventArgs);
         }
 
         private void OnReceiveCompleted(object sender, SocketAsyncEventArgs e)
         {
-            CoreLog.DebugFormat("[TcpChannel OnReceiveCompleted] socket error is '{0}', bytes transffered is {1}.",
+            InternalLog.DebugFormat("[TcpChannel OnReceiveCompleted] socket error is '{0}', bytes transffered is {1}.",
                 e.SocketError, e.BytesTransferred);
 
             // Receiving failed.
@@ -385,13 +385,13 @@ namespace COL.UnityGameWheels.Core.Net
             // Sending failed.
             if (e.SocketError != SocketError.Success)
             {
-                CoreLog.DebugFormat("[TcpChannel OnSendCompleted] Failure, SocketError={0}.", e.SocketError);
+                InternalLog.DebugFormat("[TcpChannel OnSendCompleted] Failure, SocketError={0}.", e.SocketError);
                 Close();
                 OnError("Sending data failed. Error data is a SocketError.", e.SocketError);
                 return;
             }
 
-            CoreLog.DebugFormat("[TcpChannel OnSendCompleted] Success, bytesTransferred={0}.", e.BytesTransferred);
+            InternalLog.DebugFormat("[TcpChannel OnSendCompleted] Success, bytesTransferred={0}.", e.BytesTransferred);
             lock (m_PacketsToSend)
             {
                 if (m_PacketsToSend.Count <= 0)
@@ -408,7 +408,7 @@ namespace COL.UnityGameWheels.Core.Net
 
         private void OnError(string errorMessage, SocketError? socketError)
         {
-            CoreLog.Debug("[TcpChannel OnError] Start.");
+            InternalLog.Debug("[TcpChannel OnError] Start.");
             try
             {
                 Handler.OnError(errorMessage, socketError == null ? null : (object)socketError.Value);
@@ -419,7 +419,7 @@ namespace COL.UnityGameWheels.Core.Net
             }
             finally
             {
-                CoreLog.Debug("[TcpChannel OnError] End.");
+                InternalLog.Debug("[TcpChannel OnError] End.");
             }
         }
     }

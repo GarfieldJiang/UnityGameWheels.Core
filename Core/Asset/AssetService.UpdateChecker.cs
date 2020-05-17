@@ -260,7 +260,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private void BuildResourceDependencyData()
             {
-                CoreLog.Debug("[AssetModule.UpdateChecker BuildResourceDependencyData]");
+                InternalLog.Debug("[AssetModule.UpdateChecker BuildResourceDependencyData]");
                 var resourceBasicInfos = m_Owner.m_ReadWriteIndex.ResourceBasicInfos;
                 foreach (var kv in resourceBasicInfos)
                 {

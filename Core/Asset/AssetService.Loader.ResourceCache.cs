@@ -27,7 +27,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 internal override void Init()
                 {
-                    CoreLog.DebugFormat("[ResourceCache Reuse] {0}", Path);
+                    InternalLog.DebugFormat("[ResourceCache Reuse] {0}", Path);
                     Owner.m_ResourcePathsNotReadyOrFailure.Add(Path);
                     Status = ResourceCacheStatus.WaitingForSlot;
                     Owner.m_WaitingForSlotResourceCaches.Enqueue(this);
@@ -35,7 +35,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 internal override void Reset()
                 {
-                    CoreLog.DebugFormat("[ResourceCache Reset] {0}", Path);
+                    InternalLog.DebugFormat("[ResourceCache Reset] {0}", Path);
 
                     m_CopiedResourceObservers.Clear();
                     m_ResourceObservers.Clear();
@@ -65,7 +65,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                     m_LoadingTask = Owner.RunResourceLoadingTask(Path,
                         ShouldLoadFromReadWritePath ? Owner.ReadWritePath : Owner.InstallerPath);
-                    CoreLog.DebugFormat("[ResourceCache Update] {0} start loading", Path);
+                    InternalLog.DebugFormat("[ResourceCache Update] {0} start loading", Path);
                     Status = ResourceCacheStatus.Loading;
                     StartTicking();
                 }
@@ -79,14 +79,14 @@ namespace COL.UnityGameWheels.Core.Asset
                             {
                                 ErrorMessage = m_LoadingTask.ErrorMessage;
 
-                                CoreLog.DebugFormat("[ResourceCache Update] {0} loading fail", Path);
+                                InternalLog.DebugFormat("[ResourceCache Update] {0} loading fail", Path);
                                 FailAndNotify();
                             }
                             else if (m_LoadingTask.IsDone)
                             {
                                 ResourceObject = m_LoadingTask.ResourceObject;
 
-                                CoreLog.DebugFormat("[ResourceCache Update] {0} loading success", Path);
+                                InternalLog.DebugFormat("[ResourceCache Update] {0} loading success", Path);
                                 SucceedAndNotify();
                             }
 
@@ -101,13 +101,13 @@ namespace COL.UnityGameWheels.Core.Asset
                 {
                     if (Status == ResourceCacheStatus.Ready)
                     {
-                        CoreLog.DebugFormat("[ResourceCache AddObserver] Path={0}, AssetPath={1} direct success", Path,
+                        InternalLog.DebugFormat("[ResourceCache AddObserver] Path={0}, AssetPath={1} direct success", Path,
                             resourceObserver.Path);
                         resourceObserver.OnLoadResourceSuccess(Path, ResourceObject);
                     }
                     else if (Status == ResourceCacheStatus.Failure)
                     {
-                        CoreLog.DebugFormat("[ResourceCache AddObserver] Path={0}, AssetPath={1} direct fail", Path, resourceObserver.Path);
+                        InternalLog.DebugFormat("[ResourceCache AddObserver] Path={0}, AssetPath={1} direct fail", Path, resourceObserver.Path);
                         resourceObserver.OnLoadResourceFailure(Path, ErrorMessage);
                     }
                     else

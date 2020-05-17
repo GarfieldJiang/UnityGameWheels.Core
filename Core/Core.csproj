@@ -77,6 +77,7 @@
     <Compile Include="Common\Interfaces\IObjectDestroyer.cs" />
     <Compile Include="Common\Interfaces\ISimpleFactory.cs" />
     <Compile Include="Common\Interfaces\ITickable.cs" />
+    <Compile Include="Common\Logger\InternalLog.cs" />
     <Compile Include="Common\Profiler.cs" />
     <Compile Include="Download\CheckingSubtaskResult.cs" />
     <Compile Include="Download\IDownloadServiceConfigReader.cs" />

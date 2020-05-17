@@ -112,7 +112,7 @@
                     return;
                 }
 
-                CoreLog.Debug($"Unretained count: {m_UnretainedResourceCaches.Count}");
+                InternalLog.Debug($"Unretained count: {m_UnretainedResourceCaches.Count}");
                 foreach (var resourceCache in m_UnretainedResourceCaches)
                 {
                     m_ResourceCaches.Remove(resourceCache.Path);

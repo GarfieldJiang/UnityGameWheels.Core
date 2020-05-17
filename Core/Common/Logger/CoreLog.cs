@@ -10,119 +10,108 @@ namespace COL.UnityGameWheels.Core
     {
         private static ILoggerImpl s_Logger = null;
 
+        /// <summary>
+        /// Sets the logger implementation.
+        /// </summary>
+        /// <param name="logger">The logger implementation.</param>
         public static void SetLogger(ILoggerImpl logger)
         {
             s_Logger = logger;
         }
 
+        /// <summary>
+        /// Gets the logger implementation.
+        /// </summary>
         private static ILoggerImpl Logger
         {
             get { return s_Logger ?? DummyLoggerImpl.Instance; }
         }
 
-        [Conditional("LOG_DEBUG")]
         public static void Debug(object message)
         {
             Logger.WriteLog(LogLevel.Debug, message);
         }
 
-        [Conditional("LOG_DEBUG")]
         public static void Debug(object message, object context)
         {
             Logger.WriteLog(LogLevel.Debug, message, context);
         }
 
-        [Conditional("LOG_DEBUG")]
         public static void DebugFormat(string format, object arg)
         {
             Logger.WriteLog(LogLevel.Debug, Utility.Text.Format(format, arg));
         }
 
-        [Conditional("LOG_DEBUG")]
         public static void DebugFormat(string format, object arg0, object arg1)
         {
             Logger.WriteLog(LogLevel.Debug, Utility.Text.Format(format, arg0, arg1));
         }
 
-        [Conditional("LOG_DEBUG")]
         public static void DebugFormat(string format, object arg0, object arg1, object arg2)
         {
             Logger.WriteLog(LogLevel.Debug, Utility.Text.Format(format, arg0, arg1, arg2));
         }
 
-        [Conditional("LOG_DEBUG")]
         public static void DebugFormat(string format, params object[] args)
         {
             Logger.WriteLog(LogLevel.Debug, Utility.Text.Format(format, args));
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO")]
         public static void Info(object message)
         {
             Logger.WriteLog(LogLevel.Info, message);
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO")]
         public static void Info(object message, object context)
         {
             Logger.WriteLog(LogLevel.Info, message, context);
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO")]
         public static void InfoFormat(string format, object arg)
         {
             Logger.WriteLog(LogLevel.Info, Utility.Text.Format(format, arg));
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO")]
         public static void InfoFormat(string format, object arg0, object arg1)
         {
             Logger.WriteLog(LogLevel.Info, Utility.Text.Format(format, arg0, arg1));
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO")]
         public static void InfoFormat(string format, object arg0, object arg1, object arg2)
         {
             Logger.WriteLog(LogLevel.Info, Utility.Text.Format(format, arg0, arg1, arg2));
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO")]
         public static void InfoFormat(string format, params object[] args)
         {
             Logger.WriteLog(LogLevel.Info, Utility.Text.Format(format, args));
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO"), Conditional("LOG_WARNING")]
         public static void Warning(object message)
         {
             Logger.WriteLog(LogLevel.Warning, message);
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO"), Conditional("LOG_WARNING")]
         public static void Warning(object message, object context)
         {
             Logger.WriteLog(LogLevel.Warning, message, context);
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO"), Conditional("LOG_WARNING")]
         public static void WarningFormat(string format, object arg)
         {
             Logger.WriteLog(LogLevel.Warning, Utility.Text.Format(format, arg));
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO"), Conditional("LOG_WARNING")]
         public static void WarningFormat(string format, object arg0, object arg1)
         {
             Logger.WriteLog(LogLevel.Warning, Utility.Text.Format(format, arg0, arg1));
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO"), Conditional("LOG_WARNING")]
         public static void WarningFormat(string format, object arg0, object arg1, object arg2)
         {
             Logger.WriteLog(LogLevel.Warning, Utility.Text.Format(format, arg0, arg1, arg2));
         }
 
-        [Conditional("LOG_DEBUG"), Conditional("LOG_INFO"), Conditional("LOG_WARNING")]
         public static void WarningFormat(string format, params object[] args)
         {
             Logger.WriteLog(LogLevel.Warning, Utility.Text.Format(format, args));

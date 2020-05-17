@@ -55,7 +55,7 @@ namespace COL.UnityGameWheels.Core
 
                 var ret = HashFinal(value);
 #if PROFILING
-                CoreLog.Debug($"[Crc32 Sum] Hashes a stream of {totalBytes} bytes takes {Profiler.EndSample().TotalMilliseconds} ms.");
+                InternalLog.Debug($"[Crc32 Sum] Hashes a stream of {totalBytes} bytes takes {Profiler.EndSample().TotalMilliseconds} ms.");
 #endif
                 return ret;
             }

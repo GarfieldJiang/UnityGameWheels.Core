@@ -213,7 +213,7 @@ namespace COL.UnityGameWheels.Core.Ioc
                 }
                 catch (Exception e)
                 {
-                    CoreLog.Exception(e);
+                    InternalLog.Exception(e);
                 }
             }
 

@@ -60,7 +60,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 internal virtual void IncreaseRetainCount()
                 {
                     m_RetainCount++;
-                    CoreLog.DebugFormat("[{0} IncreaseRetainCount] '{2}' to {1}", GetType().Name, m_RetainCount, Path);
+                    InternalLog.DebugFormat("[{0} IncreaseRetainCount] '{2}' to {1}", GetType().Name, m_RetainCount, Path);
                 }
 
                 internal virtual void ReduceRetainCount()
@@ -72,7 +72,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
 
                     --m_RetainCount;
-                    CoreLog.DebugFormat("[{0} ReduceRetainCount] '{2}' to {1}", GetType().Name, m_RetainCount, Path);
+                    InternalLog.DebugFormat("[{0} ReduceRetainCount] '{2}' to {1}", GetType().Name, m_RetainCount, Path);
                 }
 
                 protected abstract void Update(TimeStruct timeStruct);

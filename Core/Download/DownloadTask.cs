@@ -35,7 +35,7 @@ namespace COL.UnityGameWheels.Core
             {
                 if (value != m_Status)
                 {
-                    CoreLog.Debug($"[DownloadTask set_ItsStatus] ID: {DownloadTaskId}, State: {m_Status} --> {value}");
+                    InternalLog.Debug($"[DownloadTask set_ItsStatus] ID: {DownloadTaskId}, State: {m_Status} --> {value}");
                 }
 
                 m_Status = value;
@@ -455,7 +455,7 @@ namespace COL.UnityGameWheels.Core
             finally
             {
 #if PROFILING
-                CoreLog.Debug($"[DownloadTask SaveDownloadedDataToFile] Writing {sizeToWrite} bytes of file takes time {Profiler.EndSample().TotalMilliseconds} ms.");
+                InternalLog.Debug($"[DownloadTask SaveDownloadedDataToFile] Writing {sizeToWrite} bytes of file takes time {Profiler.EndSample().TotalMilliseconds} ms.");
 #endif
             }
         }

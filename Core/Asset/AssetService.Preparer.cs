@@ -133,7 +133,7 @@
                 }
                 catch (Exception e)
                 {
-                    CoreLog.Warning($"Cannot parse the index file with exception '{e}'. Will try to clean up read-write path.");
+                    InternalLog.Warning($"Cannot parse the index file with exception '{e}'. Will try to clean up read-write path.");
                     ReadWriteIndex.Clear();
                     return !File.Exists(m_Owner.ReadWriteIndexPath) || m_Owner.TryCleanUpReadWritePathOrFail(Fail);
                 }

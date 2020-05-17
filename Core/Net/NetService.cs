@@ -94,7 +94,7 @@ namespace COL.UnityGameWheels.Core.Net
 
         public override void OnShutdown()
         {
-            CoreLog.Debug("[NetModule ShutDown] channel count is " + m_Channels.Count);
+            InternalLog.Debug("[NetModule ShutDown] channel count is " + m_Channels.Count);
             foreach (var channel in m_Channels)
             {
                 channel.Close();
