@@ -146,8 +146,20 @@ namespace COL.UnityGameWheels.Core
 
         private void ClearFileStreamIfNeeded()
         {
-            if (m_FileStream == null) return;
-            m_FileStream.Dispose();
+            if (m_FileStream == null)
+            {
+                return;
+            }
+
+            try
+            {
+                m_FileStream.Dispose();
+            }
+            catch (IOException e)
+            {
+                InternalLog.Warning($"File stream cannot be disposed. Exception: '{e.GetType()}'. Message: '{e.Message}'.");
+            }
+
             m_FileStream = null;
         }
 
