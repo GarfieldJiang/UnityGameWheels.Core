@@ -81,6 +81,7 @@
     <Compile Include="Common\Collections\PriorityQueueTests.cs" />
     <Compile Include="Common\GuardTests.cs" />
     <Compile Include="Common\RemoveEmptyFolderTests.cs" />
+    <Compile Include="Common\VersionTests.cs" />
     <Compile Include="Download\DownloadTaskTests.cs" />
     <Compile Include="Download\DownloadServiceTests.cs" />
     <Compile Include="Event\EventTests.cs" />

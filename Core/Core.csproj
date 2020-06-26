@@ -70,6 +70,7 @@
     <Compile Include="Asset\LoadAssetIndexForInstallerCallbackSet.cs" />
     <Compile Include="Asset\IAssetIndexForInstallerLoader.cs" />
     <Compile Include="Common\BaseLifeCycleService.cs" />
+    <Compile Include="Common\Constant.cs" />
     <Compile Include="Common\Guard\Guard.cs" />
     <Compile Include="Common\Interfaces\IConfigReader.cs" />
     <Compile Include="Common\Interfaces\ILifeCycle.cs" />
@@ -177,6 +178,10 @@
     <Compile Include="Asset\ResourceBasicInfo.cs" />
     <Compile Include="Common\Logger\CoreLog.cs" />
     <Compile Include="Common\Logger\CoreLog.DummyLoggerImpl.cs" />
+    <Compile Include="Common\Version\Version.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Common\Version\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
