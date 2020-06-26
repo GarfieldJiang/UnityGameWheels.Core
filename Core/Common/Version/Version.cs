@@ -93,6 +93,10 @@ namespace COL.UnityGameWheels.Core
 
         public bool Equals(Version other)
         {
+            if (other == null)
+            {
+                return false;
+            }
             return m_Major == other.m_Major && m_Minor == other.m_Minor && m_Patch == other.m_Patch;
         }
 
