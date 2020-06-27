@@ -108,7 +108,6 @@
     <Compile Include="Common\Algorithm\Algorithm.Graph.cs" />
     <Compile Include="Common\Algorithm\Algorithm.cs" />
     <Compile Include="Common\Algorithm\Algorithm.Crc32.cs" />
-    <Compile Include="Common\BaseModule.cs" />
     <Compile Include="Common\Collections\DefaultMinPriorityQueueNodePool.cs" />
     <Compile Include="Common\Collections\IMinPriorityQueueNodePool.cs" />
     <Compile Include="Common\Collections\MinPriorityQueue.cs" />
