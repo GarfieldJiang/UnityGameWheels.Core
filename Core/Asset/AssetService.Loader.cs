@@ -215,6 +215,7 @@
                         assetAccessor.AssetPath, resourceGroup));
                 }
 
+                assetAccessor.ResetCallbacks();
                 m_AssetAccessorsToRelease.Add(assetAccessor);
             }
 
