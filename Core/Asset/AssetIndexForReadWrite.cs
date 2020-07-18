@@ -9,12 +9,14 @@ namespace COL.UnityGameWheels.Core.Asset
     {
         public override string Header => Constant.ReadWriteIndexFileHeader;
 
-        protected override void SerializeAugmentedData(BinaryWriter bw)
+        public override string ObsoleteHeader => Constant.ReadWriteIndexFileHeader_Obsolete;
+
+        protected internal override void SerializeAugmentedData(BinaryWriter bw)
         {
             // Empty.
         }
 
-        protected override void DeserializeAugmentedData(BinaryReader br)
+        protected internal override void DeserializeAugmentedData(BinaryReader br)
         {
             // Empty.
         }

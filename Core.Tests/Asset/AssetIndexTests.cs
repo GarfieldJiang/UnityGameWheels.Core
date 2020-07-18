@@ -23,39 +23,69 @@ namespace COL.UnityGameWheels.Core.Tests
                 assetIndexAugmented.InternalAssetVersion = internalAssetVersion;
             }
 
-            var fakeAssetInfo = new AssetInfo();
-            fakeAssetInfo.Path = "abc";
-            fakeAssetInfo.ResourcePath = "123";
+            var fakeAssetInfo = new AssetInfo {Path = "abc", ResourcePath = "123"};
             fakeAssetInfo.DependencyAssetPaths.Add("xyz1");
             fakeAssetInfo.DependencyAssetPaths.Add("xyz2");
             assetIndex.AssetInfos.Add(fakeAssetInfo.Path, fakeAssetInfo);
 
-            var fakeResourceInfo = new ResourceInfo();
-            fakeResourceInfo.Path = "xyz1";
-            fakeResourceInfo.Size = 1000L;
-            fakeResourceInfo.Crc32 = 456;
-            fakeResourceInfo.Hash = "ThisIsAFakeHash";
+            var fakeResourceInfo = new ResourceInfo {Path = "123", Size = 1000L, Crc32 = 456, Hash = "ThisIsAFakeHash"};
+            var fakeResourceBasicInfo = new ResourceBasicInfo {Path = "123", GroupId = 1700};
+            var fakeResourceInfo1 = new ResourceInfo {Path = "xyz1", Size = 2000L, Crc32 = 4568, Hash = "ThisIsAFakeHash1"};
+            var fakeResourceBasicInfo1 = new ResourceBasicInfo {Path = "xyz1", GroupId = 1500};
+            var fakeResourceInfo2 = new ResourceInfo {Path = "xyz2", Size = 1500L, Crc32 = 4569, Hash = "ThisIsAFakeHash2"};
+            var fakeResourceBasicInfo2 = new ResourceBasicInfo {Path = "xyz2", GroupId = 1800};
 
-            var fakeResourceBasicInfo = new ResourceBasicInfo();
-            fakeResourceBasicInfo.Path = "xyz1";
-            fakeResourceBasicInfo.GroupId = 1700;
+            assetIndex.ResourceInfos.Add(fakeResourceInfo.Path, fakeResourceInfo);
+            assetIndex.ResourceInfos.Add(fakeResourceInfo1.Path, fakeResourceInfo1);
+            assetIndex.ResourceInfos.Add(fakeResourceInfo2.Path, fakeResourceInfo2);
 
-            var memoryStream = new MemoryStream();
-            using (var bw = new BinaryWriter(memoryStream))
+            assetIndex.ResourceBasicInfos.Add(fakeResourceBasicInfo.Path, fakeResourceBasicInfo);
+            assetIndex.ResourceBasicInfos.Add(fakeResourceBasicInfo1.Path, fakeResourceBasicInfo1);
+            assetIndex.ResourceBasicInfos.Add(fakeResourceBasicInfo2.Path, fakeResourceBasicInfo2);
+
+            byte[] bytes;
+            using (var memoryStream = new MemoryStream())
             {
-                assetIndex.ToBinary(bw);
+                using (var bw = new BinaryWriter(memoryStream))
+                {
+                    new AssetIndexSerializerV2().ToBinary(bw, assetIndex);
+                }
+
+                bytes = memoryStream.ToArray();
             }
 
-            memoryStream = new MemoryStream(memoryStream.ToArray());
+
             var anotherAssetIndex = createAssetIndex();
-            using (var br = new BinaryReader(memoryStream))
+            using (var memoryStream = new MemoryStream(bytes))
             {
-                anotherAssetIndex.FromBinary(br);
+                using (var br = new BinaryReader(memoryStream))
+                {
+                    new AssetIndexSerializerV2().FromBinary(br, anotherAssetIndex);
+                }
             }
 
             AssertAssetIndicesAreEqual(assetIndex, anotherAssetIndex);
 
-            memoryStream.Close();
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var bw = new BinaryWriter(memoryStream))
+                {
+                    new AssetIndexSerializer().ToBinary(bw, assetIndex);
+                }
+
+                bytes = memoryStream.ToArray();
+            }
+
+            anotherAssetIndex.Clear();
+            using (var memoryStream = new MemoryStream(bytes))
+            {
+                using (var br = new BinaryReader(memoryStream))
+                {
+                    new AssetIndexSerializer().FromBinary(br, anotherAssetIndex);
+                }
+            }
+
+            AssertAssetIndicesAreEqual(assetIndex, anotherAssetIndex);
         }
 
         private bool ResourceInfosAreEqual(ResourceInfo x, ResourceInfo y)

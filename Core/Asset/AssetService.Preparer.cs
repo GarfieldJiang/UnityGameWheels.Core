@@ -101,7 +101,7 @@
                 {
                     using (var br = new BinaryReader(stream))
                     {
-                        InstallerIndex.FromBinary(br);
+                        new AssetIndexSerializerV2().FromBinary(br, InstallerIndex);
                     }
                 }
                 catch (Exception e)
@@ -127,7 +127,7 @@
                     {
                         using (var br = new BinaryReader(stream))
                         {
-                            ReadWriteIndex.FromBinary(br);
+                            DeserializeAssetIndex(br, ReadWriteIndex);
                         }
                     }
                 }

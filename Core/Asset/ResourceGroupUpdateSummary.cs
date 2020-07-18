@@ -1,4 +1,6 @@
-﻿namespace COL.UnityGameWheels.Core.Asset
+﻿using System;
+
+namespace COL.UnityGameWheels.Core.Asset
 {
     using System.Collections;
     using System.Collections.Generic;

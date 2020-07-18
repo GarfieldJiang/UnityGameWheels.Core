@@ -1,52 +1,23 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System;
+using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
-    public class ResourceBasicInfo : IBinarySerializable
+    public class ResourceBasicInfo
     {
         public string Path = string.Empty;
 
         public int GroupId = 0;
 
+        /// <summary>
+        /// Resource paths that depend on this resource.
+        /// </summary>
+        /// <remarks>This property exists for compatibility to earlier version of asset index files.</remarks>
         public HashSet<string> DependingResourcePaths { get; } = new HashSet<string>();
 
-        private HashSet<string> m_DependencyResourcePaths = null;
-
-        internal HashSet<string> DependencyResourcePaths
-        {
-            get
-            {
-                if (m_DependencyResourcePaths == null)
-                {
-                    m_DependencyResourcePaths = new HashSet<string>();
-                }
-
-                return m_DependencyResourcePaths;
-            }
-        }
-
-        public void FromBinary(BinaryReader br)
-        {
-            Path = br.ReadString();
-            GroupId = br.ReadInt32();
-            DependingResourcePaths.Clear();
-            var dependingResourcePathCount = br.ReadInt32();
-            for (int i = 0; i < dependingResourcePathCount; i++)
-            {
-                DependingResourcePaths.Add(br.ReadString());
-            }
-        }
-
-        public void ToBinary(BinaryWriter bw)
-        {
-            bw.Write(Path);
-            bw.Write(GroupId);
-            bw.Write(DependingResourcePaths.Count);
-            foreach (var dependingResourcePath in DependingResourcePaths)
-            {
-                bw.Write(dependingResourcePath);
-            }
-        }
+        /// <summary>
+        /// Resource paths on which this resource depends.
+        /// </summary>
+        public HashSet<string> DependencyResourcePaths { get; } = new HashSet<string>();
     }
 }

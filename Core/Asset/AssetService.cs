@@ -677,7 +677,7 @@ namespace COL.UnityGameWheels.Core.Asset
             {
                 using (var bw = new BinaryWriter(fs))
                 {
-                    m_ReadWriteIndex.ToBinary(bw);
+                    new AssetIndexSerializerV2().ToBinary(bw, m_ReadWriteIndex);
                 }
             }
         }
@@ -754,6 +754,39 @@ namespace COL.UnityGameWheels.Core.Asset
         public IDictionary<string, ResourceCacheQuery> GetResourceCacheQueries()
         {
             return m_Loader == null ? new Dictionary<string, ResourceCacheQuery>() : m_Loader.GetResourceCacheQueries();
+        }
+
+        private static void DeserializeAssetIndex(BinaryReader br, AssetIndexBase assetIndex)
+        {
+            var streamPosition = br.BaseStream.Position;
+            var header = br.ReadString();
+            IBinarySerializer<AssetIndexBase> serializer;
+            if (header == assetIndex.ObsoleteHeader)
+            {
+                serializer = new AssetIndexSerializer();
+            }
+            else if (header == assetIndex.Header)
+            {
+                var version = br.ReadInt16();
+
+                if (version == 2)
+                {
+                    serializer = new AssetIndexSerializerV2();
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Version {version} of {assetIndex.GetType()} is not supported.");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException($"Header {header} of {assetIndex.GetType()} is not supported.");
+            }
+
+            InternalLog.Debug($"DeserializeAssetIndex. Type: {assetIndex.GetType()}, Serializer type: {serializer.GetType()}.");
+            // TODO: How do I avoid seeking back to the beginning of the stream. Do I need specific header serializer classes?
+            br.BaseStream.Seek(streamPosition, SeekOrigin.Begin);
+            serializer.FromBinary(br, assetIndex);
         }
     }
 }

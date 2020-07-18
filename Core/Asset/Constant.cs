@@ -15,20 +15,26 @@
         /// </summary>
         public const string CachedRemoteIndexFileName = "remote_index.dat";
 
+        public const string InstallerIndexFileHeader_Obsolete = "CRI";
+
+        public const string ReadWriteIndexFileHeader_Obsolete = "PRI";
+
+        public const string RemoteIndexFileHeader_Obsolete = "RRI";
+
         /// <summary>
         /// File header of the index file in the installer path.
         /// </summary>
-        public const string InstallerIndexFileHeader = "CRI";
+        public const string InstallerIndexFileHeader = "CR";
 
         /// <summary>
         /// File header of the index file in the read-write path.
         /// </summary>
-        public const string ReadWriteIndexFileHeader = "PRI";
+        public const string ReadWriteIndexFileHeader = "PR";
 
         /// <summary>
         /// File header of the remote index file.
         /// </summary>
-        public const string RemoteIndexFileHeader = "RRI";
+        public const string RemoteIndexFileHeader = "RR";
 
         /// <summary>
         /// The extension of any resource file.

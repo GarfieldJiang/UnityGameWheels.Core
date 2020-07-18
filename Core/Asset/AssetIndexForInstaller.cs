@@ -6,5 +6,6 @@
     public class AssetIndexForInstaller : AssetIndexAugmented
     {
         public override string Header => Constant.InstallerIndexFileHeader;
+        public override string ObsoleteHeader => Constant.InstallerIndexFileHeader_Obsolete;
     }
 }

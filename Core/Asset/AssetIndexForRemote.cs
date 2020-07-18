@@ -6,5 +6,7 @@
     public class AssetIndexForRemote : AssetIndexAugmented
     {
         public override string Header => Constant.RemoteIndexFileHeader;
+
+        public override string ObsoleteHeader => Constant.RemoteIndexFileHeader_Obsolete;
     }
 }

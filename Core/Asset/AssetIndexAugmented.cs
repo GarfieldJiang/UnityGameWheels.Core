@@ -25,14 +25,14 @@ namespace COL.UnityGameWheels.Core.Asset
         /// <value>The internal asset version.</value>
         public int InternalAssetVersion { get; set; } = 0;
 
-        protected override void SerializeAugmentedData(BinaryWriter bw)
+        protected internal override void SerializeAugmentedData(BinaryWriter bw)
         {
             bw.Write(Platform);
             bw.Write(BundleVersion);
             bw.Write(InternalAssetVersion);
         }
 
-        protected override void DeserializeAugmentedData(BinaryReader br)
+        protected internal override void DeserializeAugmentedData(BinaryReader br)
         {
             Platform = br.ReadString();
             BundleVersion = br.ReadString();

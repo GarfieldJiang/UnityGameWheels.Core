@@ -29,7 +29,8 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private AssetIndexForRemote RemoteIndex => m_Owner.m_RemoteIndex;
 
-            private Dictionary<int, ResourceGroupUpdateSummary> ResourceSummaries => m_Owner.ResourceGroupUpdateSummaries;
+            private Dictionary<int, ResourceGroupUpdateSummary> ResourceSummaries =>
+                m_Owner.ResourceGroupUpdateSummaries;
 
             private readonly HashSet<string> m_ResourcesToDelete = new HashSet<string>();
 
@@ -41,7 +42,8 @@ namespace COL.UnityGameWheels.Core.Asset
                 m_OnDownloadSuccess = OnDownloadSuccess;
             }
 
-            public void Run(AssetIndexRemoteFileInfo remoteIndexFileInfo, UpdateCheckCallbackSet callbackSet, object context)
+            public void Run(AssetIndexRemoteFileInfo remoteIndexFileInfo, UpdateCheckCallbackSet callbackSet,
+                object context)
             {
                 if (Status != UpdateCheckerStatus.None)
                 {
@@ -59,7 +61,8 @@ namespace COL.UnityGameWheels.Core.Asset
                     return;
                 }
 
-                m_RemoteIndexFileInfo = remoteIndexFileInfo ?? throw new InvalidOperationException("Remote index file info is invalid.");
+                m_RemoteIndexFileInfo = remoteIndexFileInfo ??
+                                        throw new InvalidOperationException("Remote index file info is invalid.");
 
                 if (RootUrls.Count <= 0)
                 {
@@ -72,8 +75,10 @@ namespace COL.UnityGameWheels.Core.Asset
                     m_RootUrlsModified = true;
                     for (int i = 0; i < RootUrls.Count; i++)
                     {
-                        RootUrls[i] = new Uri(RootUrls[i], Utility.Text.Format(m_Owner.UpdateRelativePathFormat, m_Owner.RunningPlatform,
-                            Utility.Text.Format("{0}.{1}", m_Owner.BundleVersion, m_RemoteIndexFileInfo.InternalAssetVersion)));
+                        RootUrls[i] = new Uri(RootUrls[i], Utility.Text.Format(m_Owner.UpdateRelativePathFormat,
+                            m_Owner.RunningPlatform,
+                            Utility.Text.Format("{0}.{1}", m_Owner.BundleVersion,
+                                m_RemoteIndexFileInfo.InternalAssetVersion)));
                     }
                 }
 
@@ -164,7 +169,8 @@ namespace COL.UnityGameWheels.Core.Asset
             }
 
 
-            private void OnDownloadFailure(int downloadTaskId, DownloadTaskInfo downloadTaskInfo, DownloadErrorCode errorCode,
+            private void OnDownloadFailure(int downloadTaskId, DownloadTaskInfo downloadTaskInfo,
+                DownloadErrorCode errorCode,
                 string errorMessage)
             {
                 if (m_DownloadRetryTimes >= m_Owner.DownloadRetryCount)
@@ -174,7 +180,8 @@ namespace COL.UnityGameWheels.Core.Asset
                     if (m_RootUrlIndex >= RootUrls.Count)
                     {
                         ResetStatus();
-                        errorMessage = Utility.Text.Format("Cannot update remote index file. Error code is '{0}'. Error message is '{1}'.",
+                        errorMessage = Utility.Text.Format(
+                            "Cannot update remote index file. Error code is '{0}'. Error message is '{1}'.",
                             errorCode, errorMessage);
                         if (m_CallbackSet.OnFailure != null)
                         {
@@ -258,23 +265,8 @@ namespace COL.UnityGameWheels.Core.Asset
                 }
             }
 
-            private void BuildResourceDependencyData()
-            {
-                InternalLog.Debug("[AssetModule.UpdateChecker BuildResourceDependencyData]");
-                var resourceBasicInfos = m_Owner.m_ReadWriteIndex.ResourceBasicInfos;
-                foreach (var kv in resourceBasicInfos)
-                {
-                    var resourceBasicInfo = kv.Value;
-                    foreach (var dependingResourcePath in resourceBasicInfo.DependingResourcePaths)
-                    {
-                        resourceBasicInfos[dependingResourcePath].DependencyResourcePaths.Add(resourceBasicInfo.Path);
-                    }
-                }
-            }
-
             private void Succeed()
             {
-                BuildResourceDependencyData();
                 Status = UpdateCheckerStatus.Success;
                 m_CallbackSet.OnSuccess?.Invoke(m_Context);
             }
@@ -301,7 +293,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     {
                         using (var br = new BinaryReader(fs))
                         {
-                            RemoteIndex.FromBinary(br);
+                            DeserializeAssetIndex(br, RemoteIndex);
                         }
                     }
                 }
@@ -346,13 +338,15 @@ namespace COL.UnityGameWheels.Core.Asset
                     var resourceSummary = ResourceSummaries[groupId];
                     resourceSummary.TotalSize += remote.Size;
 
-                    if (InstallerIndex.ResourceInfos.TryGetValue(remote.Path, out var installer) && installer.Hash == remote.Hash &&
+                    if (InstallerIndex.ResourceInfos.TryGetValue(remote.Path, out var installer) &&
+                        installer.Hash == remote.Hash &&
                         installer.Size == remote.Size)
                     {
                         continue;
                     }
 
-                    if (ReadWriteIndex.ResourceInfos.TryGetValue(remote.Path, out var readWrite) && readWrite.Hash == remote.Hash &&
+                    if (ReadWriteIndex.ResourceInfos.TryGetValue(remote.Path, out var readWrite) &&
+                        readWrite.Hash == remote.Hash &&
                         readWrite.Size == remote.Size)
                     {
                         continue;
@@ -374,7 +368,8 @@ namespace COL.UnityGameWheels.Core.Asset
 
                     foreach (var resource in m_ResourcesToDelete)
                     {
-                        var resourceAbsPath = Path.Combine(m_Owner.ReadWritePath, resource + Constant.ResourceFileExtension);
+                        var resourceAbsPath = Path.Combine(m_Owner.ReadWritePath,
+                            resource + Constant.ResourceFileExtension);
                         if (File.Exists(resourceAbsPath))
                         {
                             File.Delete(resourceAbsPath);
