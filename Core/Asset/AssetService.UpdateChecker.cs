@@ -293,7 +293,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     {
                         using (var br = new BinaryReader(fs))
                         {
-                            DeserializeAssetIndex(br, RemoteIndex);
+                            new AssetIndexSerializerV2().FromBinary(br, RemoteIndex);
                         }
                     }
                 }
