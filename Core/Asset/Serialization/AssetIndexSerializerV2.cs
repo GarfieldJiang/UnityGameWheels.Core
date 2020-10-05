@@ -9,6 +9,9 @@ namespace COL.UnityGameWheels.Core.Asset
 
         public void ToBinary(BinaryWriter bw, AssetIndexBase obj)
         {
+#if PROFILING
+            Profiler.BeginSample();
+#endif
             var stringMap = new StringMap();
             var resourceGroupInfoSerializer = new ResourceGroupInfoSerializerV2(stringMap);
             var resourceBasicInfoSerializer = new ResourceBasicInfoSerializerV2(stringMap);
@@ -25,9 +28,15 @@ namespace COL.UnityGameWheels.Core.Asset
                 stringMap.TryAddString(kv.Key, out _);
             }
 
+            // AssetInfos doesn't necessarily contain information about all the assets. So their dependency paths have to
+            // be added into stringMap.
             foreach (var kv in obj.AssetInfos)
             {
                 stringMap.TryAddString(kv.Key, out _);
+                foreach (var dependencyAssetPath in kv.Value.DependencyAssetPaths)
+                {
+                    stringMap.TryAddString(dependencyAssetPath, out _);
+                }
             }
 
             stringMap.ToBinary(bw);
@@ -55,6 +64,9 @@ namespace COL.UnityGameWheels.Core.Asset
             {
                 resourceInfoSerializer.ToBinary(bw, kv.Value);
             }
+#if PROFILING
+            InternalLog.Debug($"[AssetIndexSerializerV2 ToBinary] Serialization of asset index takes {Profiler.EndSample().TotalMilliseconds} ms.");
+#endif
         }
 
         public void FromBinary(BinaryReader br, AssetIndexBase obj)
