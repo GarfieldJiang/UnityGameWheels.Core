@@ -131,17 +131,19 @@ namespace COL.UnityGameWheels.Core
 
         private void ClearCheckingSubtask()
         {
-            if (m_CheckingSubtaskCancellationTokenSource != null)
+            if (m_CheckingSubtaskCancellationTokenSource == null)
             {
-                if (!m_CheckingSubtaskCancellationTokenSource.IsCancellationRequested)
-                {
-                    m_CheckingSubtaskCancellationTokenSource.Cancel();
-                }
-
-                m_CheckingSubtaskCancellationTokenSource.Dispose();
-                m_CheckingSubtaskCancellationTokenSource = null;
-                m_CheckingSubtask = null;
+                return;
             }
+
+            if (!m_CheckingSubtaskCancellationTokenSource.IsCancellationRequested)
+            {
+                m_CheckingSubtaskCancellationTokenSource.Cancel();
+            }
+
+            m_CheckingSubtaskCancellationTokenSource.Dispose();
+            m_CheckingSubtaskCancellationTokenSource = null;
+            m_CheckingSubtask = null;
         }
 
         private void ClearFileStreamIfNeeded()
@@ -243,13 +245,14 @@ namespace COL.UnityGameWheels.Core
                         m_DownloadTaskImpl.OnStop();
                         IsDone = false;
                         break;
-                    case Status.WaitingForSameNameChecking:
-                        m_CheckingSubtaskCancellationTokenSource.Cancel();
-                        m_CheckingSubtaskCancellationTokenSource.Dispose();
-                        m_CheckingSubtaskCancellationTokenSource = null;
-                        break;
                     case Status.Checking:
+                        ClearCheckingSubtask();
                         break;
+                    case Status.WaitingForSameNameChecking:
+                        // Do nothing.
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unsupported status {ItsStatus}.");
                 }
 
                 IsDone = false;
