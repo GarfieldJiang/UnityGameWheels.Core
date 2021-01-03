@@ -166,7 +166,7 @@ namespace COL.UnityGameWheels.Core
             base.OnInit();
 
             // Read config.
-            InitTempfileExtension();
+            InitTempFileExtension();
             InitConcurrentDownloadCountLimit();
             m_ChunkSizeToSave = ConfigReader.ChunkSizeToSave;
             m_Timeout = ConfigReader.Timeout;
@@ -187,7 +187,7 @@ namespace COL.UnityGameWheels.Core
             m_ConcurrentDownloadCountLimit = concurrentDownloadCountLimit;
         }
 
-        private void InitTempfileExtension()
+        private void InitTempFileExtension()
         {
             var tempFileExtension = ConfigReader.TempFileExtension;
             if (string.IsNullOrEmpty(tempFileExtension))
