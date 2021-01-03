@@ -6,7 +6,7 @@ namespace COL.UnityGameWheels.Core
     public interface ILifeCycle
     {
         /// <summary>
-        /// Callback on initailization.
+        /// Callback on initialization.
         /// </summary>
         void OnInit();
 

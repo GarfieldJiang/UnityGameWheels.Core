@@ -1,6 +1,6 @@
 namespace COL.UnityGameWheels.Core
 {
-    public interface ISimpleFactory<T> where T : class
+    public interface ISimpleFactory<out T> where T : class
     {
         T Get();
     }
