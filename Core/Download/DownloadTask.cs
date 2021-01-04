@@ -91,6 +91,8 @@ namespace COL.UnityGameWheels.Core
         /// </summary>
         public float TimeUsed { get; private set; }
 
+        private float m_NoProgressTime;
+
         /// <summary>
         /// Initialize.
         /// </summary>
@@ -121,6 +123,7 @@ namespace COL.UnityGameWheels.Core
             IsDone = false;
             DownloadService = null;
             TimeUsed = 0f;
+            m_NoProgressTime = 0;
             m_StartByteIndex = 0L;
             m_TempFileSize = 0L;
             m_TempSavePath = string.Empty;
@@ -296,12 +299,17 @@ namespace COL.UnityGameWheels.Core
                 return;
             }
 
+#if DEBUG
+            Guard.RequireTrue<InvalidOperationException>(ItsStatus == Status.Started);
+#endif
+
             m_DownloadTaskImpl.Update(timeStruct);
 
             TimeUsed += timeStruct.UnscaledDeltaTime;
+            var oldDownloadedSize = DownloadedSize;
             DownloadedSize = m_StartByteIndex + m_DownloadTaskImpl.RealDownloadedSize;
-
-            if (DownloadService.Timeout > 0 && TimeUsed > DownloadService.Timeout)
+            m_NoProgressTime = DownloadedSize > oldDownloadedSize ? 0 : m_NoProgressTime + timeStruct.UnscaledDeltaTime;
+            if (DownloadService.Timeout > 0 && m_NoProgressTime > DownloadService.Timeout)
             {
                 ClearFileStreamIfNeeded();
                 TackleTimeOut();
@@ -470,7 +478,8 @@ namespace COL.UnityGameWheels.Core
             finally
             {
 #if PROFILING
-                InternalLog.Debug($"[DownloadTask SaveDownloadedDataToFile] Writing {sizeToWrite} bytes of file takes time {Profiler.EndSample().TotalMilliseconds} ms.");
+                InternalLog.Debug(
+                    $"[DownloadTask SaveDownloadedDataToFile] Writing {sizeToWrite} bytes of file takes time {Profiler.EndSample().TotalMilliseconds} ms.");
 #endif
             }
         }

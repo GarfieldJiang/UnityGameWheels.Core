@@ -28,9 +28,12 @@ namespace COL.UnityGameWheels.Core.Tests
 
             public bool TaskShouldNeverStart { get; set; }
 
+            public bool DontMakeProgress { get; set; }
+
             public IDownloadTaskImpl Get()
             {
                 var ret = new MockDownloadTaskImpl();
+                ret.DontMakeProgress = DontMakeProgress;
                 ret.Size = TaskSize;
                 ret.TimeNeeded = TaskTimeNeeded;
                 ret.ShouldNeverStart = TaskShouldNeverStart;
@@ -58,6 +61,8 @@ namespace COL.UnityGameWheels.Core.Tests
 
             private long m_StartByteIndex = 0L;
             private float m_TimeUsed = 0f;
+
+            public bool DontMakeProgress { get; set; }
 
             public void OnDownloadError()
             {
@@ -93,6 +98,11 @@ namespace COL.UnityGameWheels.Core.Tests
             public void Update(TimeStruct timeStruct)
             {
                 if (IsDone)
+                {
+                    return;
+                }
+
+                if (DontMakeProgress)
                 {
                     return;
                 }
@@ -155,6 +165,44 @@ namespace COL.UnityGameWheels.Core.Tests
             Assert.IsTrue(File.Exists(savePath));
             var bytes = File.ReadAllBytes(savePath);
             CheckBufferContent(size, bytes);
+        }
+
+        [Test]
+        public void TestDownloadTimeout()
+        {
+            string fileName = "simple_file";
+            long size = 100L;
+            float timeNeeded = m_DownloadService.Timeout * 10;
+            string savePath = Path.Combine(m_DirectoryInfo.FullName, fileName);
+            var mockDownloadTaskImplFactory = m_DownloadTaskImplFactory as MockDownloadTaskImplFactory;
+            mockDownloadTaskImplFactory.TaskSize = size;
+            mockDownloadTaskImplFactory.TaskTimeNeeded = timeNeeded;
+            DownloadErrorCode? downloadErrorCode = null;
+
+            mockDownloadTaskImplFactory.DontMakeProgress = true;
+            m_DownloadService.StartDownloading(new DownloadTaskInfo(
+                urlStr: "urlStr",
+                savePath: savePath,
+                size: size,
+                crc32: null,
+                callbackSet: new DownloadCallbackSet
+                {
+                    OnSuccess = (taskId, taskInfo) => { },
+                    OnFailure = (taskId, taskInfo, errorCode, errorMessage) => { downloadErrorCode = errorCode; },
+                },
+                context: null
+            ));
+
+            var oldTime = 0f;
+            for (float time = oldTime; time < timeNeeded + 0.5f; time += m_DownloadService.Timeout + .1f)
+            {
+                var deltaTime = time - oldTime;
+                oldTime = time;
+                ((ITickable)m_DownloadService).OnUpdate(new TimeStruct(deltaTime, deltaTime, time, time));
+            }
+
+            mockDownloadTaskImplFactory.DontMakeProgress = false;
+            Assert.True(downloadErrorCode != null && downloadErrorCode.Value == DownloadErrorCode.Timeout);
         }
 
         [Test]
@@ -274,7 +322,7 @@ namespace COL.UnityGameWheels.Core.Tests
             m_DownloadService = new DownloadService();
             var configReader = Substitute.For<IDownloadServiceConfigReader>();
             configReader.TempFileExtension.Returns(".tmp");
-            configReader.Timeout.Returns(10000f);
+            configReader.Timeout.Returns(1f);
             configReader.ChunkSizeToSave.Returns(32);
             configReader.ConcurrentDownloadCountLimit.Returns(2);
             m_DownloadService.ConfigReader = configReader;

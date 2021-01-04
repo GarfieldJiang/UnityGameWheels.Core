@@ -18,7 +18,7 @@ namespace COL.UnityGameWheels.Core
         int ChunkSizeToSave { get; }
 
         /// <summary>
-        /// Default time limit of any task.
+        /// Time limit for any task with no progress (in seconds).
         /// </summary>
         float Timeout { get; }
     }

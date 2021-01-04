@@ -26,7 +26,7 @@
         string TempFileExtension { get; }
 
         /// <summary>
-        /// Default time limit of any task.
+        /// Time limit for any task with no progress (in seconds).
         /// </summary>
         float Timeout { get; }
 
