@@ -151,7 +151,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             GuardInterfaceType(interfaceType);
             Guard.RequireNotNull<ArgumentNullException>(instance, $"Invalid '{nameof(instance)}'.");
             var implType = instance.GetType();
-            GuardImplType(implType);
             if (!interfaceType.IsAssignableFrom(implType))
             {
                 throw new InvalidOperationException($"{nameof(interfaceType)} is not assignable from {nameof(implType)}.");
@@ -172,7 +171,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             GuardUnbound(Dealias(serviceName));
             var implType = instance.GetType();
             Guard.RequireNotNull<ArgumentNullException>(instance, $"Invalid '{nameof(instance)}'.");
-            GuardImplType(implType);
             var bindingData = new BindingData(this)
             {
                 ServiceName = serviceName,
