@@ -30,7 +30,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     InternalLog.DebugFormat("[ResourceCache Reuse] {0}", Path);
                     Owner.m_ResourcePathsNotReadyOrFailure.Add(Path);
                     Status = ResourceCacheStatus.WaitingForSlot;
-                    Owner.m_WaitingForSlotResourceCaches.Enqueue(this);
+                    Owner.m_WaitingForSlotResourceCaches.Add(this);
                 }
 
                 internal override void Reset()
@@ -48,7 +48,6 @@ namespace COL.UnityGameWheels.Core.Asset
                         Owner.ResourceDestroyer.Destroy(ResourceObject);
                     }
 
-                    Path = null;
                     ResourceObject = null;
                     ShouldLoadFromReadWritePath = false;
                     Status = ResourceCacheStatus.None;
@@ -143,10 +142,15 @@ namespace COL.UnityGameWheels.Core.Asset
                 internal override void ReduceRetainCount()
                 {
                     base.ReduceRetainCount();
-                    if (RetainCount <= 0 && (Status == ResourceCacheStatus.Failure || Status == ResourceCacheStatus.Ready))
+                    if (RetainCount <= 0)
                     {
                         MarkAsUnretained();
                     }
+                }
+
+                internal override bool CanRelease()
+                {
+                    return Status == ResourceCacheStatus.Failure || Status == ResourceCacheStatus.Ready || Status == ResourceCacheStatus.WaitingForSlot;
                 }
 
                 private void StopAndResetLoadingTask()

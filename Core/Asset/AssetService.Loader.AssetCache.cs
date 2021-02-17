@@ -263,7 +263,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
 
                     Status = AssetCacheStatus.WaitingForSlot;
-                    Owner.m_WaitingForSlotAssetCaches.Enqueue(this);
+                    Owner.m_WaitingForSlotAssetCaches.Add(this);
                 }
 
                 internal void OnLoadResourceFailure(string resourcePath, string errorMessage)
@@ -391,10 +391,16 @@ namespace COL.UnityGameWheels.Core.Asset
                 internal override void ReduceRetainCount()
                 {
                     base.ReduceRetainCount();
-                    if (RetainCount <= 0 && (Status == AssetCacheStatus.Failure || Status == AssetCacheStatus.Ready))
+                    if (RetainCount <= 0)
                     {
                         MarkAsUnretained();
                     }
+                }
+
+                internal override bool CanRelease()
+                {
+                    return Status == AssetCacheStatus.Failure || Status == AssetCacheStatus.Ready || Status == AssetCacheStatus.WaitingForSlot
+                           || Status == AssetCacheStatus.WaitingForDeps || Status == AssetCacheStatus.WaitingForResource;
                 }
 
                 private static void CallLoadAssetFailureOrThrow(AssetAccessor assetAccessor, string errorMessage)
