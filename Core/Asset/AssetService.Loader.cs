@@ -1,4 +1,6 @@
-﻿namespace COL.UnityGameWheels.Core.Asset
+﻿using System.Linq;
+
+namespace COL.UnityGameWheels.Core.Asset
 {
     using System;
     using System.Collections.Generic;
@@ -20,8 +22,8 @@
             private readonly List<IAssetLoadingTaskImpl> m_RunningAssetLoadingTasks = null;
             private readonly List<IResourceLoadingTaskImpl> m_RunningResourceLoadingTasks = null;
             private readonly List<AssetAccessor> m_AssetAccessorsToRelease = null;
-            private readonly Queue<AssetCache> m_WaitingForSlotAssetCaches = new Queue<AssetCache>();
-            private readonly Queue<ResourceCache> m_WaitingForSlotResourceCaches = new Queue<ResourceCache>();
+            private readonly HashSet<AssetCache> m_WaitingForSlotAssetCaches = new HashSet<AssetCache>();
+            private readonly HashSet<ResourceCache> m_WaitingForSlotResourceCaches = new HashSet<ResourceCache>();
 
             private AssetIndexForInstaller InstallerIndex => m_Owner.m_InstallerIndex;
 
@@ -81,7 +83,7 @@
                 UpdateRunningResourceLoadingTasks(timeStruct);
                 UpdateTickDelegates(timeStruct);
                 RunWaitingForSlotCaches();
-                ReleaseUnretainedAssetCaches();
+                ReleaseUnusedAssetCaches();
 
                 if (m_ShouldForceUnloadUnusedResources ||
                     timeStruct.UnscaledTime - m_LastReleaseResourcesTime > m_Owner.ReleaseResourceInterval)
@@ -96,12 +98,16 @@
             {
                 while (m_RunningResourceLoadingTasks.Count < m_RunningResourceLoadingTasks.Capacity && m_WaitingForSlotResourceCaches.Count > 0)
                 {
-                    m_WaitingForSlotResourceCaches.Dequeue().OnSlotReady();
+                    var first = m_WaitingForSlotResourceCaches.First();
+                    m_WaitingForSlotResourceCaches.Remove(first);
+                    first.OnSlotReady();
                 }
 
                 while (m_RunningAssetLoadingTasks.Count < m_RunningAssetLoadingTasks.Capacity && m_WaitingForSlotAssetCaches.Count > 0)
                 {
-                    m_WaitingForSlotAssetCaches.Dequeue().OnSlotReady();
+                    var first = m_WaitingForSlotAssetCaches.First();
+                    m_WaitingForSlotAssetCaches.Remove(first);
+                    first.OnSlotReady();
                 }
             }
 
@@ -112,10 +118,34 @@
                     return;
                 }
 
-                InternalLog.Debug($"Unretained count: {m_UnretainedResourceCaches.Count}");
+                bool releaseAll = true;
+                // We need all resources (AssetBundles) that have dependencies between each other to be released/unloaded at the same time;
+                // Otherwise, there will be occasional but confusing asset missing issues.
+                // Here we use the simplest strategy. Once all unretained resources can be released safely, we do it all. Otherwise, we don't release any.
                 foreach (var resourceCache in m_UnretainedResourceCaches)
                 {
+                    if (!resourceCache.CanRelease())
+                    {
+                        InternalLog.Info($"[AssetModule.Loader ReleaseUnusedResourceCaches] Cannot release {resourceCache.Path}. Drop.");
+                        releaseAll = false;
+                        break;
+                    }
+                }
+
+                if (!releaseAll)
+                {
+                    return;
+                }
+
+                InternalLog.Info($"[AssetModule.Loader ReleaseUnusedResourceCaches] Release {m_UnretainedResourceCaches.Count} resources.");
+                foreach (var resourceCache in m_UnretainedResourceCaches)
+                {
+                    // if (resourceCache.Status.ToString().StartsWith("Waiting"))
+                    // {
+                    //     InternalLog.Warning($"{resourceCache.Status}, {resourceCache.Path}");
+                    // }
                     m_ResourceCaches.Remove(resourceCache.Path);
+                    m_WaitingForSlotResourceCaches.Remove(resourceCache);
                     resourceCache.Reset();
                     m_ResourceCachePool.Release(resourceCache);
                 }
@@ -123,16 +153,29 @@
                 m_UnretainedResourceCaches.Clear();
             }
 
-            private void ReleaseUnretainedAssetCaches()
+            private void ReleaseUnusedAssetCaches()
             {
-                while (m_UnretainedAssetCaches.Count != 0)
+                while (true)
                 {
                     m_TempAssetCaches.Clear();
-                    m_TempAssetCaches.AddRange(m_UnretainedAssetCaches);
+                    foreach (var assetCache in m_UnretainedAssetCaches)
+                    {
+                        if (assetCache.CanRelease())
+                        {
+                            m_TempAssetCaches.Add(assetCache);
+                        }
+                    }
+
+                    if (m_TempAssetCaches.Count <= 0)
+                    {
+                        break;
+                    }
+
                     foreach (var assetCache in m_TempAssetCaches)
                     {
                         m_AssetCaches.Remove(assetCache.Path);
                         m_UnretainedAssetCaches.Remove(assetCache);
+                        m_WaitingForSlotAssetCaches.Remove(assetCache);
                         assetCache.Reset();
                         m_AssetCachePool.Release(assetCache);
                     }

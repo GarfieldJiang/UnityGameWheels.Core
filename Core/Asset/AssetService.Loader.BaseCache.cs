@@ -91,6 +91,12 @@ namespace COL.UnityGameWheels.Core.Asset
                 }
 
                 internal abstract void OnSlotReady();
+
+                /// <summary>
+                /// Whether the cache can be safely released when it's <see cref="RetainCount"/> is 0.
+                /// </summary>
+                /// <returns></returns>
+                internal abstract bool CanRelease();
             }
         }
     }
