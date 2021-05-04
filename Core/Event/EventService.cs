@@ -7,7 +7,7 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// The default implementation of an event manager.
     /// </summary>
-    public partial class EventService : BaseLifeCycleService, IEventService, ITickable
+    public partial class EventService : TickableLifeCycleService, IEventService
     {
         private int? m_MainThreadId = null;
         private Dictionary<int, LinkedList<OnHearEvent>> m_Listeners = null;
@@ -167,7 +167,7 @@ namespace COL.UnityGameWheels.Core
         }
 
         /// <inheritdoc />
-        public void OnUpdate(TimeStruct timeStruct)
+        protected override void OnUpdate(TimeStruct timeStruct)
         {
             CheckMainThreadOrThrow();
             m_UpdateEventQueue.Clear();

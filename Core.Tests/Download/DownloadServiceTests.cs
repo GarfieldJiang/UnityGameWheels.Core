@@ -7,6 +7,7 @@ namespace COL.UnityGameWheels.Core.Tests
     [TestFixture]
     public class DownloadServiceTests
     {
+        private ITickService m_TickService = null;
         private IDownloadService m_DownloadService = null;
         private IRefPoolService m_RefPoolService = null;
 
@@ -27,13 +28,13 @@ namespace COL.UnityGameWheels.Core.Tests
         [SetUp]
         public void SetUp()
         {
+            m_TickService = new MockTickService();
             m_RefPoolService = new RefPoolService();
             var refPoolServiceConfigReader = Substitute.For<IRefPoolServiceConfigReader>();
             refPoolServiceConfigReader.DefaultCapacity.Returns(1);
             m_RefPoolService.ConfigReader = refPoolServiceConfigReader;
             m_RefPoolService.OnInit();
-
-            m_DownloadService = new DownloadService();
+            m_DownloadService = new DownloadService { TickService = m_TickService, TickOrder = 0 };
             var configReader = Substitute.For<IDownloadServiceConfigReader>();
             configReader.TempFileExtension.Returns(".tmp");
             configReader.Timeout.Returns(10000f);

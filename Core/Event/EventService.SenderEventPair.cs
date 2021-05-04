@@ -2,7 +2,7 @@
 {
     public partial class EventService
     {
-        private struct SenderEventPair
+        private readonly struct SenderEventPair
         {
             public readonly object Sender;
             public readonly BaseEventArgs EventArgs;

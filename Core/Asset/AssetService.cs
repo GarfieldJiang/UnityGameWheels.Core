@@ -4,7 +4,7 @@ using System.IO;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
-    public sealed partial class AssetService : BaseLifeCycleService, IAssetService, ITickable
+    public sealed partial class AssetService : TickableLifeCycleService, IAssetService
     {
         private IDownloadService m_DownloadService = null;
         private IRefPoolService m_RefPoolService = null;
@@ -47,7 +47,7 @@ namespace COL.UnityGameWheels.Core.Asset
         [Ioc.Inject]
         public IDownloadService DownloadService
         {
-            get { return m_DownloadService ?? throw new InvalidOperationException("Not set."); }
+            get => m_DownloadService ?? throw new InvalidOperationException("Not set.");
 
             set
             {
@@ -63,7 +63,7 @@ namespace COL.UnityGameWheels.Core.Asset
         [Ioc.Inject]
         public IRefPoolService RefPoolService
         {
-            get { return m_RefPoolService ?? throw new InvalidOperationException("Not set."); }
+            get => m_RefPoolService ?? throw new InvalidOperationException("Not set.");
 
             set
             {
@@ -79,7 +79,7 @@ namespace COL.UnityGameWheels.Core.Asset
         [Ioc.Inject]
         public ISimpleFactory<IAssetLoadingTaskImpl> AssetLoadingTaskImplFactory
         {
-            get { return m_AssetLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set."); }
+            get => m_AssetLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set.");
 
             set
             {
@@ -95,7 +95,7 @@ namespace COL.UnityGameWheels.Core.Asset
         [Ioc.Inject]
         public ISimpleFactory<IResourceLoadingTaskImpl> ResourceLoadingTaskImplFactory
         {
-            get { return m_ResourceLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set."); }
+            get => m_ResourceLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set.");
 
             set
             {
@@ -558,7 +558,7 @@ namespace COL.UnityGameWheels.Core.Asset
         }
 
         /// <inheritdoc />
-        public void OnUpdate(TimeStruct timeStruct)
+        protected override void OnUpdate(TimeStruct timeStruct)
         {
             CheckStateOrThrow();
             m_Loader.Update(timeStruct);
@@ -569,9 +569,6 @@ namespace COL.UnityGameWheels.Core.Asset
         {
             base.OnShutdown();
         }
-
-        /// <inheritdoc />
-        public override bool CanSafelyShutDown => !IsLoadingAnyAsset;
 
         /// <inheritdoc />
         public void AddUpdateServerRootUrl(string updateServerRootUrl)

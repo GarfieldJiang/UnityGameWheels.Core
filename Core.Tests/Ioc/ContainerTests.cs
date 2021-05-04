@@ -115,7 +115,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
 
         private static IEnumerable<IContainer> GetContainerImpls()
         {
-            return new IContainer[] {new Container(), new TickableContainer()};
+            return new IContainer[] {new Container()};
         }
 
         private interface IServiceA : ILifeCycle
@@ -146,9 +146,6 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 Assert.True(!IsShut);
                 IsShut = true;
             }
-
-
-            public bool CanSafelyShutDown => true;
 
             public bool IsExecuted { get; private set; }
             public bool IsInited { get; private set; }
@@ -183,8 +180,6 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 Assert.True(!ServiceA.IsShut);
                 IsShut = true;
             }
-
-            public bool CanSafelyShutDown => true;
 
             public void Execute()
             {
@@ -223,9 +218,6 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 Assert.True(!ServiceC.IsShut);
                 Shutdown = true;
             }
-
-
-            public bool CanSafelyShutDown => true;
 
             public bool Executed { get; private set; }
             public bool Inited { get; private set; }

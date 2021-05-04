@@ -10,15 +10,14 @@ namespace COL.UnityGameWheels.Core.Tests
     [TestFixture]
     public class DownloadTaskTests
     {
+        private ITickService m_TickService = null;
         private IDownloadService m_DownloadService = null;
         private IRefPoolService m_RefPoolService = null;
         private ISimpleFactory<IDownloadTaskImpl> m_DownloadTaskImplFactory = null;
         private DirectoryInfo m_DirectoryInfo = null;
 
-        private static string SavePathRoot
-        {
-            get { return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar + "DownloadTest"; }
-        }
+        private static string SavePathRoot => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+                                              + Path.DirectorySeparatorChar + "DownloadTest";
 
         private class MockDownloadTaskImplFactory : ISimpleFactory<IDownloadTaskImpl>
         {
@@ -156,7 +155,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                ((ITickable)m_DownloadService).OnUpdate(new TimeStruct(.1f, .1f, time, time));
+                ((MockTickService)m_TickService).ManualUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 
@@ -198,7 +197,7 @@ namespace COL.UnityGameWheels.Core.Tests
             {
                 var deltaTime = time - oldTime;
                 oldTime = time;
-                ((ITickable)m_DownloadService).OnUpdate(new TimeStruct(deltaTime, deltaTime, time, time));
+                ((MockTickService)m_TickService).ManualUpdate(new TimeStruct(deltaTime, deltaTime, time, time));
             }
 
             mockDownloadTaskImplFactory.DontMakeProgress = false;
@@ -240,7 +239,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                ((ITickable)m_DownloadService).OnUpdate(new TimeStruct(.1f, .1f, time, time));
+                ((MockTickService)m_TickService).ManualUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 
@@ -287,7 +286,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             for (float time = 0f; time < timeNeeded + 0.5f; time += 0.1f)
             {
-                ((ITickable)m_DownloadService).OnUpdate(new TimeStruct(.1f, .1f, time, time));
+                ((MockTickService)m_TickService).ManualUpdate(new TimeStruct(.1f, .1f, time, time));
                 Thread.Sleep(100);
             }
 
@@ -313,13 +312,15 @@ namespace COL.UnityGameWheels.Core.Tests
 
             m_DirectoryInfo = new DirectoryInfo(SavePathRoot);
 
+            m_TickService = new MockTickService();
+
             m_RefPoolService = new RefPoolService();
             var refPoolServiceConfigReader = Substitute.For<IRefPoolServiceConfigReader>();
             refPoolServiceConfigReader.DefaultCapacity.Returns(1);
             m_RefPoolService.ConfigReader = refPoolServiceConfigReader;
             m_RefPoolService.OnInit();
 
-            m_DownloadService = new DownloadService();
+            m_DownloadService = new DownloadService { TickService = m_TickService, TickOrder = 0 };
             var configReader = Substitute.For<IDownloadServiceConfigReader>();
             configReader.TempFileExtension.Returns(".tmp");
             configReader.Timeout.Returns(1f);
@@ -343,6 +344,7 @@ namespace COL.UnityGameWheels.Core.Tests
             m_DownloadService = null;
             m_RefPoolService.OnShutdown();
             m_RefPoolService = null;
+            m_TickService = null;
             m_DownloadTaskImplFactory = null;
             m_DirectoryInfo = null;
             if (Directory.Exists(SavePathRoot))

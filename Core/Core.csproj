@@ -83,7 +83,6 @@
     <Compile Include="Asset\Constant.cs" />
     <Compile Include="Asset\LoadAssetIndexForInstallerCallbackSet.cs" />
     <Compile Include="Asset\IAssetIndexForInstallerLoader.cs" />
-    <Compile Include="Common\BaseLifeCycleService.cs" />
     <Compile Include="Common\Constant.cs" />
     <Compile Include="Common\Guard\Guard.cs" />
     <Compile Include="Common\Interfaces\IConfigReader.cs" />
@@ -91,9 +90,11 @@
     <Compile Include="Common\Interfaces\IModule.cs" />
     <Compile Include="Common\Interfaces\IObjectDestroyer.cs" />
     <Compile Include="Common\Interfaces\ISimpleFactory.cs" />
-    <Compile Include="Common\Interfaces\ITickable.cs" />
+    <Compile Include="Common\Interfaces\ITickService.cs" />
     <Compile Include="Common\Logger\InternalLog.cs" />
     <Compile Include="Common\Profiler.cs" />
+    <Compile Include="Common\Service\BaseLifeCycleService.cs" />
+    <Compile Include="Common\Service\TickableLifeCycleService.cs" />
     <Compile Include="Download\CheckingSubtaskResult.cs" />
     <Compile Include="Download\IDownloadServiceConfigReader.cs" />
     <Compile Include="Event\DefaultEventArgsReleaser.cs" />
@@ -104,9 +105,7 @@
     <Compile Include="Ioc\IBindingData.cs" />
     <Compile Include="Ioc\IContainer.cs" />
     <Compile Include="Ioc\InjectAttribute.cs" />
-    <Compile Include="Ioc\ITickableContainer.cs" />
     <Compile Include="Ioc\PropertyInjection.cs" />
-    <Compile Include="Ioc\TickableContainer.cs" />
     <Compile Include="RedDot\IRedDotService.cs" />
     <Compile Include="RedDot\IRedDotObserver.cs" />
     <Compile Include="RedDot\NonLeafOperation.cs" />

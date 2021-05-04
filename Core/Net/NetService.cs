@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.Net
 {
-    public class NetService : BaseLifeCycleService, INetService, ITickable
+    public class NetService : TickableLifeCycleService, INetService
     {
         private readonly List<INetChannel> m_Channels = new List<INetChannel>();
         private readonly List<INetChannel> m_CopiedChannels = new List<INetChannel>();
@@ -119,7 +119,7 @@ namespace COL.UnityGameWheels.Core.Net
             return false;
         }
 
-        public void OnUpdate(TimeStruct timeStruct)
+        protected override void OnUpdate(TimeStruct timeStruct)
         {
             GetChannels(m_CopiedChannels);
             foreach (var channel in m_CopiedChannels)

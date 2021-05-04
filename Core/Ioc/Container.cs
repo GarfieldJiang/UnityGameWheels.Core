@@ -6,9 +6,9 @@ using System.Reflection;
 namespace COL.UnityGameWheels.Core.Ioc
 {
     /// <summary>
-    /// Default implementation of containers.
+    /// Default implementation of a container.
     /// </summary>
-    /// <remarks>NOT thread-safe. And won't consider <see cref="ILifeCycle.CanSafelyShutDown"/>.</remarks>
+    /// <remarks>NOT thread-safe.</remarks>
     public class Container : IContainer
     {
         private readonly Dictionary<string, IBindingData> m_ServiceNameToBindingDataMap;

@@ -10,8 +10,8 @@ namespace COL.UnityGameWheels.Core
     {
         private static int s_CurrentId = 1;
 
-        private static Dictionary<int, Type> s_EventIdToType = new Dictionary<int, Type>();
-        private static Dictionary<Type, int> s_EventTypeToId = new Dictionary<Type, int>();
+        private static readonly Dictionary<int, Type> s_EventIdToType = new Dictionary<int, Type>();
+        private static readonly Dictionary<Type, int> s_EventTypeToId = new Dictionary<Type, int>();
 
         /// <summary>
         /// Generate a new event ID for a given event type.

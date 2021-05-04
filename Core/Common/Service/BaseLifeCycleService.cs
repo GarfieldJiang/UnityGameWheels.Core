@@ -26,8 +26,6 @@ namespace COL.UnityGameWheels.Core
             m_IsShut = true;
         }
 
-        public virtual bool CanSafelyShutDown => true;
-
 
         /// <summary>
         /// Check whether the module is in an available state.

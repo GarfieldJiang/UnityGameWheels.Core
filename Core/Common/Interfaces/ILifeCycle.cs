@@ -14,10 +14,5 @@ namespace COL.UnityGameWheels.Core
         /// Callback on shutdown.
         /// </summary>
         void OnShutdown();
-
-        /// <summary>
-        /// Whether the object can be safely shutdown.
-        /// </summary>
-        bool CanSafelyShutDown { get; }
     }
 }

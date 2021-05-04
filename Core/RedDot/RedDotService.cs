@@ -4,7 +4,7 @@ using System.Text;
 
 namespace COL.UnityGameWheels.Core.RedDot
 {
-    public partial class RedDotService : BaseLifeCycleService, IRedDotService, ITickable
+    public partial class RedDotService : TickableLifeCycleService, IRedDotService
     {
         private readonly Dictionary<string, LeafNode> m_LeafNodes = new Dictionary<string, LeafNode>();
         private readonly Dictionary<string, Node> m_Nodes = new Dictionary<string, Node>();
@@ -171,7 +171,7 @@ namespace COL.UnityGameWheels.Core.RedDot
             return node.Observers.Remove(observer);
         }
 
-        public void OnUpdate(TimeStruct timeStruct)
+        protected override void OnUpdate(TimeStruct timeStruct)
         {
             if (m_LeafKeysWithModifiedValue.Count <= 0)
             {

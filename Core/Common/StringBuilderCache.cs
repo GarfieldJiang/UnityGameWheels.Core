@@ -10,7 +10,7 @@ namespace COL.UnityGameWheels.Core
     public class StringBuilderCache
     {
         // The value 360 was chosen in discussion with performance experts as a compromise between using
-        // as litle memory (per thread) as possible and still covering a large part of short-lived
+        // as little memory (per thread) as possible and still covering a large part of short-lived
         // StringBuilder creations on the startup path of VS designers.
         private const int MAX_BUILDER_SIZE = 360;
 
@@ -29,7 +29,7 @@ namespace COL.UnityGameWheels.Core
                 StringBuilder sb = CachedInstance;
                 if (sb != null)
                 {
-                    // Avoid stringbuilder block fragmentation by getting a new StringBuilder
+                    // Avoid StringBuilder block fragmentation by getting a new StringBuilder
                     // when the requested size is larger than the current capacity
                     if (capacity <= sb.Capacity)
                     {
@@ -39,6 +39,7 @@ namespace COL.UnityGameWheels.Core
                     }
                 }
             }
+
             return new StringBuilder(capacity);
         }
 

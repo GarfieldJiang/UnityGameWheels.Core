@@ -8,7 +8,7 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// Default implementation of download module.
     /// </summary>
-    public partial class DownloadService : BaseLifeCycleService, IDownloadService, ITickable
+    public partial class DownloadService : TickableLifeCycleService, IDownloadService
     {
         private IRefPoolService m_RefPoolService = null;
 
@@ -233,7 +233,7 @@ namespace COL.UnityGameWheels.Core
         /// Generic tick method.
         /// </summary>
         /// <param name="timeStruct">Time struct.</param>
-        public void OnUpdate(TimeStruct timeStruct)
+        protected override void OnUpdate(TimeStruct timeStruct)
         {
             CheckStateOrThrow();
             m_DownloadTaskIdsToRemove.Clear();

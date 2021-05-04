@@ -9,6 +9,7 @@ namespace COL.UnityGameWheels.Core.Tests
     public class RedDotTests
     {
         private IRedDotService m_RedDotService;
+        private ITickService m_TickService;
 
         private class RedDotObserver : IRedDotObserver
         {
@@ -28,13 +29,17 @@ namespace COL.UnityGameWheels.Core.Tests
         [SetUp]
         public void SetUp()
         {
-            m_RedDotService = new RedDotService();
+            m_TickService = new MockTickService();
+            m_RedDotService = new RedDotService { TickService = m_TickService, TickOrder = 0 };
+            m_RedDotService.OnInit();
         }
 
         [TearDown]
         public void TearDown()
         {
+            m_RedDotService.OnShutdown();
             m_RedDotService = null;
+            m_TickService = null;
         }
 
         [Test]
@@ -44,10 +49,10 @@ namespace COL.UnityGameWheels.Core.Tests
             {
                 "Leaf0", "Leaf1", "Leaf2", "NonLeaf0", "NonLeaf1", "Root",
             };
-            m_RedDotService.AddLeaves(new[] {"Leaf0", "Leaf1", "Leaf2"});
-            m_RedDotService.AddNonLeaf("NonLeaf0", NonLeafOperation.Sum, new[] {"Leaf0", "Leaf1"});
-            m_RedDotService.AddNonLeaf("NonLeaf1", NonLeafOperation.Sum, new[] {"Leaf1", "Leaf2"});
-            m_RedDotService.AddNonLeaf("Root", NonLeafOperation.Or, new[] {"NonLeaf0", "NonLeaf1"});
+            m_RedDotService.AddLeaves(new[] { "Leaf0", "Leaf1", "Leaf2" });
+            m_RedDotService.AddNonLeaf("NonLeaf0", NonLeafOperation.Sum, new[] { "Leaf0", "Leaf1" });
+            m_RedDotService.AddNonLeaf("NonLeaf1", NonLeafOperation.Sum, new[] { "Leaf1", "Leaf2" });
+            m_RedDotService.AddNonLeaf("Root", NonLeafOperation.Or, new[] { "NonLeaf0", "NonLeaf1" });
             m_RedDotService.SetUp();
             Assert.Multiple(() =>
             {
@@ -79,7 +84,7 @@ namespace COL.UnityGameWheels.Core.Tests
                 Assert.AreEqual(0, m_RedDotService.GetValue("NonLeaf1"));
                 Assert.AreEqual(0, m_RedDotService.GetValue("Root"));
             });
-            ((ITickable)m_RedDotService).OnUpdate(default(TimeStruct));
+            ((MockTickService)m_TickService).ManualUpdate(default);
             Assert.Multiple(() =>
             {
                 Assert.AreEqual(3, m_RedDotService.GetValue("NonLeaf0"));
@@ -92,7 +97,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             m_RedDotService.RemoveObserver("Leaf0", observer);
             m_RedDotService.SetLeafValue("Leaf0", 4);
-            ((ITickable)m_RedDotService).OnUpdate(default(TimeStruct));
+            ((MockTickService)m_TickService).ManualUpdate(default);
             Assert.AreEqual(1, valuesGotInOnChange["Leaf0"]);
         }
 
@@ -114,7 +119,7 @@ namespace COL.UnityGameWheels.Core.Tests
             m_RedDotService.SetUp();
             Assert.Throws<InvalidOperationException>(() => m_RedDotService.AddLeaf(AnotherLeafNodeName));
             Assert.Throws<InvalidOperationException>(() => m_RedDotService.AddNonLeaf(NonLeafNodeName,
-                NonLeafOperation.Sum, new[] {LeafNodeName}));
+                NonLeafOperation.Sum, new[] { LeafNodeName }));
         }
 
         [Test]
@@ -177,7 +182,7 @@ namespace COL.UnityGameWheels.Core.Tests
 
             m_RedDotService.SetUp();
             m_RedDotService.SetLeafValue(LeafNodeName, 100);
-            ((ITickable)m_RedDotService).OnUpdate(default(TimeStruct));
+            ((MockTickService)m_TickService).ManualUpdate(default);
             int getValueInOnChange = 0;
             m_RedDotService.AddObserver(NonLeafNodeName, new RedDotObserver((key, value) => { getValueInOnChange = value; }));
             Assert.AreEqual(100, getValueInOnChange);
@@ -193,11 +198,11 @@ namespace COL.UnityGameWheels.Core.Tests
             var observer = new RedDotObserver((key, value) => { getValueInOnChange = value; });
             m_RedDotService.AddObserver(LeafNodeName, observer);
             m_RedDotService.SetLeafValue(LeafNodeName, 100);
-            ((ITickable)m_RedDotService).OnUpdate(default(TimeStruct));
+            ((MockTickService)m_TickService).ManualUpdate(default);
             Assert.AreEqual(100, getValueInOnChange);
             m_RedDotService.RemoveObserver(LeafNodeName, observer);
             m_RedDotService.SetLeafValue(LeafNodeName, 90);
-            ((ITickable)m_RedDotService).OnUpdate(default(TimeStruct));
+            ((MockTickService)m_TickService).ManualUpdate(default);
             Assert.AreEqual(100, getValueInOnChange);
         }
 
@@ -228,12 +233,12 @@ namespace COL.UnityGameWheels.Core.Tests
         public void TestDependingOnSameKeyTwice()
         {
             m_RedDotService.AddLeaf("Leaf0");
-            m_RedDotService.AddNonLeaf("NonLeaf0", NonLeafOperation.Sum, new[] {"Leaf0"});
-            m_RedDotService.AddNonLeaf("NonLeaf1", NonLeafOperation.Sum, new[] {"Leaf0"});
-            m_RedDotService.AddNonLeaf("Root", NonLeafOperation.Sum, new[] {"NonLeaf0", "NonLeaf1"});
+            m_RedDotService.AddNonLeaf("NonLeaf0", NonLeafOperation.Sum, new[] { "Leaf0" });
+            m_RedDotService.AddNonLeaf("NonLeaf1", NonLeafOperation.Sum, new[] { "Leaf0" });
+            m_RedDotService.AddNonLeaf("Root", NonLeafOperation.Sum, new[] { "NonLeaf0", "NonLeaf1" });
             m_RedDotService.SetUp();
             m_RedDotService.SetLeafValue("Leaf0", 1);
-            ((ITickable)m_RedDotService).OnUpdate(default(TimeStruct));
+            ((MockTickService)m_TickService).ManualUpdate(default);
             Assert.AreEqual(2, m_RedDotService.GetValue("Root"));
         }
     }
