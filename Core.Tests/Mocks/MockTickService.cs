@@ -28,17 +28,17 @@ namespace COL.UnityGameWheels.Core.Tests
             m_UpdateCallbacks.Sort(CompareNodeOrder);
         }
 
-        public bool RemoveUpdateCallback(Action<TimeStruct> updateFunc)
+        public bool RemoveUpdateCallback(Action<TimeStruct> updateCallback)
         {
-            return m_UpdateCallbacks.RemoveAll(node => node.callback == updateFunc) > 0;
+            return m_UpdateCallbacks.RemoveAll(node => node.callback == updateCallback) > 0;
         }
 
-        public void AddLateUpdateCallback(Action<TimeStruct> lateUpdateFunc, int order)
+        public void AddLateUpdateCallback(Action<TimeStruct> lateUpdateCallback, int order)
         {
             throw new NotImplementedException();
         }
 
-        public bool RemoveLateUpdateCallback(Action<TimeStruct> lateUpdateFunc)
+        public bool RemoveLateUpdateCallback(Action<TimeStruct> lateUpdateCallback)
         {
             throw new NotImplementedException();
         }

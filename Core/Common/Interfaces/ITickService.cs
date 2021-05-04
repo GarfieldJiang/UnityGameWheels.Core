@@ -10,29 +10,29 @@ namespace COL.UnityGameWheels.Core
         /// <summary>
         /// Add callback for engine's Update tick.
         /// </summary>
-        /// <param name="updateFunc">The callback.</param>
+        /// <param name="updateCallback">The callback.</param>
         /// <param name="order">The order.</param>
-        void AddUpdateCallback(Action<TimeStruct> updateFunc, int order);
+        void AddUpdateCallback(Action<TimeStruct> updateCallback, int order);
 
         /// <summary>
         /// Remove callback for engine's Update tick.
         /// </summary>
-        /// <param name="updateFunc">The callback.</param>
+        /// <param name="updateCallback">The callback.</param>
         /// <returns>Whether the callback is successfully removed.</returns>
-        bool RemoveUpdateCallback(Action<TimeStruct> updateFunc);
+        bool RemoveUpdateCallback(Action<TimeStruct> updateCallback);
 
         /// <summary>
         /// Add callback for engine's LateUpdate tick.
         /// </summary>
-        /// <param name="lateUpdateFunc">The callback.</param>
+        /// <param name="lateUpdateCallback">The callback.</param>
         /// <param name="order">The order.</param>
-        void AddLateUpdateCallback(Action<TimeStruct> lateUpdateFunc, int order);
+        void AddLateUpdateCallback(Action<TimeStruct> lateUpdateCallback, int order);
 
         /// <summary>
         /// Remove callback for engine's LateUpdate tick.
         /// </summary>
-        /// <param name="lateUpdateFunc">The callback.</param>
+        /// <param name="lateUpdateCallback">The callback.</param>
         /// <returns>Whether the callback is successfully removed.</returns>
-        bool RemoveLateUpdateCallback(Action<TimeStruct> lateUpdateFunc);
+        bool RemoveLateUpdateCallback(Action<TimeStruct> lateUpdateCallback);
     }
 }
