@@ -10,61 +10,55 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
         [Test]
         public void TestBasic()
         {
-            foreach (var container in GetContainerImpls())
-            {
-                container.BindSingleton<IServiceA, ServiceA>();
-                container.BindSingleton<ServiceB>();
-                Assert.Throws<InvalidOperationException>(() => { container.BindSingleton(typeof(ServiceB), typeof(ServiceB)); });
-                var serviceB = container.Make<ServiceB>();
-                var serviceA = container.Make<IServiceA>();
-                Assert.AreSame(serviceA, container.Make(typeof(IServiceA).ToString()));
-                Assert.True(container.Make<IServiceA>().IsInited);
-                Assert.True(serviceB.IsInited);
-                serviceB.Execute();
-                Assert.True(serviceB.IsExecuted);
-                Assert.True(!serviceB.IsShut);
-                container.ShutDown();
-                Assert.True(serviceB.IsShut);
-            }
+            var container = new Container();
+            container.BindSingleton<IServiceA, ServiceA>();
+            container.BindSingleton<ServiceB>();
+            Assert.Throws<InvalidOperationException>(() => { container.BindSingleton(typeof(ServiceB), typeof(ServiceB)); });
+            var serviceB = container.Make<ServiceB>();
+            var serviceA = container.Make<IServiceA>();
+            Assert.AreSame(serviceA, container.Make(typeof(IServiceA).ToString()));
+            Assert.True(container.Make<IServiceA>().IsInited);
+            Assert.True(serviceB.IsInited);
+            serviceB.Execute();
+            Assert.True(serviceB.IsExecuted);
+            Assert.True(!serviceB.IsShut);
+            container.Dispose();
+            Assert.True(serviceB.IsShut);
         }
 
         [Test]
         public void TestDiamondDependency()
         {
-            foreach (var container in GetContainerImpls())
-            {
-                container.BindSingleton<IServiceA, ServiceA>();
-                container.BindSingleton<ServiceB>();
-                container.BindSingleton<ServiceC, ServiceC>();
-                container.BindSingleton<ServiceD>();
-                var serviceD = container.Make<ServiceD>();
-                serviceD.Execute();
-                var serviceA = (IServiceA)container.Make(typeof(IServiceA).FullName);
-                container.ShutDown();
-                Assert.True(serviceA.IsShut);
-            }
+            var container = new Container();
+            container.BindSingleton<IServiceA, ServiceA>();
+            container.BindSingleton<ServiceB>();
+            container.BindSingleton<ServiceC, ServiceC>();
+            container.BindSingleton<ServiceD>();
+            var serviceD = container.Make<ServiceD>();
+            serviceD.Execute();
+            var serviceA = (IServiceA)container.Make(typeof(IServiceA).FullName);
+            container.Dispose();
+            Assert.True(serviceA.IsShut);
         }
 
         [Test]
         public void TestBindingData()
         {
-            foreach (var container in GetContainerImpls())
-            {
-                var bindingData = container.BindSingleton<IServiceA, ServiceA>();
-                Assert.True(container.IsBound<IServiceA>());
-                Assert.True(container.IsBound(container.TypeToServiceName(typeof(IServiceA))));
-                var bindingData2 = container.GetBindingData(typeof(IServiceA).FullName);
-                var bindingData3 = container.GetBindingData(typeof(IServiceA));
-                Assert.AreSame(bindingData, bindingData2);
-                Assert.AreSame(bindingData, bindingData3);
-                Assert.True(container.TypeIsBound(typeof(IServiceA)));
-            }
+            var container = new Container();
+            var bindingData = container.BindSingleton<IServiceA, ServiceA>();
+            Assert.True(container.IsBound<IServiceA>());
+            Assert.True(container.IsBound(container.TypeToServiceName(typeof(IServiceA))));
+            var bindingData2 = container.GetBindingData(typeof(IServiceA).FullName);
+            var bindingData3 = container.GetBindingData(typeof(IServiceA));
+            Assert.AreSame(bindingData, bindingData2);
+            Assert.AreSame(bindingData, bindingData3);
+            Assert.True(container.TypeIsBound(typeof(IServiceA)));
         }
 
         [Test]
         public void TestAlias()
         {
-            foreach (IContainer container in GetContainerImpls())
+            using (var container = new Container())
             {
                 Assert.False(container.IsAlias("x"));
                 container.BindSingleton<IServiceA, ServiceA>().Alias("x");
@@ -77,14 +71,13 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 Assert.Throws<InvalidOperationException>(() => { container.Alias("x", "y"); });
                 container.GetBindingData("y").Alias("z");
                 Assert.AreSame(container.GetBindingData("x"), container.GetBindingData("z"));
-                container.ShutDown();
             }
         }
 
         [Test]
         public void TestBindInstance()
         {
-            foreach (IContainer container in GetContainerImpls())
+            using (var container = new Container())
             {
                 container.BindSingleton<IServiceA, ServiceA>();
                 container.BindInstance(new ServiceB());
@@ -93,14 +86,13 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 // Life cycle is not managed. Dependency is not handled.
                 Assert.False(serviceB.IsInited);
                 Assert.IsNull(serviceB.ServiceA);
-                container.ShutDown();
             }
         }
 
         [Test]
         public void TestPropertyInjection()
         {
-            foreach (IContainer container in GetContainerImpls())
+            using (var container = new Container())
             {
                 container.BindSingleton<IServiceA, ServiceA>(new PropertyInjection
                 {
@@ -109,13 +101,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 });
 
                 Assert.AreEqual(125, container.Make<IServiceA>().IntProperty);
-                container.ShutDown();
             }
-        }
-
-        private static IEnumerable<IContainer> GetContainerImpls()
-        {
-            return new IContainer[] {new Container()};
         }
 
         private interface IServiceA : ILifeCycle

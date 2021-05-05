@@ -9,7 +9,7 @@ namespace COL.UnityGameWheels.Core.Ioc
     /// Default implementation of a container.
     /// </summary>
     /// <remarks>NOT thread-safe.</remarks>
-    public class Container : IContainer
+    public sealed class Container : IDisposable
     {
         private readonly Dictionary<string, IBindingData> m_ServiceNameToBindingDataMap;
         private readonly Dictionary<Type, IBindingData> m_InterfaceTypeToBindingDataMap;
@@ -21,8 +21,8 @@ namespace COL.UnityGameWheels.Core.Ioc
         internal event Action<IBindingData, object> OnInstanceCreated;
         private int m_ServiceInitCounter = 0;
 
-        private bool m_IsShuttingDown = false;
-        private bool m_IsShut = false;
+        private bool m_Disposing = false;
+        private bool m_Disposed = false;
 
 
         /// <summary>
@@ -43,15 +43,15 @@ namespace COL.UnityGameWheels.Core.Ioc
         }
 
         /// <inheritdoc />
-        public bool IsShuttingDown => m_IsShuttingDown;
+        public bool IsDisposing => m_Disposing;
 
         /// <inheritdoc />
-        public bool IsShut => m_IsShut;
+        public bool IsDisposed => m_Disposed;
 
         /// <inheritdoc />
         public IBindingData BindSingleton(string serviceName, Type implType)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             GuardUnbound(Dealias(serviceName));
             GuardImplType(implType);
@@ -68,7 +68,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindSingleton(string serviceName, Type implType, params PropertyInjection[] propertyInjections)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             GuardUnbound(Dealias(serviceName));
             GuardImplType(implType);
@@ -114,7 +114,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindSingleton(Type interfaceType, Type implType)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
             GuardImplType(implType);
             if (!interfaceType.IsAssignableFrom(implType))
@@ -130,7 +130,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         public IBindingData BindSingleton(Type interfaceType, Type implType, params PropertyInjection[] propertyInjections)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
             GuardImplType(implType);
             if (!interfaceType.IsAssignableFrom(implType))
@@ -147,7 +147,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindInstance(Type interfaceType, object instance)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
             Guard.RequireNotNull<ArgumentNullException>(instance, $"Invalid '{nameof(instance)}'.");
             var implType = instance.GetType();
@@ -166,7 +166,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindInstance(string serviceName, object instance)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             GuardUnbound(Dealias(serviceName));
             var implType = instance.GetType();
@@ -207,7 +207,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public bool TryGetBindingData(string serviceName, out IBindingData bindingData)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             serviceName = Dealias(serviceName);
             return m_ServiceNameToBindingDataMap.TryGetValue(serviceName, out bindingData);
@@ -216,7 +216,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public bool TryGetBindingData(Type interfaceType, out IBindingData bindingData)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             Guard.RequireNotNull<ArgumentNullException>(interfaceType, $"Invalid '{nameof(interfaceType)}'.");
             return m_InterfaceTypeToBindingDataMap.TryGetValue(interfaceType, out bindingData);
         }
@@ -224,7 +224,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public bool IsBound(string serviceName)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             return m_ServiceNameToBindingDataMap.ContainsKey(Dealias(serviceName));
         }
@@ -232,7 +232,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public bool TypeIsBound(Type interfaceType)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
             return m_InterfaceTypeToBindingDataMap.ContainsKey(interfaceType);
         }
@@ -240,7 +240,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public object Make(string serviceName)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             return MakeInternal((BindingData)GetBindingData(serviceName));
         }
@@ -248,7 +248,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public object Make(Type interfaceType)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             return MakeInternal((BindingData)GetBindingData(interfaceType));
         }
 
@@ -334,11 +334,10 @@ namespace COL.UnityGameWheels.Core.Ioc
             return ret;
         }
 
-        /// <inheritdoc />
-        public void ShutDown()
+        public void Dispose()
         {
-            GuardNotShuttingDownOrShut();
-            m_IsShuttingDown = true;
+            GuardNotDisposingOrDisposed();
+            m_Disposing = true;
             while (ServicesToShutdown.Count > 0)
             {
                 var node = ServicesToShutdown.Min;
@@ -347,13 +346,13 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
 
             Clear();
-            m_IsShuttingDown = false;
-            m_IsShut = true;
+            m_Disposing = false;
+            m_Disposed = true;
         }
 
         public void Alias(string serviceName, string alias)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(alias)}'.");
             Guard.RequireFalse<InvalidOperationException>(serviceName == alias, $"'{nameof(serviceName)}' and '{nameof(alias)}' are identical.");
@@ -405,7 +404,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public string Dealias(string serviceName)
         {
-            GuardNotShuttingDownOrShut();
+            GuardNotDisposingOrDisposed();
             return m_AliasToServiceNameMap.TryGetValue(serviceName, out var realServiceName) ? realServiceName : serviceName;
         }
 
@@ -427,9 +426,10 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
         }
 
-        internal void GuardNotShuttingDownOrShut()
+        internal void GuardNotDisposingOrDisposed()
         {
-            Guard.RequireFalse<InvalidOperationException>(m_IsShuttingDown || m_IsShut, "The container is shutting down or already shut.");
+            Guard.RequireFalse<InvalidOperationException>(m_Disposing || m_Disposed,
+                "The container is already disposed or being disposed.");
         }
 
         private void GuardImplType(Type implType)

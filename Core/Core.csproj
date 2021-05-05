@@ -103,7 +103,6 @@
     <Compile Include="Ioc\Container.cs" />
     <Compile Include="Ioc\ContainerExtension.cs" />
     <Compile Include="Ioc\IBindingData.cs" />
-    <Compile Include="Ioc\IContainer.cs" />
     <Compile Include="Ioc\InjectAttribute.cs" />
     <Compile Include="Ioc\PropertyInjection.cs" />
     <Compile Include="RedDot\IRedDotService.cs" />

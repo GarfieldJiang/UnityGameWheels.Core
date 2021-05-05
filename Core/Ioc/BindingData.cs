@@ -5,7 +5,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 {
     internal class BindingData : IBindingData
     {
-        private readonly IContainer m_Container;
+        private readonly Container m_Container;
 
         public Type InterfaceType { get; internal set; }
 
@@ -22,7 +22,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         internal List<Action<object>> OnPreShutdownCallbacks;
         internal List<Action> OnPostShutdownCallbacks;
 
-        internal BindingData(IContainer container)
+        internal BindingData(Container container)
         {
             m_Container = container;
         }
