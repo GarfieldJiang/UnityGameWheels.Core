@@ -567,6 +567,10 @@ namespace COL.UnityGameWheels.Core.Asset
         /// <inheritdoc />
         public override void OnShutdown()
         {
+            if (IsLoadingAnyAsset)
+            {
+                InternalLog.Warning("Some asset is still being loaded.");
+            }
             base.OnShutdown();
         }
 

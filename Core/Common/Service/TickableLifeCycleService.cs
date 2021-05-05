@@ -47,6 +47,11 @@ namespace COL.UnityGameWheels.Core
         public override void OnInit()
         {
             base.OnInit();
+            if (m_TickOrder == null)
+            {
+                m_TickOrder = 0;
+            }
+
             TickService.AddUpdateCallback(OnUpdate, TickOrder);
         }
 
