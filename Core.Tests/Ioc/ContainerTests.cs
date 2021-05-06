@@ -44,15 +44,17 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
         [Test]
         public void TestBindingData()
         {
-            var container = new Container();
-            var bindingData = container.BindSingleton<IServiceA, ServiceA>();
-            Assert.True(container.IsBound<IServiceA>());
-            Assert.True(container.IsBound(container.TypeToServiceName(typeof(IServiceA))));
-            var bindingData2 = container.GetBindingData(typeof(IServiceA).FullName);
-            var bindingData3 = container.GetBindingData(typeof(IServiceA));
-            Assert.AreSame(bindingData, bindingData2);
-            Assert.AreSame(bindingData, bindingData3);
-            Assert.True(container.TypeIsBound(typeof(IServiceA)));
+            using (var container = new Container())
+            {
+                var bindingData = container.BindSingleton<IServiceA, ServiceA>();
+                Assert.True(container.IsBound<IServiceA>());
+                Assert.True(container.IsBound(container.TypeToServiceName(typeof(IServiceA))));
+                var bindingData2 = container.GetBindingData(typeof(IServiceA).FullName);
+                var bindingData3 = container.GetBindingData(typeof(IServiceA));
+                Assert.AreSame(bindingData, bindingData2);
+                Assert.AreSame(bindingData, bindingData3);
+                Assert.True(container.TypeIsBound(typeof(IServiceA)));
+            }
         }
 
         [Test]
@@ -101,6 +103,29 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 });
 
                 Assert.AreEqual(125, container.Make<IServiceA>().IntProperty);
+            }
+        }
+
+        [Test]
+        public void TestGeneric()
+        {
+            using (var container = new Container())
+            {
+                Assert.Throws<ArgumentException>(() => { container.BindSingleton(typeof(IGenericServiceA<>), typeof(GenericServiceA<>)); });
+                Assert.Throws<ArgumentException>(() => { container.BindSingleton(typeof(GenericServiceA<>), typeof(GenericServiceA<>)); });
+                container.BindSingleton<IGenericServiceA<int>, GenericServiceA<int>>();
+                Assert.AreEqual(typeof(GenericServiceA<int>), container.Make<IGenericServiceA<int>>().GetType());
+            }
+        }
+
+        [Test]
+        public void TestBindBeforeMake()
+        {
+            using (var container = new Container())
+            {
+                container.BindSingleton<ServiceA>();
+                container.Make<ServiceA>();
+                Assert.Throws<InvalidOperationException>(() => { container.BindSingleton<ServiceB>(); });
             }
         }
 
@@ -222,6 +247,14 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 ServiceC.Execute();
                 Executed = true;
             }
+        }
+
+        private interface IGenericServiceA<T>
+        {
+        }
+
+        private class GenericServiceA<T> : IGenericServiceA<T>
+        {
         }
     }
 }

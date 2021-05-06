@@ -23,6 +23,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         private bool m_Disposing = false;
         private bool m_Disposed = false;
+        private bool m_HasMadeSomething = false;
 
 
         /// <summary>
@@ -51,6 +52,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindSingleton(string serviceName, Type implType)
         {
+            GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             GuardUnbound(Dealias(serviceName));
@@ -68,6 +70,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindSingleton(string serviceName, Type implType, params PropertyInjection[] propertyInjections)
         {
+            GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             GuardUnbound(Dealias(serviceName));
@@ -114,6 +117,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindSingleton(Type interfaceType, Type implType)
         {
+            GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
             GuardImplType(implType);
@@ -130,6 +134,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         public IBindingData BindSingleton(Type interfaceType, Type implType, params PropertyInjection[] propertyInjections)
         {
+            GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
             GuardImplType(implType);
@@ -147,6 +152,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindInstance(Type interfaceType, object instance)
         {
+            GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
             Guard.RequireNotNull<ArgumentNullException>(instance, $"Invalid '{nameof(instance)}'.");
@@ -166,6 +172,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public IBindingData BindInstance(string serviceName, object instance)
         {
+            GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
             GuardUnbound(Dealias(serviceName));
@@ -252,9 +259,10 @@ namespace COL.UnityGameWheels.Core.Ioc
             return MakeInternal((BindingData)GetBindingData(interfaceType));
         }
 
-        internal object MakeInternal(BindingData bindingData)
+        private object MakeInternal(BindingData bindingData)
         {
             object serviceInstance;
+            m_HasMadeSomething = true;
             try
             {
                 serviceInstance = ResolveInternal(bindingData);
@@ -374,7 +382,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             return interfaceType.ToString();
         }
 
-        internal bool ShutDown(string serviceName)
+        private bool ShutDown(string serviceName)
         {
             if (!m_ServiceNameToSingletonMap.TryGetValue(serviceName, out var serviceInstance))
             {
@@ -393,7 +401,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             return true;
         }
 
-        internal void Clear()
+        private void Clear()
         {
             m_BindingDatasToBuild.Clear();
             m_ServiceNameToSingletonMap.Clear();
@@ -426,16 +434,22 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
         }
 
-        internal void GuardNotDisposingOrDisposed()
+        private void GuardNotDisposingOrDisposed()
         {
             Guard.RequireFalse<InvalidOperationException>(m_Disposing || m_Disposed,
                 "The container is already disposed or being disposed.");
         }
 
+        private void GuardHasMadeNothing()
+        {
+            Guard.RequireFalse<InvalidOperationException>(m_HasMadeSomething,
+                "The container has already made something.");
+        }
+
         private void GuardImplType(Type implType)
         {
             Guard.RequireNotNull<ArgumentNullException>(implType, $"Invalid {nameof(implType)}.");
-            Guard.RequireTrue<ArgumentException>(implType.IsClass && !implType.IsAbstract && !implType.IsInterface
+            Guard.RequireTrue<ArgumentException>(implType.IsClass && !implType.IsAbstract && !implType.IsInterface && !implType.IsGenericTypeDefinition
                                                  && implType.GetConstructors().Any(c => c.GetParameters().Length == 0),
                 $"{nameof(implType)} '{implType}' is not supported");
         }
@@ -443,7 +457,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         private void GuardInterfaceType(Type interfaceType)
         {
             Guard.RequireNotNull<ArgumentNullException>(interfaceType, $"Invalid {nameof(interfaceType)}.");
-            Guard.RequireTrue<ArgumentException>(!interfaceType.IsAbstract || !interfaceType.IsSealed,
+            Guard.RequireTrue<ArgumentException>((!interfaceType.IsAbstract || !interfaceType.IsSealed) && !interfaceType.IsGenericTypeDefinition,
                 $"{nameof(interfaceType)} '{interfaceType}' is not supported.");
         }
 
@@ -453,7 +467,7 @@ namespace COL.UnityGameWheels.Core.Ioc
                 $"Service name or alias '{serviceName}' is already bound.");
         }
 
-        internal static void InvokeCallbacks(object param, IList<Action<object>> callbackList)
+        private static void InvokeCallbacks(object param, IList<Action<object>> callbackList)
         {
             if (callbackList == null)
             {
@@ -466,7 +480,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
         }
 
-        internal static void InvokeCallbacks(IList<Action> callbackList)
+        private static void InvokeCallbacks(IList<Action> callbackList)
         {
             if (callbackList == null)
             {
