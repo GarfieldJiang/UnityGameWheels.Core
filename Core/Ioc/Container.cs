@@ -229,6 +229,86 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
         }
 
+        private object ResolveConstructorParametersAndCreateInstance(Type instanceType, ParameterInfo[] parameterInfos)
+        {
+            var dependencies = new object[parameterInfos.Length];
+            for (int i = 0; i < parameterInfos.Length; i++)
+            {
+                dependencies[i] = ResolveInternal((BindingData)GetBindingData(parameterInfos[i].ParameterType));
+            }
+
+            return Activator.CreateInstance(instanceType, dependencies);
+        }
+
+        private object DoConstructorStuff(BindingData bindingData)
+        {
+            var instanceType = bindingData.ImplType;
+            if (!bindingData.HasCachedConstructorParameterInfos)
+            {
+                bindingData.HasCachedConstructorParameterInfos = true;
+                var defaultConstructorInfo = instanceType.GetConstructor(Type.EmptyTypes);
+                if (defaultConstructorInfo != null && defaultConstructorInfo.IsPublic)
+                {
+                    bindingData.ConstructorParameterInfos = new ParameterInfo[0];
+                }
+                else
+                {
+                    ParameterInfo[] parameterInfos = null;
+                    foreach (var constructorInfo in instanceType.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+                    {
+                        var injectable = true;
+                        var currentParameterInfos = constructorInfo.GetParameters();
+                        foreach (var parameterInfo in currentParameterInfos)
+                        {
+                            if (TypeIsBound(parameterInfo.ParameterType)) continue;
+                            injectable = false;
+                            break;
+                        }
+
+                        if (!injectable) continue;
+                        parameterInfos = currentParameterInfos;
+                        break;
+                    }
+
+                    bindingData.ConstructorParameterInfos = parameterInfos;
+                }
+            }
+
+            if (bindingData.ConstructorParameterInfos == null)
+            {
+                throw new InvalidOperationException($"Implementation type '{instanceType}' doesn't have a constructor that can be used for auto-wiring.");
+            }
+
+            return bindingData.ConstructorParameterInfos.Length == 0
+                ? Activator.CreateInstance(instanceType)
+                : ResolveConstructorParametersAndCreateInstance(instanceType, bindingData.ConstructorParameterInfos);
+        }
+
+        private void DoPropertyStuff(BindingData bindingData, object instance)
+        {
+            foreach (var property in bindingData.ImplType.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty))
+            {
+                if (property.GetSetMethod() == null)
+                {
+                    continue;
+                }
+
+                if (bindingData.PropertyInjections != null && bindingData.PropertyInjections.TryGetValue(property.Name, out var value))
+                {
+                    property.SetValue(instance, value);
+                    continue;
+                }
+
+                if (property.GetCustomAttribute<InjectAttribute>() == null)
+                {
+                    continue;
+                }
+
+                var dependency = ResolveInternal((BindingData)GetBindingData(property.PropertyType));
+                property.SetValue(instance, dependency);
+            }
+        }
+
         private object ResolveInternal(BindingData bindingData)
         {
             if (m_BindingDatasToBuild.Contains(bindingData))
@@ -237,28 +317,11 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
 
             m_BindingDatasToBuild.Push(bindingData);
-            var instanceType = bindingData.ImplType;
 
             if (!m_InterfaceTypeToSingletonMap.TryGetValue(bindingData.InterfaceType, out object ret))
             {
-                ret = Activator.CreateInstance(instanceType);
-                foreach (var property in instanceType.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty))
-                {
-                    if (bindingData.PropertyInjections != null && bindingData.PropertyInjections.TryGetValue(property.Name, out var value))
-                    {
-                        property.SetValue(ret, value);
-                        continue;
-                    }
-
-                    if (property.GetCustomAttribute<InjectAttribute>() == null)
-                    {
-                        continue;
-                    }
-
-                    var dependency = ResolveInternal((BindingData)GetBindingData(property.PropertyType));
-                    property.SetValue(ret, dependency);
-                }
-
+                ret = DoConstructorStuff(bindingData);
+                DoPropertyStuff(bindingData, ret);
                 m_InterfaceTypeToSingletonMap[bindingData.InterfaceType] = ret;
                 m_ServicesToInit.Enqueue(bindingData.InterfaceType);
             }
@@ -281,13 +344,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             Clear();
             m_Disposing = false;
             m_Disposed = true;
-        }
-
-
-        public string TypeToServiceName(Type interfaceType)
-        {
-            Guard.RequireNotNull<ArgumentNullException>(interfaceType, $"Invalid '{nameof(interfaceType)}.");
-            return interfaceType.ToString();
         }
 
         private bool ShutDown(Type interfaceType)
@@ -347,8 +403,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         private void GuardImplType(Type implType)
         {
             Guard.RequireNotNull<ArgumentNullException>(implType, $"Invalid {nameof(implType)}.");
-            Guard.RequireTrue<ArgumentException>(implType.IsClass && !implType.IsAbstract && !implType.IsInterface && !implType.IsGenericTypeDefinition
-                                                 && implType.GetConstructors().Any(c => c.GetParameters().Length == 0),
+            Guard.RequireTrue<ArgumentException>(implType.IsClass && !implType.IsAbstract && !implType.IsInterface && !implType.IsGenericTypeDefinition,
                 $"{nameof(implType)} '{implType}' is not supported");
         }
 

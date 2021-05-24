@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace COL.UnityGameWheels.Core.Ioc
 {
@@ -18,6 +19,9 @@ namespace COL.UnityGameWheels.Core.Ioc
         internal List<Action<object>> OnPostInitCallbacks;
         internal List<Action<object>> OnPreShutdownCallbacks;
         internal List<Action> OnPostShutdownCallbacks;
+
+        internal bool HasCachedConstructorParameterInfos;
+        internal ParameterInfo[] ConstructorParameterInfos;
 
         internal BindingData(Container container)
         {
