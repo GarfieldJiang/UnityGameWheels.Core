@@ -86,7 +86,7 @@
     <Compile Include="Download\DownloadServiceTests.cs" />
     <Compile Include="Event\EventTests.cs" />
     <Compile Include="Ioc\ConstructorInjectionTestCases.cs" />
-    <Compile Include="Ioc\ContainerLegacyTests.cs" />
+    <Compile Include="Ioc\ContainerTests.cs" />
     <Compile Include="Mocks\MockTickService.cs" />
     <Compile Include="RedDot\RedDotTests.cs" />
     <Compile Include="RefPool\RefPoolTests.cs" />

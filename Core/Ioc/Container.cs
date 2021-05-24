@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 
 namespace COL.UnityGameWheels.Core.Ioc
@@ -15,7 +14,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         private readonly Dictionary<Type, object> m_InterfaceTypeToSingletonMap;
         private readonly Stack<BindingData> m_BindingDatasToBuild;
         private readonly Queue<Type> m_ServicesToInit;
-        internal readonly MinPriorityQueue<Type, ILifeCycle> ServicesToShutdown;
+        internal readonly MinPriorityQueue<Type, IDisposable> ServicesToDispose;
         private int m_ServiceInitCounter = 0;
 
         private bool m_Disposing = false;
@@ -35,7 +34,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_InterfaceTypeToSingletonMap = new Dictionary<Type, object>(estimatedServiceCount);
             m_BindingDatasToBuild = new Stack<BindingData>(estimatedServiceCount);
             m_ServicesToInit = new Queue<Type>(estimatedServiceCount);
-            ServicesToShutdown = new MinPriorityQueue<Type, ILifeCycle>();
+            ServicesToDispose = new MinPriorityQueue<Type, IDisposable>();
         }
 
         /// <inheritdoc />
@@ -192,7 +191,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             try
             {
                 serviceInstance = ResolveInternal(bindingData);
-                InitServices();
             }
             finally
             {
@@ -201,32 +199,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
 
             return serviceInstance;
-        }
-
-        private void InitServices()
-        {
-            while (m_ServicesToInit.Count > 0)
-            {
-                var serviceTypeToInit = m_ServicesToInit.Dequeue();
-                var serviceInstance = m_InterfaceTypeToSingletonMap[serviceTypeToInit];
-                var bindingData = (BindingData)m_InterfaceTypeToBindingDataMap[serviceTypeToInit];
-
-                if (!bindingData.LifeCycleManaged)
-                {
-                    continue;
-                }
-
-                if (!(serviceInstance is ILifeCycle lifeCycleInstance))
-                {
-                    continue;
-                }
-
-                m_ServiceInitCounter++;
-                InvokeCallbacks(serviceInstance, bindingData.OnPreInitCallbacks);
-                lifeCycleInstance.OnInit();
-                InvokeCallbacks(serviceInstance, bindingData.OnPostInitCallbacks);
-                ServicesToShutdown.Insert(serviceTypeToInit, lifeCycleInstance, -m_ServiceInitCounter);
-            }
         }
 
         private object ResolveConstructorParametersAndCreateInstance(Type instanceType, ParameterInfo[] parameterInfos)
@@ -323,7 +295,13 @@ namespace COL.UnityGameWheels.Core.Ioc
                 ret = DoConstructorStuff(bindingData);
                 DoPropertyStuff(bindingData, ret);
                 m_InterfaceTypeToSingletonMap[bindingData.InterfaceType] = ret;
-                m_ServicesToInit.Enqueue(bindingData.InterfaceType);
+                if (ret is IDisposable disposable)
+                {
+                    m_ServiceInitCounter++;
+                    ServicesToDispose.Insert(bindingData.InterfaceType, disposable, -m_ServiceInitCounter);
+                }
+
+                InvokeCallbacks(ret, bindingData.OnInstanceCreatedCallbacks);
             }
 
             m_BindingDatasToBuild.Pop();
@@ -334,11 +312,11 @@ namespace COL.UnityGameWheels.Core.Ioc
         {
             GuardNotDisposingOrDisposed();
             m_Disposing = true;
-            while (ServicesToShutdown.Count > 0)
+            while (ServicesToDispose.Count > 0)
             {
-                var node = ServicesToShutdown.Min;
-                ShutDown(node.Key);
-                ServicesToShutdown.PopMin();
+                var node = ServicesToDispose.Min;
+                DisposeService(node.Key);
+                ServicesToDispose.PopMin();
             }
 
             Clear();
@@ -346,7 +324,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_Disposed = true;
         }
 
-        private bool ShutDown(Type interfaceType)
+        private bool DisposeService(Type interfaceType)
         {
             if (!m_InterfaceTypeToSingletonMap.TryGetValue(interfaceType, out var serviceInstance))
             {
@@ -355,12 +333,11 @@ namespace COL.UnityGameWheels.Core.Ioc
 
             m_InterfaceTypeToSingletonMap.Remove(interfaceType);
             var bindingData = m_InterfaceTypeToBindingDataMap[interfaceType];
-            if (serviceInstance is ILifeCycle lifeCycleInstance)
-            {
-                InvokeCallbacks(serviceInstance, bindingData.OnPreShutdownCallbacks);
-                lifeCycleInstance.OnShutdown();
-                InvokeCallbacks(bindingData.OnPostShutdownCallbacks);
-            }
+
+            if (!(serviceInstance is IDisposable disposable)) return true;
+            InvokeCallbacks(serviceInstance, bindingData.OnPreDisposeCallbacks);
+            disposable.Dispose();
+            InvokeCallbacks(bindingData.OnDisposedCallbacks);
 
             return true;
         }

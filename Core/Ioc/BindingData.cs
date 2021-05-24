@@ -15,10 +15,10 @@ namespace COL.UnityGameWheels.Core.Ioc
         public bool LifeCycleManaged { get; internal set; }
 
         internal Dictionary<string, object> PropertyInjections;
-        internal List<Action<object>> OnPreInitCallbacks;
-        internal List<Action<object>> OnPostInitCallbacks;
-        internal List<Action<object>> OnPreShutdownCallbacks;
-        internal List<Action> OnPostShutdownCallbacks;
+
+        internal List<Action<object>> OnInstanceCreatedCallbacks;
+        internal List<Action<object>> OnPreDisposeCallbacks;
+        internal List<Action> OnDisposedCallbacks;
 
         internal bool HasCachedConstructorParameterInfos;
         internal ParameterInfo[] ConstructorParameterInfos;
@@ -39,46 +39,34 @@ namespace COL.UnityGameWheels.Core.Ioc
             PropertyInjections.Add(propertyInjection.PropertyName, propertyInjection.Value);
         }
 
-        public IBindingData OnPreInit(Action<object> callback)
+        public IBindingData OnInstanceCreated(Action<object> callback)
         {
-            AddCallback(callback, ref OnPreInitCallbacks);
+            AddCallback(callback, ref OnInstanceCreatedCallbacks);
             return this;
         }
 
-        public IBindingData OnPostInit(Action<object> callback)
+        public IBindingData OnPreDispose(Action<object> callback)
         {
-            AddCallback(callback, ref OnPostInitCallbacks);
-            return this;
-        }
-
-        public IBindingData OnPreShutdown(Action<object> callback)
-        {
-            AddCallback(callback, ref OnPreShutdownCallbacks);
-            return this;
-        }
-
-        public IBindingData OnPostShutdown(Action callback)
-        {
-            if (!typeof(ILifeCycle).IsAssignableFrom(ImplType))
-            {
-                throw new InvalidOperationException($"The binding's implementation is not {nameof(ILifeCycle)}.");
-            }
-
             if (!LifeCycleManaged)
             {
                 throw new InvalidOperationException("The binding's life cycle is not managed by the container.");
             }
 
-            Guard.RequireNotNull<ArgumentNullException>(callback, $"Invalid '{nameof(callback)}'.");
-
-            if (OnPostShutdownCallbacks == null)
-            {
-                OnPostShutdownCallbacks = new List<Action>();
-            }
-
-            OnPostShutdownCallbacks.Add(callback);
+            AddCallback(callback, ref OnPreDisposeCallbacks);
             return this;
         }
+
+        public IBindingData OnDisposed(Action callback)
+        {
+            if (!LifeCycleManaged)
+            {
+                throw new InvalidOperationException("The binding's life cycle is not managed by the container.");
+            }
+
+            AddCallback(callback, ref OnDisposedCallbacks);
+            return this;
+        }
+
 
         private void AddCallback(Action<object> callback, ref List<Action<object>> callbackList)
         {
@@ -97,6 +85,28 @@ namespace COL.UnityGameWheels.Core.Ioc
             if (callbackList == null)
             {
                 callbackList = new List<Action<object>>();
+            }
+
+            callbackList.Add(callback);
+        }
+
+        private void AddCallback(Action callback, ref List<Action> callbackList)
+        {
+            if (!typeof(ILifeCycle).IsAssignableFrom(ImplType))
+            {
+                throw new InvalidOperationException($"The binding's implementation is not {nameof(ILifeCycle)}.");
+            }
+
+            if (!LifeCycleManaged)
+            {
+                throw new InvalidOperationException("The binding's life cycle is not managed by the container.");
+            }
+
+            Guard.RequireNotNull<ArgumentNullException>(callback, $"Invalid '{nameof(callback)}'.");
+
+            if (callbackList == null)
+            {
+                callbackList = new List<Action>();
             }
 
             callbackList.Add(callback);

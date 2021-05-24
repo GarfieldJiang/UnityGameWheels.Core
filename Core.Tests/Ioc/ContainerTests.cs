@@ -17,8 +17,6 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             var serviceB = container.Make<ServiceB>();
             var serviceA = container.Make<IServiceA>();
             Assert.AreSame(serviceA, container.Make(typeof(IServiceA)));
-            Assert.True(container.Make<IServiceA>().IsInited);
-            Assert.True(serviceB.IsInited);
             serviceB.Execute();
             Assert.True(serviceB.IsExecuted);
             Assert.True(!serviceB.IsShut);
@@ -65,7 +63,6 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 var serviceB = container.Make<ServiceB>();
 
                 // Life cycle is not managed, so no auto wiring or auto initialization.
-                Assert.False(serviceB.IsInited);
                 Assert.IsNull(serviceB.ServiceA);
             }
         }
@@ -108,63 +105,45 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             }
         }
 
-        private interface IServiceA : ILifeCycle
+        private interface IServiceA
         {
             int IntProperty { get; set; }
 
             bool IsExecuted { get; }
-
-            bool IsInited { get; }
 
             bool IsShut { get; }
 
             void Execute();
         }
 
-        private class ServiceA : IServiceA
+        private class ServiceA : IServiceA, IDisposable
         {
             public int IntProperty { get; set; }
 
-            public void OnInit()
-            {
-                Assert.True(!IsInited);
-                IsInited = true;
-            }
-
-            public void OnShutdown()
+            public void Dispose()
             {
                 Assert.True(!IsShut);
                 IsShut = true;
             }
 
             public bool IsExecuted { get; private set; }
-            public bool IsInited { get; private set; }
             public bool IsShut { get; private set; }
 
             public void Execute()
             {
-                Assert.True(IsInited);
                 IsExecuted = true;
             }
         }
 
-        private class ServiceB : ILifeCycle
+        private class ServiceB : IDisposable
         {
             [Inject]
             public IServiceA ServiceA { get; set; }
 
             public bool IsExecuted { get; private set; }
-            public bool IsInited { get; private set; }
             public bool IsShut { get; private set; }
 
-            public void OnInit()
-            {
-                Assert.True(!IsInited);
-                Assert.True(ServiceA.IsInited);
-                IsInited = true;
-            }
-
-            public void OnShutdown()
+            public void Dispose()
             {
                 Assert.True(!IsShut);
                 Assert.True(!ServiceA.IsShut);
@@ -173,7 +152,6 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
 
             public void Execute()
             {
-                Assert.True(IsInited);
                 ServiceA.Execute();
                 IsExecuted = true;
             }
@@ -183,7 +161,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
         {
         }
 
-        private class ServiceD : ILifeCycle
+        private class ServiceD : IDisposable
         {
             [Inject]
             public IServiceA ServiceA { get; set; }
@@ -194,33 +172,22 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             [Inject]
             public ServiceC ServiceC { get; set; }
 
-            public void OnInit()
+            public void Dispose()
             {
-                Assert.True(!Inited);
-                Inited = true;
-            }
-
-            public void OnShutdown()
-            {
-                Assert.True(!Shutdown);
+                Assert.True(!IsShut);
                 Assert.True(!ServiceA.IsShut);
                 Assert.True(!ServiceB.IsShut);
                 Assert.True(!ServiceC.IsShut);
-                Shutdown = true;
+                IsShut = true;
             }
 
             public bool Executed { get; private set; }
-            public bool Inited { get; private set; }
-            public bool Shutdown { get; private set; }
+            public bool IsShut { get; private set; }
 
             public void Execute()
             {
-                Assert.True(Inited);
-                Assert.True(ServiceA.IsInited);
                 Assert.True(!ServiceA.IsExecuted);
-                Assert.True(ServiceB.IsInited);
                 Assert.True(!ServiceB.IsExecuted);
-                Assert.True(ServiceC.IsInited);
                 Assert.True(!ServiceC.IsExecuted);
                 ServiceB.Execute();
                 ServiceC.Execute();
