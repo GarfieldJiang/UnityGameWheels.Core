@@ -11,11 +11,8 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         public Type ImplType { get; internal set; }
 
-        public string ServiceName { get; internal set; }
-
         public bool LifeCycleManaged { get; internal set; }
 
-        internal HashSet<string> Aliases;
         internal Dictionary<string, object> PropertyInjections;
         internal List<Action<object>> OnPreInitCallbacks;
         internal List<Action<object>> OnPostInitCallbacks;
@@ -27,21 +24,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_Container = container;
         }
 
-        public IBindingData Alias(string alias)
-        {
-            m_Container.Alias(ServiceName, alias);
-            return this;
-        }
-
-        internal bool AliasInternal(string alias)
-        {
-            if (Aliases == null)
-            {
-                Aliases = new HashSet<string>();
-            }
-
-            return Aliases.Add(alias);
-        }
 
         internal void AddPropertyInjection(PropertyInjection propertyInjection)
         {

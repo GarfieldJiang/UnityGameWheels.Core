@@ -7,12 +7,6 @@ namespace COL.UnityGameWheels.Core.Ioc
     /// </summary>
     public interface IBindingData
     {
-        /// <summary>
-        /// Add an alias of the current binding.
-        /// </summary>
-        /// <param name="alias">The alias.</param>
-        /// <returns>Self.</returns>
-        IBindingData Alias(string alias);
 
         /// <summary>
         /// The interface type.
@@ -23,11 +17,6 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// The implementation type.
         /// </summary>
         Type ImplType { get; }
-
-        /// <summary>
-        /// The service name.
-        /// </summary>
-        string ServiceName { get; }
 
         /// <summary>
         /// Whether the service life cycle is managed by the container.

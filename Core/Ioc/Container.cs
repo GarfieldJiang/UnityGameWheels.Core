@@ -11,14 +11,11 @@ namespace COL.UnityGameWheels.Core.Ioc
     /// <remarks>NOT thread-safe.</remarks>
     public sealed class Container : IDisposable
     {
-        private readonly Dictionary<string, IBindingData> m_ServiceNameToBindingDataMap;
-        private readonly Dictionary<Type, IBindingData> m_InterfaceTypeToBindingDataMap;
-        private readonly Dictionary<string, object> m_ServiceNameToSingletonMap;
-        private readonly Dictionary<string, string> m_AliasToServiceNameMap;
-        private readonly Stack<IBindingData> m_BindingDatasToBuild;
-        private readonly Queue<string> m_ServicesToInit;
-        internal readonly MinPriorityQueue<string, ILifeCycle> ServicesToShutdown;
-        internal event Action<IBindingData, object> OnInstanceCreated;
+        private readonly Dictionary<Type, BindingData> m_InterfaceTypeToBindingDataMap;
+        private readonly Dictionary<Type, object> m_InterfaceTypeToSingletonMap;
+        private readonly Stack<BindingData> m_BindingDatasToBuild;
+        private readonly Queue<Type> m_ServicesToInit;
+        internal readonly MinPriorityQueue<Type, ILifeCycle> ServicesToShutdown;
         private int m_ServiceInitCounter = 0;
 
         private bool m_Disposing = false;
@@ -34,13 +31,11 @@ namespace COL.UnityGameWheels.Core.Ioc
         {
             Guard.RequireTrue<ArgumentOutOfRangeException>(estimatedServiceCount > 0,
                 $"Argument '{nameof(estimatedServiceCount)}' must be positive.");
-            m_ServiceNameToBindingDataMap = new Dictionary<string, IBindingData>(estimatedServiceCount);
-            m_InterfaceTypeToBindingDataMap = new Dictionary<Type, IBindingData>(estimatedServiceCount);
-            m_ServiceNameToSingletonMap = new Dictionary<string, object>(estimatedServiceCount);
-            m_BindingDatasToBuild = new Stack<IBindingData>(estimatedServiceCount);
-            m_ServicesToInit = new Queue<string>(estimatedServiceCount);
-            m_AliasToServiceNameMap = new Dictionary<string, string>(estimatedServiceCount);
-            ServicesToShutdown = new MinPriorityQueue<string, ILifeCycle>();
+            m_InterfaceTypeToBindingDataMap = new Dictionary<Type, BindingData>(estimatedServiceCount);
+            m_InterfaceTypeToSingletonMap = new Dictionary<Type, object>(estimatedServiceCount);
+            m_BindingDatasToBuild = new Stack<BindingData>(estimatedServiceCount);
+            m_ServicesToInit = new Queue<Type>(estimatedServiceCount);
+            ServicesToShutdown = new MinPriorityQueue<Type, ILifeCycle>();
         }
 
         /// <inheritdoc />
@@ -49,38 +44,8 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// <inheritdoc />
         public bool IsDisposed => m_Disposed;
 
-        /// <inheritdoc />
-        public IBindingData BindSingleton(string serviceName, Type implType)
+        private BindingData AddPropertyInjections(BindingData bindingData, params PropertyInjection[] propertyInjections)
         {
-            GuardHasMadeNothing();
-            GuardNotDisposingOrDisposed();
-            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
-            GuardUnbound(Dealias(serviceName));
-            GuardImplType(implType);
-            var bindingData = new BindingData(this)
-            {
-                ServiceName = serviceName,
-                ImplType = implType,
-                LifeCycleManaged = true,
-            };
-            m_ServiceNameToBindingDataMap[serviceName] = bindingData;
-            return bindingData;
-        }
-
-        /// <inheritdoc />
-        public IBindingData BindSingleton(string serviceName, Type implType, params PropertyInjection[] propertyInjections)
-        {
-            GuardHasMadeNothing();
-            GuardNotDisposingOrDisposed();
-            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
-            GuardUnbound(Dealias(serviceName));
-            GuardImplType(implType);
-            var bindingData = new BindingData(this)
-            {
-                ServiceName = serviceName,
-                ImplType = implType,
-                LifeCycleManaged = true,
-            };
             int propertyInjectionIndex = 0;
             foreach (var propertyInjection in propertyInjections)
             {
@@ -94,7 +59,8 @@ namespace COL.UnityGameWheels.Core.Ioc
                     throw new ArgumentException($"Property injection {propertyInjectionIndex} has a null value.");
                 }
 
-                var propertyInfo = implType.GetProperty(propertyInjection.PropertyName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty);
+                var propertyInfo = bindingData.ImplType.GetProperty(propertyInjection.PropertyName,
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty);
                 if (propertyInfo == null)
                 {
                     throw new ArgumentException($"Cannot find property named '{propertyInjection.PropertyName}' at index {propertyInjectionIndex}.");
@@ -109,7 +75,6 @@ namespace COL.UnityGameWheels.Core.Ioc
                 propertyInjectionIndex++;
             }
 
-            m_ServiceNameToBindingDataMap[serviceName] = bindingData;
             return bindingData;
         }
 
@@ -120,14 +85,19 @@ namespace COL.UnityGameWheels.Core.Ioc
             GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
+            GuardUnbound(interfaceType);
             GuardImplType(implType);
             if (!interfaceType.IsAssignableFrom(implType))
             {
                 throw new InvalidOperationException($"{nameof(interfaceType)} is not assignable from {nameof(implType)}.");
             }
 
-            var bindingData = (BindingData)BindSingleton(TypeToServiceName(interfaceType), implType);
-            bindingData.InterfaceType = interfaceType;
+            var bindingData = new BindingData(this)
+            {
+                InterfaceType = interfaceType,
+                ImplType = implType,
+                LifeCycleManaged = true,
+            };
             m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
             return bindingData;
         }
@@ -137,14 +107,21 @@ namespace COL.UnityGameWheels.Core.Ioc
             GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
+            GuardUnbound(interfaceType);
             GuardImplType(implType);
             if (!interfaceType.IsAssignableFrom(implType))
             {
                 throw new InvalidOperationException($"{nameof(interfaceType)} is not assignable from {nameof(implType)}.");
             }
 
-            var bindingData = (BindingData)BindSingleton(TypeToServiceName(interfaceType), implType, propertyInjections);
-            bindingData.InterfaceType = interfaceType;
+            var bindingData = new BindingData(this)
+            {
+                InterfaceType = interfaceType,
+                ImplType = implType,
+                LifeCycleManaged = true,
+            };
+
+            AddPropertyInjections(bindingData, propertyInjections);
             m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
             return bindingData;
         }
@@ -155,6 +132,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             GuardHasMadeNothing();
             GuardNotDisposingOrDisposed();
             GuardInterfaceType(interfaceType);
+            GuardUnbound(interfaceType);
             Guard.RequireNotNull<ArgumentNullException>(instance, $"Invalid '{nameof(instance)}'.");
             var implType = instance.GetType();
             if (!interfaceType.IsAssignableFrom(implType))
@@ -162,45 +140,18 @@ namespace COL.UnityGameWheels.Core.Ioc
                 throw new InvalidOperationException($"{nameof(interfaceType)} is not assignable from {nameof(implType)}.");
             }
 
-            var bindingData = (BindingData)BindInstance(TypeToServiceName(interfaceType), instance);
-            bindingData.InterfaceType = interfaceType;
-            bindingData.ImplType = implType;
-            m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
-            return bindingData;
-        }
-
-        /// <inheritdoc />
-        public IBindingData BindInstance(string serviceName, object instance)
-        {
-            GuardHasMadeNothing();
-            GuardNotDisposingOrDisposed();
-            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
-            GuardUnbound(Dealias(serviceName));
-            var implType = instance.GetType();
-            Guard.RequireNotNull<ArgumentNullException>(instance, $"Invalid '{nameof(instance)}'.");
             var bindingData = new BindingData(this)
             {
-                ServiceName = serviceName,
+                InterfaceType = interfaceType,
                 ImplType = implType,
                 LifeCycleManaged = false,
             };
-            m_ServiceNameToBindingDataMap[serviceName] = bindingData;
-            m_ServiceNameToSingletonMap[serviceName] = instance;
+            m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
+            // TODO: This mixes instances and singletons. Should be redesigned.
+            m_InterfaceTypeToSingletonMap[interfaceType] = instance;
             return bindingData;
         }
 
-        /// <inheritdoc />
-        public IBindingData GetBindingData(string serviceName)
-        {
-            if (!TryGetBindingData(serviceName, out var bindingData))
-            {
-                throw new InvalidOperationException($"Service name '{serviceName}' is not bound yet.");
-            }
-
-            return bindingData;
-        }
-
-        /// <inheritdoc />
         public IBindingData GetBindingData(Type interfaceType)
         {
             if (!TryGetBindingData(interfaceType, out var bindingData))
@@ -211,32 +162,16 @@ namespace COL.UnityGameWheels.Core.Ioc
             return bindingData;
         }
 
-        /// <inheritdoc />
-        public bool TryGetBindingData(string serviceName, out IBindingData bindingData)
-        {
-            GuardNotDisposingOrDisposed();
-            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
-            serviceName = Dealias(serviceName);
-            return m_ServiceNameToBindingDataMap.TryGetValue(serviceName, out bindingData);
-        }
 
-        /// <inheritdoc />
         public bool TryGetBindingData(Type interfaceType, out IBindingData bindingData)
         {
             GuardNotDisposingOrDisposed();
             Guard.RequireNotNull<ArgumentNullException>(interfaceType, $"Invalid '{nameof(interfaceType)}'.");
-            return m_InterfaceTypeToBindingDataMap.TryGetValue(interfaceType, out bindingData);
+            var ret = m_InterfaceTypeToBindingDataMap.TryGetValue(interfaceType, out var internalBindingData);
+            bindingData = internalBindingData;
+            return ret;
         }
 
-        /// <inheritdoc />
-        public bool IsBound(string serviceName)
-        {
-            GuardNotDisposingOrDisposed();
-            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
-            return m_ServiceNameToBindingDataMap.ContainsKey(Dealias(serviceName));
-        }
-
-        /// <inheritdoc />
         public bool TypeIsBound(Type interfaceType)
         {
             GuardNotDisposingOrDisposed();
@@ -244,15 +179,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             return m_InterfaceTypeToBindingDataMap.ContainsKey(interfaceType);
         }
 
-        /// <inheritdoc />
-        public object Make(string serviceName)
-        {
-            GuardNotDisposingOrDisposed();
-            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
-            return MakeInternal((BindingData)GetBindingData(serviceName));
-        }
-
-        /// <inheritdoc />
         public object Make(Type interfaceType)
         {
             GuardNotDisposingOrDisposed();
@@ -281,9 +207,9 @@ namespace COL.UnityGameWheels.Core.Ioc
         {
             while (m_ServicesToInit.Count > 0)
             {
-                var serviceNameToInit = m_ServicesToInit.Dequeue();
-                var serviceInstance = m_ServiceNameToSingletonMap[serviceNameToInit];
-                var bindingData = (BindingData)m_ServiceNameToBindingDataMap[serviceNameToInit];
+                var serviceTypeToInit = m_ServicesToInit.Dequeue();
+                var serviceInstance = m_InterfaceTypeToSingletonMap[serviceTypeToInit];
+                var bindingData = (BindingData)m_InterfaceTypeToBindingDataMap[serviceTypeToInit];
 
                 if (!bindingData.LifeCycleManaged)
                 {
@@ -299,7 +225,7 @@ namespace COL.UnityGameWheels.Core.Ioc
                 InvokeCallbacks(serviceInstance, bindingData.OnPreInitCallbacks);
                 lifeCycleInstance.OnInit();
                 InvokeCallbacks(serviceInstance, bindingData.OnPostInitCallbacks);
-                ServicesToShutdown.Insert(serviceNameToInit, lifeCycleInstance, -m_ServiceInitCounter);
+                ServicesToShutdown.Insert(serviceTypeToInit, lifeCycleInstance, -m_ServiceInitCounter);
             }
         }
 
@@ -313,7 +239,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_BindingDatasToBuild.Push(bindingData);
             var instanceType = bindingData.ImplType;
 
-            if (!m_ServiceNameToSingletonMap.TryGetValue(bindingData.ServiceName, out object ret))
+            if (!m_InterfaceTypeToSingletonMap.TryGetValue(bindingData.InterfaceType, out object ret))
             {
                 ret = Activator.CreateInstance(instanceType);
                 foreach (var property in instanceType.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty))
@@ -333,9 +259,8 @@ namespace COL.UnityGameWheels.Core.Ioc
                     property.SetValue(ret, dependency);
                 }
 
-                m_ServiceNameToSingletonMap[bindingData.ServiceName] = ret;
-                m_ServicesToInit.Enqueue(bindingData.ServiceName);
-                OnInstanceCreated?.Invoke(bindingData, ret);
+                m_InterfaceTypeToSingletonMap[bindingData.InterfaceType] = ret;
+                m_ServicesToInit.Enqueue(bindingData.InterfaceType);
             }
 
             m_BindingDatasToBuild.Pop();
@@ -358,23 +283,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_Disposed = true;
         }
 
-        public void Alias(string serviceName, string alias)
-        {
-            GuardNotDisposingOrDisposed();
-            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(serviceName)}'.");
-            Guard.RequireNotNullOrEmpty<ArgumentException>(serviceName, $"Invalid '{nameof(alias)}'.");
-            Guard.RequireFalse<InvalidOperationException>(serviceName == alias, $"'{nameof(serviceName)}' and '{nameof(alias)}' are identical.");
-            GuardUnbound(alias);
-            if (!TryGetBindingData(serviceName, out var bindingData))
-            {
-                throw new InvalidOperationException($"{nameof(serviceName)} '{serviceName}' is not bounded.");
-            }
-
-            ((BindingData)bindingData).AliasInternal(alias);
-            m_AliasToServiceNameMap.Add(alias, ((BindingData)bindingData).ServiceName);
-        }
-
-        public bool IsAlias(string serviceName) => m_AliasToServiceNameMap.ContainsKey(serviceName);
 
         public string TypeToServiceName(Type interfaceType)
         {
@@ -382,15 +290,15 @@ namespace COL.UnityGameWheels.Core.Ioc
             return interfaceType.ToString();
         }
 
-        private bool ShutDown(string serviceName)
+        private bool ShutDown(Type interfaceType)
         {
-            if (!m_ServiceNameToSingletonMap.TryGetValue(serviceName, out var serviceInstance))
+            if (!m_InterfaceTypeToSingletonMap.TryGetValue(interfaceType, out var serviceInstance))
             {
                 return false;
             }
 
-            m_ServiceNameToSingletonMap.Remove(serviceName);
-            var bindingData = (BindingData)m_ServiceNameToBindingDataMap[serviceName];
+            m_InterfaceTypeToSingletonMap.Remove(interfaceType);
+            var bindingData = m_InterfaceTypeToBindingDataMap[interfaceType];
             if (serviceInstance is ILifeCycle lifeCycleInstance)
             {
                 InvokeCallbacks(serviceInstance, bindingData.OnPreShutdownCallbacks);
@@ -404,33 +312,23 @@ namespace COL.UnityGameWheels.Core.Ioc
         private void Clear()
         {
             m_BindingDatasToBuild.Clear();
-            m_ServiceNameToSingletonMap.Clear();
+            m_InterfaceTypeToSingletonMap.Clear();
             m_InterfaceTypeToBindingDataMap.Clear();
-            m_ServiceNameToBindingDataMap.Clear();
         }
 
-        /// <inheritdoc />
-        public string Dealias(string serviceName)
+        public IEnumerable<KeyValuePair<Type, object>> GetSingletons()
         {
-            GuardNotDisposingOrDisposed();
-            return m_AliasToServiceNameMap.TryGetValue(serviceName, out var realServiceName) ? realServiceName : serviceName;
-        }
-
-        /// <inheritdoc />
-        public IEnumerable<KeyValuePair<string, object>> GetSingletons()
-        {
-            foreach (var kv in m_ServiceNameToSingletonMap)
+            foreach (var kv in m_InterfaceTypeToSingletonMap)
             {
                 yield return kv;
             }
         }
 
-        /// <inheritdoc />
-        public IEnumerable<KeyValuePair<string, IBindingData>> GetBindingDatas()
+        public IEnumerable<KeyValuePair<Type, IBindingData>> GetBindingDatas()
         {
-            foreach (var kv in m_ServiceNameToBindingDataMap)
+            foreach (var kv in m_InterfaceTypeToBindingDataMap)
             {
-                yield return kv;
+                yield return new KeyValuePair<Type, IBindingData>(kv.Key, kv.Value);
             }
         }
 
@@ -461,11 +359,12 @@ namespace COL.UnityGameWheels.Core.Ioc
                 $"{nameof(interfaceType)} '{interfaceType}' is not supported.");
         }
 
-        private void GuardUnbound(string serviceName)
+        private void GuardUnbound(Type interfaceType)
         {
-            Guard.RequireFalse<InvalidOperationException>(m_ServiceNameToBindingDataMap.ContainsKey(Dealias(serviceName)),
-                $"Service name or alias '{serviceName}' is already bound.");
+            Guard.RequireFalse<InvalidOperationException>(m_InterfaceTypeToBindingDataMap.ContainsKey(interfaceType),
+                $"{nameof(interfaceType)} '{interfaceType}' already bound.");
         }
+
 
         private static void InvokeCallbacks(object param, IList<Action<object>> callbackList)
         {

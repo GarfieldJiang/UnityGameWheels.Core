@@ -16,7 +16,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             Assert.Throws<InvalidOperationException>(() => { container.BindSingleton(typeof(ServiceB), typeof(ServiceB)); });
             var serviceB = container.Make<ServiceB>();
             var serviceA = container.Make<IServiceA>();
-            Assert.AreSame(serviceA, container.Make(typeof(IServiceA).ToString()));
+            Assert.AreSame(serviceA, container.Make(typeof(IServiceA)));
             Assert.True(container.Make<IServiceA>().IsInited);
             Assert.True(serviceB.IsInited);
             serviceB.Execute();
@@ -36,7 +36,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             container.BindSingleton<ServiceD>();
             var serviceD = container.Make<ServiceD>();
             serviceD.Execute();
-            var serviceA = (IServiceA)container.Make(typeof(IServiceA).FullName);
+            var serviceA = (IServiceA)container.Make(typeof(IServiceA));
             container.Dispose();
             Assert.True(serviceA.IsShut);
         }
@@ -48,33 +48,12 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             {
                 var bindingData = container.BindSingleton<IServiceA, ServiceA>();
                 Assert.True(container.IsBound<IServiceA>());
-                Assert.True(container.IsBound(container.TypeToServiceName(typeof(IServiceA))));
-                var bindingData2 = container.GetBindingData(typeof(IServiceA).FullName);
-                var bindingData3 = container.GetBindingData(typeof(IServiceA));
-                Assert.AreSame(bindingData, bindingData2);
-                Assert.AreSame(bindingData, bindingData3);
                 Assert.True(container.TypeIsBound(typeof(IServiceA)));
+                var bindingData2 = container.GetBindingData(typeof(IServiceA));
+                Assert.AreSame(bindingData, bindingData2);
             }
         }
 
-        [Test]
-        public void TestAlias()
-        {
-            using (var container = new Container())
-            {
-                Assert.False(container.IsAlias("x"));
-                container.BindSingleton<IServiceA, ServiceA>().Alias("x");
-                Assert.True(container.IsAlias("x"));
-                Assert.AreEqual(container.TypeToServiceName(typeof(IServiceA)), container.Dealias("x"));
-                container.Alias("x", "y");
-                Assert.AreSame(container.Make<IServiceA>(), container.Make("y"));
-                Assert.AreSame(container.GetBindingData("x"), container.GetBindingData("y"));
-
-                Assert.Throws<InvalidOperationException>(() => { container.Alias("x", "y"); });
-                container.GetBindingData("y").Alias("z");
-                Assert.AreSame(container.GetBindingData("x"), container.GetBindingData("z"));
-            }
-        }
 
         [Test]
         public void TestBindInstance()
@@ -85,7 +64,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 container.BindInstance(new ServiceB());
                 var serviceB = container.Make<ServiceB>();
 
-                // Life cycle is not managed. Dependency is not handled.
+                // Life cycle is not managed, so no auto wiring or auto initialization.
                 Assert.False(serviceB.IsInited);
                 Assert.IsNull(serviceB.ServiceA);
             }
@@ -107,7 +86,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
         }
 
         [Test]
-        public void TestGeneric()
+        public void TestGenericUnsupported()
         {
             using (var container = new Container())
             {
