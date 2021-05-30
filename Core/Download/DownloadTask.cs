@@ -82,7 +82,7 @@ namespace COL.UnityGameWheels.Core
         public bool IsDone { get; private set; }
 
         /// <summary>
-        /// Download module this task is attached to.
+        /// Download service this task is attached to.
         /// </summary>
         public IDownloadService DownloadService { get; set; }
 

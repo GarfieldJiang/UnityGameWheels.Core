@@ -152,8 +152,10 @@ namespace COL.UnityGameWheels.Core.Tests
         [Test]
         public void TestStartTickingBeforeSettingMainThreadId()
         {
-            EventService anotherEventService = new EventService(new MockTickService(), new MockRefPoolService(), new DefaultEventArgsReleaser());
-            Assert.Throws<InvalidOperationException>(() => { anotherEventService.StartTicking(); });
+            using (EventService anotherEventService = new EventService(new MockTickService(), new MockRefPoolService(), new DefaultEventArgsReleaser()))
+            {
+                Assert.Throws<InvalidOperationException>(() => { anotherEventService.StartTicking(); });
+            }
         }
 
 

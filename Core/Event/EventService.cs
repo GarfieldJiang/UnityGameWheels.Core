@@ -137,12 +137,6 @@ namespace COL.UnityGameWheels.Core
             return base.StartTicking();
         }
 
-        public override bool StopTicking()
-        {
-            CheckMainThreadOrThrow();
-            return base.StopTicking();
-        }
-
         private CopiedListenerCollection PrepareCopiedListenerCollection(BaseEventArgs eventArgs)
         {
             CopiedListenerCollection copiedListenerCollection = m_RefPoolService.GetOrAdd<CopiedListenerCollection>().Acquire();
