@@ -200,24 +200,42 @@ namespace COL.UnityGameWheels.Core.Tests
             {
                 int exceptionsCaught = 0;
                 int eventsReceived = 0;
+                int threadCount = 100;
+                int eventCount = 100;
+                object lockObj = new object();
                 m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, (sender, o) => { eventsReceived++; });
-                var thread = new Thread(() =>
+                var threads = new List<Thread>();
+                for (var i = 0; i < threadCount; i++)
                 {
-                    try
+                    var thread = new Thread(() =>
                     {
-                        m_EventService.SendEvent(null, new OneSimpleEventArgs());
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        exceptionsCaught++;
-                    }
-                });
+                        for (var j = 0; j < eventCount; j++)
+                        {
+                            try
+                            {
+                                m_EventService.SendEvent(null, new OneSimpleEventArgs());
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                lock (lockObj)
+                                {
+                                    exceptionsCaught++;
+                                }
+                            }
+                        }
+                    });
+                    threads.Add(thread);
+                }
 
-                thread.Start();
-                thread.Join();
+                foreach (var thread in threads)
+                {
+                    thread.Start();
+                    thread.Join();
+                }
+
                 Assert.AreEqual(0, eventsReceived);
                 ((MockTickService)m_TickService).ManualUpdate(new TimeStruct(0f, 0f, 0f, 0f));
-                Assert.AreEqual(1, eventsReceived);
+                Assert.AreEqual(threadCount * eventCount, eventsReceived);
                 Assert.AreEqual(0, exceptionsCaught);
             }
         }
@@ -306,8 +324,10 @@ namespace COL.UnityGameWheels.Core.Tests
             Assert.IsNull(m_EventService);
             m_TickService = new MockTickService();
             m_RefPoolService = new MockRefPoolService();
-            m_EventService = new EventService(m_TickService, m_RefPoolService, new DefaultEventArgsReleaser());
-            m_EventService.MainThreadId = Thread.CurrentThread.ManagedThreadId;
+            m_EventService = new EventService(m_TickService, m_RefPoolService, new DefaultEventArgsReleaser())
+            {
+                MainThreadId = Thread.CurrentThread.ManagedThreadId
+            };
             m_EventService.StartTicking();
         }
 
