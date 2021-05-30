@@ -6,10 +6,10 @@ namespace COL.UnityGameWheels.Core.Asset
 {
     public sealed partial class AssetService : TickableService, IAssetService
     {
-        private IDownloadService m_DownloadService = null;
-        private IRefPoolService m_RefPoolService = null;
-        private ISimpleFactory<IAssetLoadingTaskImpl> m_AssetLoadingTaskImplFactory = null;
-        private ISimpleFactory<IResourceLoadingTaskImpl> m_ResourceLoadingTaskImplFactory = null;
+        private readonly IDownloadService m_DownloadService = null;
+        private readonly IRefPoolService m_RefPoolService = null;
+        private readonly ISimpleFactory<IAssetLoadingTaskImpl> m_AssetLoadingTaskImplFactory = null;
+        private readonly ISimpleFactory<IResourceLoadingTaskImpl> m_ResourceLoadingTaskImplFactory = null;
         private int? m_ConcurrentAssetLoaderCount = null;
         private int? m_ConcurrentResourceLoaderCount = null;
         private int? m_AssetCachePoolCapacity = null;
@@ -28,8 +28,8 @@ namespace COL.UnityGameWheels.Core.Asset
         private readonly List<Uri> m_UpdateServerRootUrls = new List<Uri>();
         private int? m_UpdateSizeBeforeSavingReadWriteIndex = null;
 
-        private IAssetIndexForInstallerLoader m_AssetIndexForInstallerLoader = null;
-        private IObjectDestroyer<object> m_ResourceDestroyer = null;
+        private readonly IAssetIndexForInstallerLoader m_AssetIndexForInstallerLoader = null;
+        private readonly IObjectDestroyer<object> m_ResourceDestroyer = null;
 
         private readonly AssetIndexForInstaller m_InstallerIndex = new AssetIndexForInstaller();
         private readonly AssetIndexForReadWrite m_ReadWriteIndex = new AssetIndexForReadWrite();
@@ -44,7 +44,6 @@ namespace COL.UnityGameWheels.Core.Asset
         private readonly Dictionary<int, ResourceGroupUpdateSummary> ResourceGroupUpdateSummaries =
             new Dictionary<int, ResourceGroupUpdateSummary>();
 
-        /// <inheritdoc />
         public int ConcurrentAssetLoaderCount
         {
             get
@@ -67,7 +66,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int ConcurrentResourceLoaderCount
         {
             get
@@ -90,7 +88,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int DownloadRetryCount
         {
             get
@@ -118,10 +115,8 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public float ReleaseResourceInterval { get; set; }
 
-        /// <inheritdoc />
         public bool UpdateIsEnabled
         {
             get
@@ -144,7 +139,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public string UpdateRelativePathFormat
         {
             get
@@ -196,7 +190,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public string ReadWritePath
         {
             get
@@ -224,7 +217,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public string InstallerPath
         {
             get
@@ -252,7 +244,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public string RunningPlatform
         {
             get
@@ -319,7 +310,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int AssetCachePoolCapacity
         {
             get
@@ -348,7 +338,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int ResourceCachePoolCapacity
         {
             get
@@ -377,7 +366,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int AssetAccessorPoolCapacity
         {
             get
@@ -435,10 +423,14 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
+        public IAssetServiceConfigReader ConfigReader { get; }
+
         /// <inheritdoc />
         public IResourceUpdater ResourceUpdater => m_Updater;
 
-        public AssetService(IDownloadService downloadService,
+        public AssetService(
+            IAssetServiceConfigReader configReader,
+            IDownloadService downloadService,
             IAssetIndexForInstallerLoader assetIndexForInstallerLoader,
             ISimpleFactory<IAssetLoadingTaskImpl> assetLoadingTaskImplFactory,
             ISimpleFactory<IResourceLoadingTaskImpl> resourceLoadingTaskImplFactory,
@@ -452,11 +444,36 @@ namespace COL.UnityGameWheels.Core.Asset
             m_ResourceLoadingTaskImplFactory = resourceLoadingTaskImplFactory;
             m_ResourceDestroyer = resourceDestroyer;
             m_RefPoolService = refPoolService;
+            ConfigReader = configReader;
+            ApplyConfig();
             m_Preparer = new Preparer(this);
             m_UpdateChecker = new UpdateChecker(this);
             m_Updater = new Updater(this);
             m_Loader = new Loader(this);
         }
+
+        private void ApplyConfig()
+        {
+            RunningPlatform = ConfigReader.RunningPlatform;
+            UpdateIsEnabled = ConfigReader.UpdateIsEnabled;
+            DownloadRetryCount = ConfigReader.DownloadRetryCount;
+            ConcurrentAssetLoaderCount = ConfigReader.ConcurrentAssetLoaderCount;
+            ConcurrentResourceLoaderCount = ConfigReader.ConcurrentResourceLoaderCount;
+            AssetCachePoolCapacity = ConfigReader.AssetCachePoolCapacity;
+            ResourceCachePoolCapacity = ConfigReader.ResourceCachePoolCapacity;
+            AssetAccessorPoolCapacity = ConfigReader.AssetAccessorPoolCapacity;
+            UpdateRelativePathFormat = ConfigReader.UpdateRelativePathFormat;
+            ReadWritePath = ConfigReader.ReadWritePath;
+            InstallerPath = ConfigReader.InstallerPath;
+            ReleaseResourceInterval = ConfigReader.ReleaseResourceInterval;
+            UpdateSizeBeforeSavingReadWriteIndex = ConfigReader.UpdateSizeBeforeSavingReadWriteIndex;
+
+            foreach (var urlStr in ConfigReader.UpdateServerRootUrls)
+            {
+                AddUpdateServerRootUrl(urlStr);
+            }
+        }
+
 
         protected override void OnUpdate(TimeStruct timeStruct)
         {

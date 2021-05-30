@@ -58,6 +58,7 @@
     <Compile Include="Asset\AssetService.UpdateChecker.cs" />
     <Compile Include="Asset\AssetIndexRemoteFileInfo.cs" />
     <Compile Include="Asset\IAssetAccessor.cs" />
+    <Compile Include="Asset\IAssetServiceConfigReader.cs" />
     <Compile Include="Asset\ResourceCacheQuery.cs" />
     <Compile Include="Asset\AssetCacheQuery.cs" />
     <Compile Include="Asset\BaseCacheQuery.cs" />
