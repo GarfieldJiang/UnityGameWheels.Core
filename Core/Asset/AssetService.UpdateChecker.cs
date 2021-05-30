@@ -70,6 +70,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     throw new InvalidOperationException("Root URL for any update server hasn't been set.");
                 }
 
+                // TODO: Make a better impl of root urls
                 if (!m_RootUrlsModified)
                 {
                     m_RootUrlsModified = true;
@@ -77,8 +78,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     {
                         RootUrls[i] = new Uri(RootUrls[i], Utility.Text.Format(m_Owner.UpdateRelativePathFormat,
                             m_Owner.RunningPlatform,
-                            Utility.Text.Format("{0}.{1}", m_Owner.BundleVersion,
-                                m_RemoteIndexFileInfo.InternalAssetVersion)));
+                            $"{m_Owner.BundleVersion}.{m_RemoteIndexFileInfo.InternalAssetVersion}"));
                     }
                 }
 
@@ -89,9 +89,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 }
 
                 m_DownloadRetryTimes = 0;
-                m_DownloadTaskInfo = new DownloadTaskInfo(
-                    Utility.Text.Format("{0}/index_{1}.dat", RootUrls[m_RootUrlIndex].ToString(),
-                        m_RemoteIndexFileInfo.Crc32.ToString()),
+                m_DownloadTaskInfo = new DownloadTaskInfo($"{RootUrls[m_RootUrlIndex]}/index_{m_RemoteIndexFileInfo.Crc32.ToString()}.dat",
                     m_Owner.CachedRemoteIndexPath, m_RemoteIndexFileInfo.FileSize, m_RemoteIndexFileInfo.Crc32,
                     new DownloadCallbackSet
                     {
