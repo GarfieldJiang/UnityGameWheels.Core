@@ -313,13 +313,7 @@ namespace COL.UnityGameWheels.Core.Tests
             m_DirectoryInfo = new DirectoryInfo(SavePathRoot);
 
             m_TickService = new MockTickService();
-
-            m_RefPoolService = new RefPoolService();
-            var refPoolServiceConfigReader = Substitute.For<IRefPoolServiceConfigReader>();
-            refPoolServiceConfigReader.DefaultCapacity.Returns(1);
-            m_RefPoolService.ConfigReader = refPoolServiceConfigReader;
-            m_RefPoolService.OnInit();
-
+            m_RefPoolService = new MockRefPoolService();
             m_DownloadService = new DownloadService { TickService = m_TickService, TickOrder = 0 };
             var configReader = Substitute.For<IDownloadServiceConfigReader>();
             configReader.TempFileExtension.Returns(".tmp");
@@ -342,7 +336,6 @@ namespace COL.UnityGameWheels.Core.Tests
         {
             m_DownloadService.OnShutdown();
             m_DownloadService = null;
-            m_RefPoolService.OnShutdown();
             m_RefPoolService = null;
             m_TickService = null;
             m_DownloadTaskImplFactory = null;

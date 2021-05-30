@@ -6,13 +6,12 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// Reference pool service interface.
     /// </summary>
-    public interface IRefPoolService : ILifeCycle, IEnumerable<IBaseRefPool>
+    public interface IRefPoolService : IEnumerable<IBaseRefPool>
     {
         /// <summary>
         /// Config reader.
         /// </summary>
-        [Ioc.Inject]
-        IRefPoolServiceConfigReader ConfigReader { get; set; }
+        IRefPoolServiceConfigReader ConfigReader { get; }
 
         /// <summary>
         /// How many pools we have.

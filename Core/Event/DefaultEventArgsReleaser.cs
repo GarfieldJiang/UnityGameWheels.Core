@@ -1,6 +1,6 @@
 namespace COL.UnityGameWheels.Core
 {
-    internal class DefaultEventArgsReleaser : IEventArgsReleaser
+    public class DefaultEventArgsReleaser : IEventArgsReleaser
     {
         public void Release(BaseEventArgs eventArgs)
         {

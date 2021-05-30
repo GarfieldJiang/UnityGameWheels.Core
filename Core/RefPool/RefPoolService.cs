@@ -7,24 +7,33 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// Default implementation of <see cref="IRefPoolService"/> interface.
     /// </summary>
-    public class RefPoolService : BaseLifeCycleService, IRefPoolService
+    public class RefPoolService : IRefPoolService, IDisposable
     {
         private Dictionary<Type, IBaseRefPool> m_RefPools = null;
 
-        private int m_DefaultCapacity = 1;
+        private readonly int m_DefaultCapacity = 0;
 
         /// <inheritdoc />
-        [Ioc.Inject]
-        public IRefPoolServiceConfigReader ConfigReader { get; set; }
+        public IRefPoolServiceConfigReader ConfigReader { get; }
 
         /// <inheritdoc />
         public int PoolCount => m_RefPools.Count;
 
+        public RefPoolService(IRefPoolServiceConfigReader configReader)
+        {
+            ConfigReader = configReader;
+            m_RefPools = new Dictionary<Type, IBaseRefPool>();
+            if (ConfigReader.DefaultCapacity <= 0)
+            {
+                throw new InvalidOperationException($"{nameof(ConfigReader.DefaultCapacity)} must be positive.");
+            }
+
+            m_DefaultCapacity = ConfigReader.DefaultCapacity;
+        }
+
         /// <inheritdoc />
         public void ClearAll()
         {
-            CheckStateOrThrow();
-
             foreach (var kv in m_RefPools)
             {
                 kv.Value.Clear();
@@ -34,14 +43,12 @@ namespace COL.UnityGameWheels.Core
         /// <inheritdoc />
         public bool Contains<T>() where T : class, new()
         {
-            CheckStateOrThrow();
             return m_RefPools.ContainsKey(typeof(T));
         }
 
         /// <inheritdoc />
         public bool Contains(Type objectType)
         {
-            CheckStateOrThrow();
             CheckTypeOrThrow(objectType);
             return m_RefPools.ContainsKey(objectType);
         }
@@ -49,8 +56,6 @@ namespace COL.UnityGameWheels.Core
         /// <inheritdoc />
         public IRefPool<T> Add<T>(int initCapacity) where T : class, new()
         {
-            CheckStateOrThrow();
-
             if (initCapacity < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(initCapacity), "Must be non-negative.");
@@ -80,7 +85,6 @@ namespace COL.UnityGameWheels.Core
         /// <inheritdoc />
         public IBaseRefPool Add(Type objectType, int initCapacity)
         {
-            CheckStateOrThrow();
             CheckTypeOrThrow(objectType);
 
             if (initCapacity < 0)
@@ -127,8 +131,6 @@ namespace COL.UnityGameWheels.Core
         /// <inheritdoc />
         public IRefPool<T> GetOrAdd<T>() where T : class, new()
         {
-            CheckStateOrThrow();
-
             if (m_RefPools.TryGetValue(typeof(T), out var baseRefPool))
             {
                 return (IRefPool<T>)baseRefPool;
@@ -140,7 +142,6 @@ namespace COL.UnityGameWheels.Core
         /// <inheritdoc />
         public IBaseRefPool GetOrAdd(Type objectType)
         {
-            CheckStateOrThrow();
             CheckTypeOrThrow(objectType);
 
             if (m_RefPools.TryGetValue(objectType, out var ret))
@@ -184,36 +185,20 @@ namespace COL.UnityGameWheels.Core
             return ret;
         }
 
-        /// <inheritdoc />
-        public override void OnInit()
-        {
-            base.OnInit();
-            m_RefPools = new Dictionary<Type, IBaseRefPool>();
-            if (ConfigReader.DefaultCapacity <= 0)
-            {
-                throw new InvalidOperationException($"{nameof(ConfigReader.DefaultCapacity)} must be positive.");
-            }
-
-            m_DefaultCapacity = ConfigReader.DefaultCapacity;
-        }
-
-        /// <inheritdoc />
-        public override void OnShutdown()
-        {
-            ClearAll();
-            m_RefPools.Clear();
-            base.OnShutdown();
-        }
-
         public IEnumerator<IBaseRefPool> GetEnumerator()
         {
-            CheckStateOrThrow();
             return m_RefPools.Values.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public void Dispose()
+        {
+            ClearAll();
+            m_RefPools.Clear();
         }
     }
 }

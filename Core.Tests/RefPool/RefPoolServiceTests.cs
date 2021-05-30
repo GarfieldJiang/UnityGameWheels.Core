@@ -7,7 +7,7 @@ namespace COL.UnityGameWheels.Core.Tests
     [TestFixture]
     public class RefPoolServiceTests
     {
-        private IRefPoolService m_RefPoolService = null;
+        private RefPoolService m_RefPoolService = null;
         private const int DefaultCapacity = 4;
 
         private class PoolableObject
@@ -106,17 +106,15 @@ namespace COL.UnityGameWheels.Core.Tests
         [SetUp]
         public void SetUp()
         {
-            m_RefPoolService = new RefPoolService();
             var configReader = Substitute.For<IRefPoolServiceConfigReader>();
             configReader.DefaultCapacity.Returns(1);
-            m_RefPoolService.ConfigReader = configReader;
-            m_RefPoolService.OnInit();
+            m_RefPoolService = new RefPoolService(configReader);
         }
 
         [TearDown]
         public void TearDown()
         {
-            m_RefPoolService.OnShutdown();
+            m_RefPoolService.Dispose();
             m_RefPoolService = null;
         }
     }
