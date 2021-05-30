@@ -5,7 +5,7 @@ namespace COL.UnityGameWheels.Core.Asset
     /// <summary>
     /// Asset module interface.
     /// </summary>
-    public interface IAssetService : ILifeCycle
+    public interface IAssetService : ITickableService
     {
         int ConcurrentAssetLoaderCount { get; set; }
 
@@ -35,8 +35,6 @@ namespace COL.UnityGameWheels.Core.Asset
         /// Time interval to check and release resources that are not retained.
         /// </summary>
         float ReleaseResourceInterval { get; set; }
-
-        IAssetIndexForInstallerLoader IndexForInstallerLoader { get; set; }
 
         /// <summary>
         /// Whether resource update is enabled.

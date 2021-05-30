@@ -99,7 +99,7 @@ namespace COL.UnityGameWheels.Core.Asset
                         OnFailure = m_OnDownloadFailure,
                         OnProgress = null,
                     }, null);
-                m_Owner.DownloadService.StartDownloading(m_DownloadTaskInfo);
+                m_Owner.m_DownloadService.StartDownloading(m_DownloadTaskInfo);
             }
 
             private bool CheckNeedDownloadRemoteIndex(AssetIndexRemoteFileInfo remoteIndexFileInfo)
@@ -212,7 +212,7 @@ namespace COL.UnityGameWheels.Core.Asset
                         }, null);
                 }
 
-                m_Owner.DownloadService.StartDownloading(m_DownloadTaskInfo);
+                m_Owner.m_DownloadService.StartDownloading(m_DownloadTaskInfo);
             }
 
             private void CheckUpdate()

@@ -4,7 +4,7 @@ using System.IO;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
-    public sealed partial class AssetService : TickableLifeCycleService, IAssetService
+    public sealed partial class AssetService : TickableService, IAssetService
     {
         private IDownloadService m_DownloadService = null;
         private IRefPoolService m_RefPoolService = null;
@@ -35,78 +35,14 @@ namespace COL.UnityGameWheels.Core.Asset
         private readonly AssetIndexForReadWrite m_ReadWriteIndex = new AssetIndexForReadWrite();
         private readonly AssetIndexForRemote m_RemoteIndex = new AssetIndexForRemote();
 
-        private Preparer m_Preparer = null;
-        private UpdateChecker m_UpdateChecker = null;
-        private Updater m_Updater = null;
-        private Loader m_Loader = null;
+        private readonly Preparer m_Preparer = null;
+        private readonly UpdateChecker m_UpdateChecker = null;
+        private readonly Updater m_Updater = null;
+        private readonly Loader m_Loader = null;
 
         // Initialized by the update checker and used by the updater.
         private readonly Dictionary<int, ResourceGroupUpdateSummary> ResourceGroupUpdateSummaries =
             new Dictionary<int, ResourceGroupUpdateSummary>();
-
-        [Ioc.Inject]
-        public IDownloadService DownloadService
-        {
-            get => m_DownloadService ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_DownloadService != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_DownloadService = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        [Ioc.Inject]
-        public IRefPoolService RefPoolService
-        {
-            get => m_RefPoolService ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_RefPoolService != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_RefPoolService = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        [Ioc.Inject]
-        public ISimpleFactory<IAssetLoadingTaskImpl> AssetLoadingTaskImplFactory
-        {
-            get => m_AssetLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_AssetLoadingTaskImplFactory != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_AssetLoadingTaskImplFactory = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        [Ioc.Inject]
-        public ISimpleFactory<IResourceLoadingTaskImpl> ResourceLoadingTaskImplFactory
-        {
-            get => m_ResourceLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_ResourceLoadingTaskImplFactory != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_ResourceLoadingTaskImplFactory = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
 
         /// <inheritdoc />
         public int ConcurrentAssetLoaderCount
@@ -184,51 +120,6 @@ namespace COL.UnityGameWheels.Core.Asset
 
         /// <inheritdoc />
         public float ReleaseResourceInterval { get; set; }
-
-        [Ioc.Inject]
-        public IAssetIndexForInstallerLoader IndexForInstallerLoader
-        {
-            get
-            {
-                if (m_AssetIndexForInstallerLoader == null)
-                {
-                    throw new InvalidOperationException("Not set.");
-                }
-
-                return m_AssetIndexForInstallerLoader;
-            }
-            set
-            {
-                if (m_AssetIndexForInstallerLoader != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_AssetIndexForInstallerLoader = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        public IObjectDestroyer<object> ResourceDestroyer
-        {
-            get
-            {
-                if (m_ResourceDestroyer == null)
-                {
-                    throw new InvalidOperationException("Not set.");
-                }
-
-                return m_ResourceDestroyer;
-            }
-            set
-            {
-                if (m_ResourceDestroyer != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_ResourceDestroyer = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
 
         /// <inheritdoc />
         public bool UpdateIsEnabled
@@ -547,31 +438,42 @@ namespace COL.UnityGameWheels.Core.Asset
         /// <inheritdoc />
         public IResourceUpdater ResourceUpdater => m_Updater;
 
-        /// <inheritdoc />
-        public override void OnInit()
+        public AssetService(IDownloadService downloadService,
+            IAssetIndexForInstallerLoader assetIndexForInstallerLoader,
+            ISimpleFactory<IAssetLoadingTaskImpl> assetLoadingTaskImplFactory,
+            ISimpleFactory<IResourceLoadingTaskImpl> resourceLoadingTaskImplFactory,
+            IObjectDestroyer<object> resourceDestroyer,
+            IRefPoolService refPoolService,
+            ITickService tickService) : base(tickService)
         {
-            base.OnInit();
+            m_DownloadService = downloadService;
+            m_AssetIndexForInstallerLoader = assetIndexForInstallerLoader;
+            m_AssetLoadingTaskImplFactory = assetLoadingTaskImplFactory;
+            m_ResourceLoadingTaskImplFactory = resourceLoadingTaskImplFactory;
+            m_ResourceDestroyer = resourceDestroyer;
+            m_RefPoolService = refPoolService;
             m_Preparer = new Preparer(this);
             m_UpdateChecker = new UpdateChecker(this);
             m_Updater = new Updater(this);
             m_Loader = new Loader(this);
         }
 
-        /// <inheritdoc />
         protected override void OnUpdate(TimeStruct timeStruct)
         {
-            CheckStateOrThrow();
             m_Loader.Update(timeStruct);
         }
 
-        /// <inheritdoc />
-        public override void OnShutdown()
+        protected override void Dispose(bool disposing)
         {
-            if (IsLoadingAnyAsset)
+            if (disposing)
             {
-                InternalLog.Warning("Some asset is still being loaded.");
+                if (IsLoadingAnyAsset)
+                {
+                    InternalLog.Warning("Some asset is still being loaded.");
+                }
             }
-            base.OnShutdown();
+
+            base.Dispose(disposing);
         }
 
         /// <inheritdoc />

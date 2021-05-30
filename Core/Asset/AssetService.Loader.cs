@@ -31,9 +31,9 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private Dictionary<int, ResourceGroupUpdateSummary> ResourceSummaries => m_Owner.ResourceGroupUpdateSummaries;
 
-            private ISimpleFactory<IAssetLoadingTaskImpl> AssetLoadingTaskImplFactory => m_Owner.AssetLoadingTaskImplFactory;
+            private ISimpleFactory<IAssetLoadingTaskImpl> AssetLoadingTaskImplFactory => m_Owner.m_AssetLoadingTaskImplFactory;
 
-            private ISimpleFactory<IResourceLoadingTaskImpl> ResourceLoadingTaskImplFactory => m_Owner.ResourceLoadingTaskImplFactory;
+            private ISimpleFactory<IResourceLoadingTaskImpl> ResourceLoadingTaskImplFactory => m_Owner.m_ResourceLoadingTaskImplFactory;
 
             private int ConcurrentAssetLoaderCount => m_Owner.ConcurrentAssetLoaderCount;
 
@@ -43,7 +43,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private string InstallerPath => m_Owner.InstallerPath;
 
-            private IObjectDestroyer<object> ResourceDestroyer => m_Owner.ResourceDestroyer;
+            private IObjectDestroyer<object> ResourceDestroyer => m_Owner.m_ResourceDestroyer;
 
             private readonly IRefPool<AssetCache> m_AssetCachePool = null;
             private readonly IRefPool<ResourceCache> m_ResourceCachePool = null;
@@ -65,11 +65,11 @@ namespace COL.UnityGameWheels.Core.Asset
                     new List<IAssetLoadingTaskImpl>(ConcurrentAssetLoaderCount > 0 ? ConcurrentAssetLoaderCount : 16);
                 m_RunningResourceLoadingTasks =
                     new List<IResourceLoadingTaskImpl>(ConcurrentResourceLoaderCount > 0 ? ConcurrentResourceLoaderCount : 8);
-                m_AssetCachePool = m_Owner.RefPoolService.Add<AssetCache>(owner.AssetCachePoolCapacity);
-                m_ResourceCachePool = m_Owner.RefPoolService.Add<ResourceCache>(owner.ResourceCachePoolCapacity);
-                m_AssetAccessorPool = m_Owner.RefPoolService.Add<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity);
-                m_AssetLoadingTaskPool = m_Owner.RefPoolService.Add<AssetLoadingTask>(m_RunningAssetLoadingTasks.Capacity);
-                m_ResourceLoadingTaskPool = m_Owner.RefPoolService.Add<ResourceLoadingTask>(m_RunningResourceLoadingTasks.Capacity);
+                m_AssetCachePool = m_Owner.m_RefPoolService.Add<AssetCache>(owner.AssetCachePoolCapacity);
+                m_ResourceCachePool = m_Owner.m_RefPoolService.Add<ResourceCache>(owner.ResourceCachePoolCapacity);
+                m_AssetAccessorPool = m_Owner.m_RefPoolService.Add<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity);
+                m_AssetLoadingTaskPool = m_Owner.m_RefPoolService.Add<AssetLoadingTask>(m_RunningAssetLoadingTasks.Capacity);
+                m_ResourceLoadingTaskPool = m_Owner.m_RefPoolService.Add<ResourceLoadingTask>(m_RunningResourceLoadingTasks.Capacity);
                 //m_DFSVisitedFlags = new HashSet<string>();
                 m_AssetAccessorsToRelease = new List<AssetAccessor>(m_Owner.AssetAccessorPoolCapacity / 8);
             }
