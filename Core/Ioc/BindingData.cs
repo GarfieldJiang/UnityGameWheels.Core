@@ -70,16 +70,6 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         private void AddCallback(Action<object> callback, ref List<Action<object>> callbackList)
         {
-            if (!typeof(ILifeCycle).IsAssignableFrom(ImplType))
-            {
-                throw new InvalidOperationException($"The binding's implementation is not {nameof(ILifeCycle)}.");
-            }
-
-            if (!LifeCycleManaged)
-            {
-                throw new InvalidOperationException("The binding's life cycle is not managed by the container.");
-            }
-
             Guard.RequireNotNull<ArgumentNullException>(callback, $"Invalid '{nameof(callback)}'.");
 
             if (callbackList == null)
@@ -92,16 +82,6 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         private void AddCallback(Action callback, ref List<Action> callbackList)
         {
-            if (!typeof(ILifeCycle).IsAssignableFrom(ImplType))
-            {
-                throw new InvalidOperationException($"The binding's implementation is not {nameof(ILifeCycle)}.");
-            }
-
-            if (!LifeCycleManaged)
-            {
-                throw new InvalidOperationException("The binding's life cycle is not managed by the container.");
-            }
-
             Guard.RequireNotNull<ArgumentNullException>(callback, $"Invalid '{nameof(callback)}'.");
 
             if (callbackList == null)
