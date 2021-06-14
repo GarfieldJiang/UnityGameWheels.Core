@@ -12,8 +12,9 @@ namespace COL.UnityGameWheels.Core.Ioc
     {
         private readonly Dictionary<Type, BindingData> m_InterfaceTypeToBindingDataMap;
         private readonly Dictionary<Type, object> m_InterfaceTypeToSingletonMap;
+        private readonly Dictionary<Type, object> m_InterfaceTypeToInstanceMap;
         private readonly Stack<BindingData> m_BindingDatasToBuild;
-        internal readonly MinPriorityQueue<Type, IDisposable> ServicesToDispose;
+        private readonly MinPriorityQueue<Type, IDisposable> ServicesToDispose;
         private int m_ServiceInitCounter = 0;
 
         private bool m_Disposing = false;
@@ -30,7 +31,8 @@ namespace COL.UnityGameWheels.Core.Ioc
             Guard.RequireTrue<ArgumentOutOfRangeException>(estimatedServiceCount > 0,
                 $"Argument '{nameof(estimatedServiceCount)}' must be positive.");
             m_InterfaceTypeToBindingDataMap = new Dictionary<Type, BindingData>(estimatedServiceCount);
-            m_InterfaceTypeToSingletonMap = new Dictionary<Type, object>(estimatedServiceCount);
+            m_InterfaceTypeToSingletonMap = new Dictionary<Type, object>(estimatedServiceCount >> 1);
+            m_InterfaceTypeToInstanceMap = new Dictionary<Type, object>(estimatedServiceCount >> 1);
             m_BindingDatasToBuild = new Stack<BindingData>(estimatedServiceCount);
             ServicesToDispose = new MinPriorityQueue<Type, IDisposable>();
         }
@@ -95,8 +97,7 @@ namespace COL.UnityGameWheels.Core.Ioc
                 LifeStyle = LifeStyles.Null,
             };
             m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
-            // TODO: This mixes instances and singletons. Should be redesigned.
-            m_InterfaceTypeToSingletonMap[interfaceType] = instance;
+            m_InterfaceTypeToInstanceMap[interfaceType] = instance;
             return bindingData;
         }
 
@@ -236,8 +237,13 @@ namespace COL.UnityGameWheels.Core.Ioc
                 throw new InvalidOperationException("Cyclic dependencies are not supported.");
             }
 
-            // Instance or singleton, and cached already.
-            if (m_InterfaceTypeToSingletonMap.TryGetValue(bindingData.InterfaceType, out object ret))
+            if (m_InterfaceTypeToInstanceMap.TryGetValue(bindingData.InterfaceType, out var ret))
+            {
+                return ret;
+            }
+
+            var isSingleton = bindingData.LifeStyle == LifeStyles.Singleton;
+            if (isSingleton && m_InterfaceTypeToSingletonMap.TryGetValue(bindingData.InterfaceType, out ret))
             {
                 return ret;
             }
@@ -250,7 +256,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_BindingDatasToBuild.Push(bindingData);
             ret = DoConstructorStuff(bindingData);
             DoPropertyStuff(bindingData, ret);
-            if (bindingData.LifeStyle == LifeStyles.Singleton)
+            if (isSingleton)
             {
                 m_InterfaceTypeToSingletonMap[bindingData.InterfaceType] = ret;
                 if (ret is IDisposable disposable)
@@ -306,10 +312,17 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_InterfaceTypeToBindingDataMap.Clear();
         }
 
-        // TODO: Split non-singleton instances (from BindInstance) out.
         public IEnumerable<KeyValuePair<Type, object>> GetSingletons()
         {
             foreach (var kv in m_InterfaceTypeToSingletonMap)
+            {
+                yield return kv;
+            }
+        }
+
+        public IEnumerable<KeyValuePair<Type, object>> GetInstances()
+        {
+            foreach (var kv in m_InterfaceTypeToInstanceMap)
             {
                 yield return kv;
             }
