@@ -6,11 +6,6 @@
     public interface IDownloadService
     {
         /// <summary>
-        /// Config reader.
-        /// </summary>
-        IDownloadServiceConfigReader ConfigReader { get; }
-
-        /// <summary>
         /// The upper limit of the number of concurrent downloading tasks.
         /// </summary>
         int ConcurrentDownloadCountLimit { get; }

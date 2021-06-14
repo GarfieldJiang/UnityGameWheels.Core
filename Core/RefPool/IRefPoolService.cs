@@ -9,11 +9,6 @@ namespace COL.UnityGameWheels.Core
     public interface IRefPoolService : IEnumerable<IBaseRefPool>
     {
         /// <summary>
-        /// Config reader.
-        /// </summary>
-        IRefPoolServiceConfigReader ConfigReader { get; }
-
-        /// <summary>
         /// How many pools we have.
         /// </summary>
         int PoolCount { get; }

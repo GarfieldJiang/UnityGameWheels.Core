@@ -5,10 +5,8 @@ namespace COL.UnityGameWheels.Core.Asset
     /// <summary>
     /// Asset module interface.
     /// </summary>
-    public interface IAssetService : ITickableService
+    public interface IAssetService
     {
-        IAssetServiceConfigReader ConfigReader { get; }
-
         /// <summary>
         /// Application version.
         /// </summary>

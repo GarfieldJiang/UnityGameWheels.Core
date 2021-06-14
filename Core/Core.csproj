@@ -95,8 +95,6 @@
     <Compile Include="Common\Interfaces\ITickService.cs" />
     <Compile Include="Common\Logger\InternalLog.cs" />
     <Compile Include="Common\Profiler.cs" />
-    <Compile Include="Common\Service\BaseLifeCycleService.cs" />
-    <Compile Include="Common\Service\TickableLifeCycleService.cs" />
     <Compile Include="Common\Service\TickableService.cs" />
     <Compile Include="Download\CheckingSubtaskResult.cs" />
     <Compile Include="Download\IDownloadServiceConfigReader.cs" />
