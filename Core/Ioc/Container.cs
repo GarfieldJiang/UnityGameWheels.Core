@@ -306,6 +306,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_InterfaceTypeToBindingDataMap.Clear();
         }
 
+        // TODO: Split non-singleton instances (from BindInstance) out.
         public IEnumerable<KeyValuePair<Type, object>> GetSingletons()
         {
             foreach (var kv in m_InterfaceTypeToSingletonMap)

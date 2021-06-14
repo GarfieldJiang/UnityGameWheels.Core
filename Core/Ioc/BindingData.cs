@@ -12,7 +12,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         public Type ImplType { get; internal set; }
 
-        internal ILifeStyle LifeStyle { get; set; }
+        public ILifeStyle LifeStyle { get; internal set; }
 
         internal Dictionary<string, object> PropertyInjections;
 
@@ -80,7 +80,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         public IBindingData OnInstanceCreated(Action<object> callback)
         {
-            if (LifeStyle.AutoCreateInstance)
+            if (!LifeStyle.AutoCreateInstance)
             {
                 throw new InvalidOperationException("The binding's life style doesn't support auto instance creation.");
             }
@@ -91,7 +91,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         public IBindingData OnPreDispose(Action<object> callback)
         {
-            if (LifeStyle.AutoDispose)
+            if (!LifeStyle.AutoDispose)
             {
                 throw new InvalidOperationException("The binding's life style doesn't support auto disposal.");
             }
@@ -102,7 +102,7 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         public IBindingData OnDisposed(Action callback)
         {
-            if (LifeStyle.AutoDispose)
+            if (!LifeStyle.AutoDispose)
             {
                 throw new InvalidOperationException("The binding's life style doesn't support auto disposal.");
             }

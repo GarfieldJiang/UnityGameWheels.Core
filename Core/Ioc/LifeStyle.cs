@@ -1,19 +1,19 @@
 namespace COL.UnityGameWheels.Core.Ioc
 {
-    internal interface ILifeStyle
+    public interface ILifeStyle
     {
         bool AutoCreateInstance { get; }
         bool AutoDispose { get; }
     }
 
-    internal static class LifeStyles
+    public static class LifeStyles
     {
         public static ILifeStyle Null = new NullLifeStyle();
         public static ILifeStyle Singleton = new SingletonLifeStyle();
         public static ILifeStyle Transient = new TransientLifeCycle();
     }
 
-    internal class NullLifeStyle : ILifeStyle
+    public class NullLifeStyle : ILifeStyle
     {
         internal NullLifeStyle()
         {
@@ -23,7 +23,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         public bool AutoDispose => false;
     }
 
-    internal class SingletonLifeStyle : ILifeStyle
+    public class SingletonLifeStyle : ILifeStyle
     {
         internal SingletonLifeStyle()
         {
@@ -33,7 +33,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         public bool AutoDispose => true;
     }
 
-    internal class TransientLifeCycle : ILifeStyle
+    public class TransientLifeCycle : ILifeStyle
     {
         internal TransientLifeCycle()
         {

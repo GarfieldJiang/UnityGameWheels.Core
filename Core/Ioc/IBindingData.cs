@@ -17,7 +17,7 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// </summary>
         Type ImplType { get; }
 
-        //ILifeStyle LifeStyle { get; }
+        ILifeStyle LifeStyle { get; }
 
         IBindingData AddPropertyInjections(params PropertyInjection[] propertyInjections);
 
