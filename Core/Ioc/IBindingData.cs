@@ -17,11 +17,10 @@ namespace COL.UnityGameWheels.Core.Ioc
         /// </summary>
         Type ImplType { get; }
 
-        /// <summary>
-        /// Whether the service life cycle is managed by the container.
-        /// </summary>
-        bool LifeCycleManaged { get; }
-        
+        //ILifeStyle LifeStyle { get; }
+
+        IBindingData AddPropertyInjections(params PropertyInjection[] propertyInjections);
+
         IBindingData OnInstanceCreated(Action<object> callback);
 
         IBindingData OnPreDispose(Action<object> callback);

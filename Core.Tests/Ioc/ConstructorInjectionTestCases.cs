@@ -15,6 +15,13 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 var instance = container.Make<SimpleDefaultConstructor.IServiceA>();
                 Assert.AreEqual(typeof(SimpleDefaultConstructor.ServiceA), instance.GetType());
             }
+
+            using (var container = new Container())
+            {
+                container.Bind<SimpleDefaultConstructor.IServiceA, SimpleDefaultConstructor.ServiceA>();
+                var instance = container.Make<SimpleDefaultConstructor.IServiceA>();
+                Assert.AreEqual(typeof(SimpleDefaultConstructor.ServiceA), instance.GetType());
+            }
         }
 
         private static class SimpleDefaultConstructor
@@ -36,7 +43,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
         {
             using (var container = new Container())
             {
-                container.BindSingleton<ConstructorWithPrimitiveTypeParams.IServiceA, ConstructorWithPrimitiveTypeParams.ServiceA>();
+                container.Bind<ConstructorWithPrimitiveTypeParams.IServiceA, ConstructorWithPrimitiveTypeParams.ServiceA>();
                 Assert.Throws<InvalidOperationException>(() => { container.Make<ConstructorWithPrimitiveTypeParams.IServiceA>(); });
             }
         }
@@ -67,6 +74,18 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 var d = container.Make<BasicDependency.ServiceD>();
                 Assert.AreSame(d.A, container.Make<BasicDependency.IServiceA>());
                 Assert.AreSame(d.B, container.Make<BasicDependency.ServiceB>());
+                Assert.AreSame(d.C, container.Make<BasicDependency.IServiceC>());
+            }
+
+            using (var container = new Container())
+            {
+                container.BindSingleton<BasicDependency.IServiceA, BasicDependency.ServiceA>();
+                container.Bind<BasicDependency.ServiceB>();
+                container.BindSingleton<BasicDependency.IServiceC, BasicDependency.ServiceC>();
+                container.Bind<BasicDependency.ServiceD>();
+                var d = container.Make<BasicDependency.ServiceD>();
+                Assert.AreSame(d.A, container.Make<BasicDependency.IServiceA>());
+                Assert.AreNotSame(d.B, container.Make<BasicDependency.ServiceB>());
                 Assert.AreSame(d.C, container.Make<BasicDependency.IServiceC>());
             }
         }

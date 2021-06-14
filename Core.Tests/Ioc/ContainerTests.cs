@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Remoting;
 using NUnit.Framework;
 
 namespace COL.UnityGameWheels.Core.Ioc.Test
@@ -22,6 +23,30 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             Assert.True(!serviceB.IsShut);
             container.Dispose();
             Assert.True(serviceB.IsShut);
+        }
+
+        [Test]
+        public void TestLifeStyle()
+        {
+            var container = new Container();
+            container.BindSingleton<IServiceA, ServiceA>();
+            container.Bind<ServiceB>();
+            container.BindSingleton<ServiceC>();
+            container.Bind<ServiceD>();
+            var d1 = container.Make<ServiceD>();
+            var d2 = container.Make<ServiceD>();
+            Assert.AreNotSame(d1, d2);
+            Assert.AreSame(d1.ServiceC, d2.ServiceC);
+            Assert.AreNotSame(d1.ServiceB, d2.ServiceB);
+            Assert.AreSame(d1.ServiceA, d2.ServiceA);
+            container.Dispose();
+            foreach (var d in new[] { d1, d2 })
+            {
+                Assert.True(d.ServiceA.IsShut);
+                Assert.True(d.ServiceC.IsShut);
+                Assert.True(!d.ServiceB.IsShut);
+                Assert.True(!d.IsShut);
+            }
         }
 
         [Test]
@@ -72,7 +97,7 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
         {
             using (var container = new Container())
             {
-                container.BindSingleton<IServiceA, ServiceA>(new PropertyInjection
+                container.BindSingleton<IServiceA, ServiceA>().AddPropertyInjections(new PropertyInjection
                 {
                     PropertyName = "IntProperty",
                     Value = 125,

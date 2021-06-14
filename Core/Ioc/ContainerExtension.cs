@@ -5,6 +5,20 @@ namespace COL.UnityGameWheels.Core.Ioc
     /// </summary>
     public static class ContainerExtension
     {
+        public static IBindingData Bind<TService>(this Container container)
+            where TService : class
+        {
+            var type = typeof(TService);
+            return container.Bind(type, type);
+        }
+
+        public static IBindingData Bind<TInterface, TImpl>(this Container container)
+            where TInterface : class
+            where TImpl : class
+        {
+            return container.Bind(typeof(TInterface), typeof(TImpl));
+        }
+
         public static IBindingData BindSingleton<TService>(this Container container)
             where TService : class
         {
@@ -12,25 +26,11 @@ namespace COL.UnityGameWheels.Core.Ioc
             return container.BindSingleton(type, type);
         }
 
-        public static IBindingData BindSingleton<TService>(this Container container, params PropertyInjection[] propertyInjections)
-            where TService : class
-        {
-            var type = typeof(TService);
-            return container.BindSingleton(type, type, propertyInjections);
-        }
-
         public static IBindingData BindSingleton<TInterface, TImpl>(this Container container)
             where TInterface : class
             where TImpl : class
         {
             return container.BindSingleton(typeof(TInterface), typeof(TImpl));
-        }
-
-        public static IBindingData BindSingleton<TInterface, TImpl>(this Container container, params PropertyInjection[] propertyInjections)
-            where TInterface : class
-            where TImpl : class
-        {
-            return container.BindSingleton(typeof(TInterface), typeof(TImpl), propertyInjections);
         }
 
         public static IBindingData BindInstance<TInterface>(this Container container, TInterface instance)

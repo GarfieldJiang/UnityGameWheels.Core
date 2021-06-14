@@ -13,7 +13,6 @@ namespace COL.UnityGameWheels.Core.Ioc
         private readonly Dictionary<Type, BindingData> m_InterfaceTypeToBindingDataMap;
         private readonly Dictionary<Type, object> m_InterfaceTypeToSingletonMap;
         private readonly Stack<BindingData> m_BindingDatasToBuild;
-        private readonly Queue<Type> m_ServicesToInit;
         internal readonly MinPriorityQueue<Type, IDisposable> ServicesToDispose;
         private int m_ServiceInitCounter = 0;
 
@@ -33,99 +32,49 @@ namespace COL.UnityGameWheels.Core.Ioc
             m_InterfaceTypeToBindingDataMap = new Dictionary<Type, BindingData>(estimatedServiceCount);
             m_InterfaceTypeToSingletonMap = new Dictionary<Type, object>(estimatedServiceCount);
             m_BindingDatasToBuild = new Stack<BindingData>(estimatedServiceCount);
-            m_ServicesToInit = new Queue<Type>(estimatedServiceCount);
             ServicesToDispose = new MinPriorityQueue<Type, IDisposable>();
         }
 
-        /// <inheritdoc />
         public bool IsDisposing => m_Disposing;
 
-        /// <inheritdoc />
         public bool IsDisposed => m_Disposed;
 
-        private BindingData AddPropertyInjections(BindingData bindingData, params PropertyInjection[] propertyInjections)
+
+        private BindingData BindInternal(Type interfaceType, Type implType, ILifeStyle lifeStyle)
         {
-            int propertyInjectionIndex = 0;
-            foreach (var propertyInjection in propertyInjections)
+            GuardHasMadeNothing();
+            GuardNotDisposingOrDisposed();
+            GuardInterfaceType(interfaceType);
+            GuardUnbound(interfaceType);
+            GuardImplType(implType);
+            if (!interfaceType.IsAssignableFrom(implType))
             {
-                if (string.IsNullOrEmpty(propertyInjection.PropertyName))
-                {
-                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a invalid property name.");
-                }
-
-                if (propertyInjection.Value == null)
-                {
-                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a null value.");
-                }
-
-                var propertyInfo = bindingData.ImplType.GetProperty(propertyInjection.PropertyName,
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty);
-                if (propertyInfo == null)
-                {
-                    throw new ArgumentException($"Cannot find property named '{propertyInjection.PropertyName}' at index {propertyInjectionIndex}.");
-                }
-
-                if (!propertyInfo.PropertyType.IsInstanceOfType(propertyInjection.Value))
-                {
-                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a value that doesn't have a feasible type.");
-                }
-
-                bindingData.AddPropertyInjection(propertyInjection);
-                propertyInjectionIndex++;
+                throw new InvalidOperationException($"{nameof(interfaceType)} is not assignable from {nameof(implType)}.");
             }
 
+            var bindingData = new BindingData(this)
+            {
+                InterfaceType = interfaceType,
+                ImplType = implType,
+                LifeStyle = lifeStyle,
+            };
+            m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
+            return bindingData;
+        }
+
+        public IBindingData Bind(Type interfaceType, Type implType)
+        {
+            var bindingData = BindInternal(interfaceType, implType, LifeStyles.Transient);
             return bindingData;
         }
 
 
-        /// <inheritdoc />
         public IBindingData BindSingleton(Type interfaceType, Type implType)
         {
-            GuardHasMadeNothing();
-            GuardNotDisposingOrDisposed();
-            GuardInterfaceType(interfaceType);
-            GuardUnbound(interfaceType);
-            GuardImplType(implType);
-            if (!interfaceType.IsAssignableFrom(implType))
-            {
-                throw new InvalidOperationException($"{nameof(interfaceType)} is not assignable from {nameof(implType)}.");
-            }
-
-            var bindingData = new BindingData(this)
-            {
-                InterfaceType = interfaceType,
-                ImplType = implType,
-                LifeCycleManaged = true,
-            };
-            m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
+            var bindingData = BindInternal(interfaceType, implType, LifeStyles.Singleton);
             return bindingData;
         }
 
-        public IBindingData BindSingleton(Type interfaceType, Type implType, params PropertyInjection[] propertyInjections)
-        {
-            GuardHasMadeNothing();
-            GuardNotDisposingOrDisposed();
-            GuardInterfaceType(interfaceType);
-            GuardUnbound(interfaceType);
-            GuardImplType(implType);
-            if (!interfaceType.IsAssignableFrom(implType))
-            {
-                throw new InvalidOperationException($"{nameof(interfaceType)} is not assignable from {nameof(implType)}.");
-            }
-
-            var bindingData = new BindingData(this)
-            {
-                InterfaceType = interfaceType,
-                ImplType = implType,
-                LifeCycleManaged = true,
-            };
-
-            AddPropertyInjections(bindingData, propertyInjections);
-            m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
-            return bindingData;
-        }
-
-        /// <inheritdoc />
         public IBindingData BindInstance(Type interfaceType, object instance)
         {
             GuardHasMadeNothing();
@@ -143,7 +92,7 @@ namespace COL.UnityGameWheels.Core.Ioc
             {
                 InterfaceType = interfaceType,
                 ImplType = implType,
-                LifeCycleManaged = false,
+                LifeStyle = LifeStyles.Null,
             };
             m_InterfaceTypeToBindingDataMap[interfaceType] = bindingData;
             // TODO: This mixes instances and singletons. Should be redesigned.
@@ -195,7 +144,6 @@ namespace COL.UnityGameWheels.Core.Ioc
             finally
             {
                 m_BindingDatasToBuild.Clear();
-                m_ServicesToInit.Clear();
             }
 
             return serviceInstance;
@@ -288,22 +236,31 @@ namespace COL.UnityGameWheels.Core.Ioc
                 throw new InvalidOperationException("Cyclic dependencies are not supported.");
             }
 
-            m_BindingDatasToBuild.Push(bindingData);
-
-            if (!m_InterfaceTypeToSingletonMap.TryGetValue(bindingData.InterfaceType, out object ret))
+            // Instance or singleton, and cached already.
+            if (m_InterfaceTypeToSingletonMap.TryGetValue(bindingData.InterfaceType, out object ret))
             {
-                ret = DoConstructorStuff(bindingData);
-                DoPropertyStuff(bindingData, ret);
+                return ret;
+            }
+
+            if (!bindingData.LifeStyle.AutoCreateInstance)
+            {
+                throw new InvalidOperationException("Oops!");
+            }
+
+            m_BindingDatasToBuild.Push(bindingData);
+            ret = DoConstructorStuff(bindingData);
+            DoPropertyStuff(bindingData, ret);
+            if (bindingData.LifeStyle == LifeStyles.Singleton)
+            {
                 m_InterfaceTypeToSingletonMap[bindingData.InterfaceType] = ret;
                 if (ret is IDisposable disposable)
                 {
                     m_ServiceInitCounter++;
                     ServicesToDispose.Insert(bindingData.InterfaceType, disposable, -m_ServiceInitCounter);
                 }
-
-                InvokeCallbacks(ret, bindingData.OnInstanceCreatedCallbacks);
             }
 
+            InvokeCallbacks(ret, bindingData.OnInstanceCreatedCallbacks);
             m_BindingDatasToBuild.Pop();
             return ret;
         }
@@ -380,7 +337,8 @@ namespace COL.UnityGameWheels.Core.Ioc
         private void GuardImplType(Type implType)
         {
             Guard.RequireNotNull<ArgumentNullException>(implType, $"Invalid {nameof(implType)}.");
-            Guard.RequireTrue<ArgumentException>(implType.IsClass && !implType.IsAbstract && !implType.IsInterface && !implType.IsGenericTypeDefinition,
+            Guard.RequireTrue<ArgumentException>(
+                implType.IsClass && !implType.IsAbstract && !implType.IsInterface && !implType.IsGenericTypeDefinition && implType != typeof(string),
                 $"{nameof(implType)} '{implType}' is not supported");
         }
 
