@@ -41,7 +41,8 @@ namespace COL.UnityGameWheels.Core.Asset
                     m_LastLoadingProgress = 0f;
                     Owner.m_AssetPathsNotReadyOrFailure.Add(Path);
                     var resourceCache = Owner.EnsureResourceCache(ResourcePath);
-                    resourceCache.IncreaseRetainCount();
+                    resourceCache.IncreaseRetainCount();                   
+                    DFSAddResourceRetainCounts(resourceCache);
 
                     if (DependencyAssetPaths.Count <= 0)
                     {
@@ -60,8 +61,6 @@ namespace COL.UnityGameWheels.Core.Asset
                         depAssetCache.IncreaseRetainCount();
                         depAssetCache.AddObserver(this);
                     }
-
-                    DFSAddResourceRetainCounts(resourceCache);
                 }
 
                 private void DFSAddResourceRetainCountsInternal(ResourceCache resourceCache, IDictionary<string, ResourceBasicInfo> resourceBasicInfos)
