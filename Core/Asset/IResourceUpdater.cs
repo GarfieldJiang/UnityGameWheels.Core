@@ -9,9 +9,11 @@ namespace COL.UnityGameWheels.Core.Asset
     {
         bool IsReady { get; }
 
-        int[] GetAvailableResourceGroupIds();
+        IEnumerable<int> GetAvailableResourceGroupIds();
 
         void GetAvailableResourceGroupIds(List<int> groupIds);
+
+        bool ResourceGroupIdIsAvailable(int groupId);
 
         ResourceGroupStatus GetResourceGroupStatus(int groupId);
 

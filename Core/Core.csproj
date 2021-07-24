@@ -96,6 +96,7 @@
     <Compile Include="Common\Service\BaseLifeCycleService.cs" />
     <Compile Include="Common\Service\TickableLifeCycleService.cs" />
     <Compile Include="Download\CheckingSubtaskResult.cs" />
+    <Compile Include="Download\DownloadTask.StaticDebugOptions.cs" />
     <Compile Include="Download\IDownloadServiceConfigReader.cs" />
     <Compile Include="Event\DefaultEventArgsReleaser.cs" />
     <Compile Include="Event\IEventArgsReleaser.cs" />
