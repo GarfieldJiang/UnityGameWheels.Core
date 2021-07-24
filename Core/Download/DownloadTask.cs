@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -225,7 +224,25 @@ namespace COL.UnityGameWheels.Core
 
         private void SwitchToStartedStatus(DownloadTaskInfo taskInfo)
         {
-            m_FileStream = File.Open(m_TempSavePath, FileMode.Append);
+            bool ioException = false;
+            try
+            {
+                StaticDebugOptions.ExceptionIfNeeded(StaticDebugOptions.IOExceptionScenario.OnOpenFile);
+                m_FileStream = File.Open(m_TempSavePath, FileMode.Append);
+            }
+            catch (IOException e)
+            {
+                ioException = true;
+                ErrorCode = DownloadErrorCode.FileIOException;
+                ErrorMessage = e.Message;
+                ItsStatus = Status.Finished;
+            }
+
+            if (ioException)
+            {
+                return;
+            }
+
             ItsStatus = Status.Started;
             m_DownloadTaskImpl.OnStart(taskInfo.UrlStr, m_StartByteIndex);
         }
@@ -354,9 +371,25 @@ namespace COL.UnityGameWheels.Core
                         File.Delete(taskInfo.SavePath);
                     }
 
-                    File.Move(m_TempSavePath, taskInfo.SavePath);
-                    IsDone = true;
-                    ErrorCode = null;
+                    bool ioException = false;
+                    try
+                    {
+                        StaticDebugOptions.ExceptionIfNeeded(StaticDebugOptions.IOExceptionScenario.OnMoveFile);
+                        File.Move(m_TempSavePath, taskInfo.SavePath);
+                    }
+                    catch (IOException e)
+                    {
+                        ioException = true;
+                        IsDone = false;
+                        ErrorCode = DownloadErrorCode.FileIOException;
+                        ErrorMessage = e.Message;
+                    }
+
+                    if (!ioException)
+                    {
+                        IsDone = true;
+                        ErrorCode = null;
+                    }
                 }
                 else
                 {
@@ -462,6 +495,7 @@ namespace COL.UnityGameWheels.Core
 #endif
             try
             {
+                StaticDebugOptions.ExceptionIfNeeded(StaticDebugOptions.IOExceptionScenario.OnWriteFile);
                 m_DownloadTaskImpl.WriteDownloadedContent(m_FileStream, startIndex, sizeToWrite);
                 if (forceFlush || DownloadService.ChunkSizeToSave > 0 && m_SizeToFlush >= DownloadService.ChunkSizeToSave)
                 {
@@ -474,6 +508,7 @@ namespace COL.UnityGameWheels.Core
             {
                 ErrorCode = DownloadErrorCode.FileIOException;
                 ErrorMessage = e.Message;
+                ItsStatus = Status.Finished;
             }
             finally
             {

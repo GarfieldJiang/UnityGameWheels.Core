@@ -10,7 +10,7 @@ namespace COL.UnityGameWheels.Core.Asset
         private partial class Updater : IResourceUpdater
         {
             private readonly AssetService m_Owner;
-            private int[] m_AvailableResourceGroupIds;
+            private HashSet<int> m_AvailableResourceGroupIds;
             private readonly Dictionary<int, ResourceGroupBeingUpdated> m_ResourceGroupsBeingUpdated = new Dictionary<int, ResourceGroupBeingUpdated>();
 
             private Dictionary<int, ResourceGroupUpdateSummary> ResourceSummaries => m_Owner.ResourceGroupUpdateSummaries;
@@ -159,37 +159,37 @@ namespace COL.UnityGameWheels.Core.Asset
                 resourceGroup.DownloadTaskIds.Add(m_Owner.m_DownloadService.StartDownloading(newDownloadTaskInfo));
             }
 
-            private int[] AvailableResourceGroupIds
+            private HashSet<int> AvailableResourceGroupIds
             {
                 get
                 {
                     if (m_AvailableResourceGroupIds == null)
                     {
-                        m_AvailableResourceGroupIds = new int[ReadWriteIndex.ResourceGroupInfos.Count];
+                        var groupIds = new HashSet<int>();
                         for (int i = 0; i < ReadWriteIndex.ResourceGroupInfos.Count; i++)
                         {
-                            m_AvailableResourceGroupIds[i] = ReadWriteIndex.ResourceGroupInfos[i].GroupId;
+                            var groupId = ReadWriteIndex.ResourceGroupInfos[i].GroupId;
+                            if (!groupIds.Add(groupId))
+                            {
+                                throw new InvalidOperationException($"Duplicated resource group ID '{groupId}'.");
+                            }
                         }
+
+                        m_AvailableResourceGroupIds = groupIds;
                     }
 
                     return m_AvailableResourceGroupIds;
                 }
             }
 
-            public int[] GetAvailableResourceGroupIds()
+            public IEnumerable<int> GetAvailableResourceGroupIds()
             {
                 if (!IsReady)
                 {
                     throw new InvalidOperationException("Not ready.");
                 }
 
-                var ret = new int[AvailableResourceGroupIds.Length];
-                for (int i = 0; i < AvailableResourceGroupIds.Length; i++)
-                {
-                    ret[i] = AvailableResourceGroupIds[i];
-                }
-
-                return ret;
+                return AvailableResourceGroupIds.ToArray();
             }
 
             public void GetAvailableResourceGroupIds(List<int> groupIds)
@@ -201,14 +201,24 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 if (groupIds == null)
                 {
-                    throw new ArgumentNullException("groupIds");
+                    throw new ArgumentNullException(nameof(groupIds));
                 }
 
                 groupIds.Clear();
-                for (int i = 0; i < AvailableResourceGroupIds.Length; i++)
+                foreach (var groupId in AvailableResourceGroupIds)
                 {
-                    groupIds.Add(AvailableResourceGroupIds[i]);
+                    groupIds.Add(groupId);
                 }
+            }
+
+            public bool ResourceGroupIdIsAvailable(int groupId)
+            {
+                if (!IsReady)
+                {
+                    throw new InvalidOperationException("Not ready.");
+                }
+
+                return AvailableResourceGroupIds.Contains(groupId);
             }
 
             public ResourceGroupStatus GetResourceGroupStatus(int groupId)
