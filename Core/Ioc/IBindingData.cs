@@ -19,6 +19,8 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         ILifeStyle LifeStyle { get; }
 
+        IBindingData SetConstructor(params Type[] paramTypes);
+
         IBindingData AddPropertyInjections(params PropertyInjection[] propertyInjections);
 
         IBindingData OnInstanceCreated(Action<object> callback);

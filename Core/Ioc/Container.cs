@@ -150,59 +150,68 @@ namespace COL.UnityGameWheels.Core.Ioc
             return serviceInstance;
         }
 
-        private object ResolveConstructorParametersAndCreateInstance(Type instanceType, ParameterInfo[] parameterInfos)
+        private object ResolveConstructorParametersAndCreateInstance(ConstructorInfo ci)
         {
-            var dependencies = new object[parameterInfos.Length];
-            for (int i = 0; i < parameterInfos.Length; i++)
+            var pis = ci.GetParameters();
+            var dependencies = new object[pis.Length];
+            for (int i = 0; i < pis.Length; i++)
             {
-                dependencies[i] = ResolveInternal((BindingData)GetBindingData(parameterInfos[i].ParameterType));
+                dependencies[i] = ResolveInternal((BindingData)GetBindingData(pis[i].ParameterType));
             }
 
-            return Activator.CreateInstance(instanceType, dependencies);
+            return ci.Invoke(dependencies);
         }
 
         private object DoConstructorStuff(BindingData bindingData)
         {
             var instanceType = bindingData.ImplType;
-            if (!bindingData.HasCachedConstructorParameterInfos)
+            if (!bindingData.HasCachedConstructorInfo)
             {
-                bindingData.HasCachedConstructorParameterInfos = true;
-                var defaultConstructorInfo = instanceType.GetConstructor(Type.EmptyTypes);
-                if (defaultConstructorInfo != null && defaultConstructorInfo.IsPublic)
+                bindingData.HasCachedConstructorInfo = true;
+                ConstructorInfo ci = null;
+                if (bindingData.ConstructorInfoFromSet != null)
                 {
-                    bindingData.ConstructorParameterInfos = new ParameterInfo[0];
+                    ci = bindingData.ConstructorInfoFromSet;
+                    var pis = ci.GetParameters();
+                    foreach (var pi in pis)
+                    {
+                        if (!TypeIsBound(pi.ParameterType))
+                        {
+                            throw new InvalidOperationException($"For the given constructor of service type '{bindingData.InterfaceType}'," +
+                                                                $" parameter '{pi.Name}' with type '{pi.ParameterType}' is not bound.");
+                        }
+                    }
+
+                    bindingData.CachedConstructorInfo = ci;
                 }
                 else
                 {
-                    ParameterInfo[] parameterInfos = null;
                     foreach (var constructorInfo in instanceType.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
                     {
-                        var injectable = true;
-                        var currentParameterInfos = constructorInfo.GetParameters();
-                        foreach (var parameterInfo in currentParameterInfos)
+                        var veto = true;
+                        var pis = constructorInfo.GetParameters();
+                        foreach (var parameterInfo in pis)
                         {
                             if (TypeIsBound(parameterInfo.ParameterType)) continue;
-                            injectable = false;
+                            veto = false;
                             break;
                         }
 
-                        if (!injectable) continue;
-                        parameterInfos = currentParameterInfos;
-                        break;
+                        if (veto)
+                        {
+                            bindingData.CachedConstructorInfo = constructorInfo;
+                            break;
+                        }
                     }
-
-                    bindingData.ConstructorParameterInfos = parameterInfos;
                 }
             }
 
-            if (bindingData.ConstructorParameterInfos == null)
+            if (bindingData.CachedConstructorInfo == null)
             {
                 throw new InvalidOperationException($"Implementation type '{instanceType}' doesn't have a constructor that can be used for auto-wiring.");
             }
 
-            return bindingData.ConstructorParameterInfos.Length == 0
-                ? Activator.CreateInstance(instanceType)
-                : ResolveConstructorParametersAndCreateInstance(instanceType, bindingData.ConstructorParameterInfos);
+            return ResolveConstructorParametersAndCreateInstance(bindingData.CachedConstructorInfo);
         }
 
         private void DoPropertyStuff(BindingData bindingData, object instance)

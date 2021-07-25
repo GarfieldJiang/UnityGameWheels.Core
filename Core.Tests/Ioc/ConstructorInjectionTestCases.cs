@@ -198,13 +198,13 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 { typeof(LifeCycle.ServiceD), LifeCycle.LifeCycleStatus.None },
             };
 
-            var instances = new Dictionary<Type, object>
-            {
-                { typeof(LifeCycle.ServiceA), null },
-                { typeof(LifeCycle.ServiceB), null },
-                { typeof(LifeCycle.ServiceC), null },
-                { typeof(LifeCycle.ServiceD), null },
-            };
+            // var instances = new Dictionary<Type, object>
+            // {
+            //     { typeof(LifeCycle.ServiceA), null },
+            //     { typeof(LifeCycle.ServiceB), null },
+            //     { typeof(LifeCycle.ServiceC), null },
+            //     { typeof(LifeCycle.ServiceD), null },
+            // };
 
             void SetStatus(Type type, LifeCycle.LifeCycleStatus status)
             {
@@ -243,10 +243,10 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             var c = container.Make<LifeCycle.ServiceC>();
             var b = container.Make<LifeCycle.ServiceB>();
             var a = container.Make<LifeCycle.ServiceA>();
-            foreach (var instance in new object[] { a, b, c, d })
-            {
-                instances[instance.GetType()] = instance;
-            }
+            // foreach (var instance in new object[] { a, b, c, d })
+            // {
+            //     instances[instance.GetType()] = instance;
+            // }
 
             // Instances have been created.
             foreach (var kv in statuses)
@@ -332,6 +332,98 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
                 public void Dispose()
                 {
                     Disposed = true;
+                }
+            }
+        }
+
+        [Test]
+        public void TestMultipleConstructors()
+        {
+            using (var container = new Container())
+            {
+                container.Bind<MultipleConstructors.ServiceA>();
+                container.Bind<MultipleConstructors.ServiceC>();
+                var c = container.Make<MultipleConstructors.ServiceC>();
+                Assert.True(c.ConstructedUsingA && !c.ConstructedUsingB);
+            }
+
+            using (var container = new Container())
+            {
+                container.Bind<MultipleConstructors.ServiceB>();
+                container.Bind<MultipleConstructors.ServiceC>();
+                var c = container.Make<MultipleConstructors.ServiceC>();
+                Assert.True(!c.ConstructedUsingA && c.ConstructedUsingB);
+            }
+
+            using (var container = new Container())
+            {
+                container.Bind<MultipleConstructors.ServiceA>();
+
+                // B is not bound, so we expect an exception.
+                container.Bind<MultipleConstructors.ServiceC>().SetConstructor(typeof(MultipleConstructors.ServiceA), typeof(MultipleConstructors.ServiceB));
+                Assert.Throws<InvalidOperationException>(() =>
+                {
+                    var c = container.Make<MultipleConstructors.ServiceC>();
+                });
+            }
+
+            using (var container = new Container())
+            {
+                container.Bind<MultipleConstructors.ServiceA>();
+                container.Bind<MultipleConstructors.ServiceB>();
+                container.Bind<MultipleConstructors.ServiceC>();
+                var c = container.Make<MultipleConstructors.ServiceC>();
+                Assert.True(c.ConstructedUsingA || c.ConstructedUsingB);
+            }
+
+            using (var container = new Container())
+            {
+                container.Bind<MultipleConstructors.ServiceA>();
+                container.Bind<MultipleConstructors.ServiceB>();
+                container.Bind<MultipleConstructors.ServiceC>().SetConstructor(typeof(MultipleConstructors.ServiceA), typeof(MultipleConstructors.ServiceB));
+                var c = container.Make<MultipleConstructors.ServiceC>();
+                Assert.True(c.ConstructedUsingA && c.ConstructedUsingB);
+            }
+
+            using (var container = new Container())
+            {
+                container.Bind<MultipleConstructors.ServiceA>();
+                container.Bind<MultipleConstructors.ServiceB>();
+                container.Bind<MultipleConstructors.ServiceC>().SetConstructor(typeof(MultipleConstructors.ServiceA));
+                var c = container.Make<MultipleConstructors.ServiceC>();
+                Assert.True(c.ConstructedUsingA && !c.ConstructedUsingB);
+            }
+        }
+
+        private static class MultipleConstructors
+        {
+            public class ServiceA
+            {
+            }
+
+            public class ServiceB
+            {
+            }
+
+            public class ServiceC
+            {
+                public bool ConstructedUsingA { get; private set; }
+                public bool ConstructedUsingB { get; private set; }
+
+                public ServiceC(ServiceA a)
+                {
+                    ConstructedUsingA = true;
+                }
+
+                public ServiceC(ServiceB b)
+                {
+                    ConstructedUsingB = true;
+                }
+
+                public ServiceC(ServiceA a, ServiceB b)
+                {
+                    ConstructedUsingA = true;
+                    ConstructedUsingB = true;
                 }
             }
         }

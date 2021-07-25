@@ -20,9 +20,10 @@ namespace COL.UnityGameWheels.Core.Ioc
         private Action<object> OnPreDisposeCallback;
         private Action OnDisposedCallback;
 
-
-        internal bool HasCachedConstructorParameterInfos;
+        internal bool HasCachedConstructorInfo;
         internal ParameterInfo[] ConstructorParameterInfos;
+        internal ConstructorInfo ConstructorInfoFromSet;
+        internal ConstructorInfo CachedConstructorInfo;
 
         internal BindingData(Container container)
         {
@@ -38,6 +39,56 @@ namespace COL.UnityGameWheels.Core.Ioc
             }
 
             PropertyInjections.Add(propertyInjection.PropertyName, propertyInjection.Value);
+        }
+
+        public IBindingData SetConstructor(params Type[] paramTypes)
+        {
+            if (ConstructorInfoFromSet != null)
+            {
+                throw new InvalidOperationException("Already set constructor.");
+            }
+
+            if (HasCachedConstructorInfo)
+            {
+                throw new InvalidOperationException("Already cached constructor parameter infos.");
+            }
+
+            // TODO: stricter type check.
+
+            bool found = false;
+            foreach (var constructorInfo in ImplType.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var currentParameterInfos = constructorInfo.GetParameters();
+
+                // Check parameter count.
+                if (currentParameterInfos.Length != paramTypes.Length)
+                {
+                    continue;
+                }
+
+                // Match parameter type.
+                var veto = false;
+                for (int i = 0; i < paramTypes.Length; i++)
+                {
+                    if (paramTypes[i] == currentParameterInfos[i].ParameterType) continue;
+                    veto = true;
+                    break;
+                }
+
+                if (!veto)
+                {
+                    ConstructorInfoFromSet = constructorInfo;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                throw new InvalidOperationException($"No constructor is found to match '{nameof(paramTypes)}'.");
+            }
+
+            return this;
         }
 
         public IBindingData AddPropertyInjections(params PropertyInjection[] propertyInjections)
