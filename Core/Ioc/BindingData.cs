@@ -16,9 +16,10 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         internal Dictionary<string, object> PropertyInjections;
 
-        internal List<Action<object>> OnInstanceCreatedCallbacks;
-        internal List<Action<object>> OnPreDisposeCallbacks;
-        internal List<Action> OnDisposedCallbacks;
+        private Action<object> OnInstanceCreatedCallback;
+        private Action<object> OnPreDisposeCallback;
+        private Action OnDisposedCallback;
+
 
         internal bool HasCachedConstructorParameterInfos;
         internal ParameterInfo[] ConstructorParameterInfos;
@@ -85,7 +86,7 @@ namespace COL.UnityGameWheels.Core.Ioc
                 throw new InvalidOperationException("The binding's life style doesn't support auto instance creation.");
             }
 
-            AddCallback(callback, ref OnInstanceCreatedCallbacks);
+            OnInstanceCreatedCallback += callback;
             return this;
         }
 
@@ -96,7 +97,7 @@ namespace COL.UnityGameWheels.Core.Ioc
                 throw new InvalidOperationException("The binding's life style doesn't support auto disposal.");
             }
 
-            AddCallback(callback, ref OnPreDisposeCallbacks);
+            OnPreDisposeCallback += callback;
             return this;
         }
 
@@ -107,33 +108,23 @@ namespace COL.UnityGameWheels.Core.Ioc
                 throw new InvalidOperationException("The binding's life style doesn't support auto disposal.");
             }
 
-            AddCallback(callback, ref OnDisposedCallbacks);
+            OnDisposedCallback += callback;
             return this;
         }
 
-
-        private void AddCallback(Action<object> callback, ref List<Action<object>> callbackList)
+        internal void InvokeOnInstanceCreatedCallback(object serviceInstance)
         {
-            Guard.RequireNotNull<ArgumentNullException>(callback, $"Invalid '{nameof(callback)}'.");
-
-            if (callbackList == null)
-            {
-                callbackList = new List<Action<object>>();
-            }
-
-            callbackList.Add(callback);
+            OnInstanceCreatedCallback?.Invoke(serviceInstance);
         }
 
-        private void AddCallback(Action callback, ref List<Action> callbackList)
+        internal void InvokeOnPreDisposeCallback(object serviceInstance)
         {
-            Guard.RequireNotNull<ArgumentNullException>(callback, $"Invalid '{nameof(callback)}'.");
+            OnPreDisposeCallback?.Invoke(serviceInstance);
+        }
 
-            if (callbackList == null)
-            {
-                callbackList = new List<Action>();
-            }
-
-            callbackList.Add(callback);
+        internal void InvokeOnDisposedCallback()
+        {
+            OnDisposedCallback?.Invoke();
         }
     }
 }

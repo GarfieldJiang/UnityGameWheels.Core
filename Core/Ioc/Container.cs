@@ -266,7 +266,7 @@ namespace COL.UnityGameWheels.Core.Ioc
                 }
             }
 
-            InvokeCallbacks(ret, bindingData.OnInstanceCreatedCallbacks);
+            bindingData.InvokeOnInstanceCreatedCallback(ret);
             m_BindingDatasToBuild.Pop();
             return ret;
         }
@@ -298,10 +298,9 @@ namespace COL.UnityGameWheels.Core.Ioc
             var bindingData = m_InterfaceTypeToBindingDataMap[interfaceType];
 
             if (!(serviceInstance is IDisposable disposable)) return true;
-            InvokeCallbacks(serviceInstance, bindingData.OnPreDisposeCallbacks);
+            bindingData.InvokeOnPreDisposeCallback(serviceInstance);
             disposable.Dispose();
-            InvokeCallbacks(bindingData.OnDisposedCallbacks);
-
+            bindingData.InvokeOnDisposedCallback();
             return true;
         }
 
@@ -367,33 +366,6 @@ namespace COL.UnityGameWheels.Core.Ioc
         {
             Guard.RequireFalse<InvalidOperationException>(m_InterfaceTypeToBindingDataMap.ContainsKey(interfaceType),
                 $"{nameof(interfaceType)} '{interfaceType}' already bound.");
-        }
-
-
-        private static void InvokeCallbacks(object param, IList<Action<object>> callbackList)
-        {
-            if (callbackList == null)
-            {
-                return;
-            }
-
-            foreach (var callback in callbackList)
-            {
-                callback(param);
-            }
-        }
-
-        private static void InvokeCallbacks(IList<Action> callbackList)
-        {
-            if (callbackList == null)
-            {
-                return;
-            }
-
-            foreach (var callback in callbackList)
-            {
-                callback();
-            }
         }
     }
 }

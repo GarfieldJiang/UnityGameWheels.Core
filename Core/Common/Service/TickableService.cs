@@ -6,6 +6,8 @@ namespace COL.UnityGameWheels.Core
     {
         protected ITickService m_TickService;
 
+        public int TickOrder { get; private set; } = 0;
+
         public bool IsTicking { get; private set; }
 
         public TickableService(ITickService tickService)
@@ -20,8 +22,7 @@ namespace COL.UnityGameWheels.Core
                 return false;
             }
 
-            // TODO: More flexibility with tick order?
-            m_TickService.AddUpdateCallback(OnUpdate, 0);
+            m_TickService.AddUpdateCallback(OnUpdate, TickOrder);
             IsTicking = true;
             return true;
         }
@@ -35,6 +36,24 @@ namespace COL.UnityGameWheels.Core
 
             m_TickService.RemoveUpdateCallback(OnUpdate);
             return true;
+        }
+
+        public void RefreshTickOrder(int newOrder)
+        {
+            if (newOrder == TickOrder)
+            {
+                return;
+            }
+
+            TickOrder = newOrder;
+            if (!IsTicking)
+            {
+                return;
+            }
+
+            // 既然在 Ticking 就拿出来，重新加入（排序）。
+            m_TickService.RemoveUpdateCallback(OnUpdate);
+            m_TickService.AddUpdateCallback(OnUpdate, TickOrder);
         }
 
         protected abstract void OnUpdate(TimeStruct timeStruct);

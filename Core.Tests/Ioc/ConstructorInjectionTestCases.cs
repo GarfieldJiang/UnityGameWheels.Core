@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 
 namespace COL.UnityGameWheels.Core.Ioc.Test
 {
@@ -180,6 +182,156 @@ namespace COL.UnityGameWheels.Core.Ioc.Test
             {
                 public ServiceD(ServiceA a, ServiceB b)
                 {
+                }
+            }
+        }
+
+        [Test]
+        public void TestLifeCycle()
+        {
+            var container = new Container();
+            var statuses = new Dictionary<Type, LifeCycle.LifeCycleStatus>
+            {
+                { typeof(LifeCycle.ServiceA), LifeCycle.LifeCycleStatus.None },
+                { typeof(LifeCycle.ServiceB), LifeCycle.LifeCycleStatus.None },
+                { typeof(LifeCycle.ServiceC), LifeCycle.LifeCycleStatus.None },
+                { typeof(LifeCycle.ServiceD), LifeCycle.LifeCycleStatus.None },
+            };
+
+            var instances = new Dictionary<Type, object>
+            {
+                { typeof(LifeCycle.ServiceA), null },
+                { typeof(LifeCycle.ServiceB), null },
+                { typeof(LifeCycle.ServiceC), null },
+                { typeof(LifeCycle.ServiceD), null },
+            };
+
+            void SetStatus(Type type, LifeCycle.LifeCycleStatus status)
+            {
+                statuses[type] = status;
+            }
+
+            container.BindSingleton<LifeCycle.ServiceA>()
+                .OnInstanceCreated(serviceInstance => { SetStatus(serviceInstance.GetType(), LifeCycle.LifeCycleStatus.InstanceCreated); })
+                .OnPreDispose(serviceInstance =>
+                {
+                    Assert.AreEqual(LifeCycle.LifeCycleStatus.Disposed, statuses[typeof(LifeCycle.ServiceB)]);
+                    Assert.AreEqual(LifeCycle.LifeCycleStatus.Disposed, statuses[typeof(LifeCycle.ServiceD)]);
+                    SetStatus(serviceInstance.GetType(), LifeCycle.LifeCycleStatus.PreDispose);
+                })
+                .OnDisposed(() => { SetStatus(typeof(LifeCycle.ServiceA), LifeCycle.LifeCycleStatus.Disposed); });
+            container.BindSingleton<LifeCycle.ServiceB>()
+                .OnInstanceCreated(serviceInstance => { SetStatus(serviceInstance.GetType(), LifeCycle.LifeCycleStatus.InstanceCreated); })
+                .OnPreDispose(serviceInstance => { SetStatus(serviceInstance.GetType(), LifeCycle.LifeCycleStatus.PreDispose); })
+                .OnDisposed(() =>
+                {
+                    Assert.AreEqual(LifeCycle.LifeCycleStatus.InstanceCreated, statuses[typeof(LifeCycle.ServiceA)]);
+                    SetStatus(typeof(LifeCycle.ServiceB), LifeCycle.LifeCycleStatus.Disposed);
+                });
+            var bindingDataC = container.Bind<LifeCycle.ServiceC>()
+                .OnInstanceCreated(serviceInstance => { SetStatus(serviceInstance.GetType(), LifeCycle.LifeCycleStatus.InstanceCreated); });
+            Assert.Throws<InvalidOperationException>(() => { bindingDataC.OnPreDispose(o => { }); });
+            Assert.Throws<InvalidOperationException>(() => { bindingDataC.OnDisposed(() => { }); });
+
+            container.BindSingleton<LifeCycle.ServiceD>()
+                .OnInstanceCreated(serviceInstance => { SetStatus(serviceInstance.GetType(), LifeCycle.LifeCycleStatus.InstanceCreated); })
+                .OnPreDispose(serviceInstance => { SetStatus(serviceInstance.GetType(), LifeCycle.LifeCycleStatus.PreDispose); })
+                .OnDisposed(() => { SetStatus(typeof(LifeCycle.ServiceD), LifeCycle.LifeCycleStatus.Disposed); });
+
+
+            var d = container.Make<LifeCycle.ServiceD>();
+            var c = container.Make<LifeCycle.ServiceC>();
+            var b = container.Make<LifeCycle.ServiceB>();
+            var a = container.Make<LifeCycle.ServiceA>();
+            foreach (var instance in new object[] { a, b, c, d })
+            {
+                instances[instance.GetType()] = instance;
+            }
+
+            // Instances have been created.
+            foreach (var kv in statuses)
+            {
+                Assert.AreEqual(LifeCycle.LifeCycleStatus.InstanceCreated, kv.Value);
+            }
+
+            container.Dispose();
+            Assert.AreEqual(LifeCycle.LifeCycleStatus.Disposed, statuses[typeof(LifeCycle.ServiceA)]);
+            Assert.True(a.Disposed);
+            Assert.AreEqual(LifeCycle.LifeCycleStatus.Disposed, statuses[typeof(LifeCycle.ServiceB)]);
+            Assert.True(b.Disposed);
+            // ServiceC is not singleton, so it won't be disposed by the container.
+            Assert.AreEqual(LifeCycle.LifeCycleStatus.InstanceCreated, statuses[typeof(LifeCycle.ServiceC)]);
+            Assert.False(c.Disposed);
+            Assert.AreEqual(LifeCycle.LifeCycleStatus.Disposed, statuses[typeof(LifeCycle.ServiceD)]);
+            Assert.True(d.Disposed);
+        }
+
+        private static class LifeCycle
+        {
+            public enum LifeCycleStatus
+            {
+                None,
+                InstanceCreated,
+                PreDispose,
+                Disposed,
+            }
+
+            public class ServiceA : IDisposable
+            {
+                public bool Disposed { get; private set; }
+
+                public ServiceA()
+                {
+                }
+
+                public void Dispose()
+                {
+                    Disposed = true;
+                }
+            }
+
+            public class ServiceB : IDisposable
+            {
+                public bool Disposed { get; private set; }
+
+                public ServiceB(ServiceA a)
+                {
+                    Assert.True(a != null && !a.Disposed);
+                }
+
+                public void Dispose()
+                {
+                    Disposed = true;
+                }
+            }
+
+            public class ServiceC : IDisposable
+            {
+                public bool Disposed { get; private set; }
+
+                public ServiceC(ServiceA a)
+                {
+                    Assert.True(a != null && !a.Disposed);
+                }
+
+                public void Dispose()
+                {
+                    Disposed = true;
+                }
+            }
+
+            public class ServiceD : IDisposable
+            {
+                public bool Disposed { get; private set; }
+
+                public ServiceD(ServiceB b)
+                {
+                    Assert.True(b != null && !b.Disposed);
+                }
+
+                public void Dispose()
+                {
+                    Disposed = true;
                 }
             }
         }

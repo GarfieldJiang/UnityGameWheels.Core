@@ -4,8 +4,12 @@ namespace COL.UnityGameWheels.Core
     {
         bool IsTicking { get; }
 
+        int TickOrder { get; }
+
         bool StartTicking();
 
         bool StopTicking();
+
+        void RefreshTickOrder(int newOrder);
     }
 }
