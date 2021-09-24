@@ -223,13 +223,12 @@ namespace COL.UnityGameWheels.Core.Asset
                 }
 
                 CopyInfos();
+                DoThreePartyComparison();
 
                 if (!m_Owner.TrySaveReadWriteIndexOrFail(Fail))
                 {
                     return;
                 }
-
-                DoThreePartyComparison();
 
                 if (!TryDeleteStaleResources())
                 {
@@ -327,6 +326,11 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
                 }
 
+                foreach (var resource in m_ResourcesToDelete)
+                {
+                    ReadWriteIndex.ResourceInfos.Remove(resource);
+                }
+
                 foreach (var resourceGroupInfo in ReadWriteIndex.ResourceGroupInfos)
                 {
                     ResourceSummaries.Add(resourceGroupInfo.GroupId, new ResourceGroupUpdateSummary());
@@ -374,8 +378,6 @@ namespace COL.UnityGameWheels.Core.Asset
                         {
                             File.Delete(resourceAbsPath);
                         }
-
-                        ReadWriteIndex.ResourceInfos.Remove(resource);
                     }
 
                     Utility.IO.DeleteEmptyFolders(m_Owner.ReadWritePath);
