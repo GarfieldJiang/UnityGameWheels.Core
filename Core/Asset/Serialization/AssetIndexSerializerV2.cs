@@ -28,6 +28,11 @@ namespace COL.UnityGameWheels.Core.Asset
                 stringMap.TryAddString(kv.Key, out _);
             }
 
+            // foreach (var kv in obj.ResourceInfos)
+            // {
+            //     stringMap.TryAddString(kv.Key, out _);
+            // }
+
             // AssetInfos doesn't necessarily contain information about all the assets. So their dependency paths have to
             // be added into stringMap.
             foreach (var kv in obj.AssetInfos)
