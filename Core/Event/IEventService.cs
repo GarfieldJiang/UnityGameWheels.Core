@@ -3,18 +3,13 @@
     /// <summary>
     /// The interface of an event manager.
     /// </summary>
-    public interface IEventService : ILifeCycle
+    public interface IEventService
     {
         /// <summary>
         /// Set the main thread ID.
         /// </summary>
         /// <remarks>Should be called before doing anything else. Only <see cref="IEventService.SendEvent"/> can be called in another thread.</remarks>
         int MainThreadId { set; }
-
-        /// <summary>
-        /// How to release consumed <see cref="BaseEventArgs"/> objects.
-        /// </summary>
-        IEventArgsReleaser EventArgsReleaser { get; set; }
 
         /// <summary>
         /// Add a event listener callback.

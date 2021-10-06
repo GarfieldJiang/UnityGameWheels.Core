@@ -8,31 +8,11 @@ namespace COL.UnityGameWheels.Core
     /// <summary>
     /// Default implementation of download module.
     /// </summary>
-    public partial class DownloadService : TickableLifeCycleService, IDownloadService
+    public partial class DownloadService : TickableService, IDownloadService
     {
-        private IRefPoolService m_RefPoolService = null;
+        private readonly IRefPoolService m_RefPoolService = null;
 
-        /// <summary>
-        /// Get or set the reference pool module.
-        /// </summary>
-        [Ioc.Inject]
-        public IRefPoolService RefPoolService
-        {
-            get => m_RefPoolService;
-
-            set
-            {
-                if (m_RefPoolService != null)
-                {
-                    throw new InvalidOperationException("Object pool module is already set.");
-                }
-
-                m_RefPoolService = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        [Ioc.Inject]
-        public IDownloadServiceConfigReader ConfigReader { get; set; }
+        public IDownloadServiceConfigReader ConfigReader { get; }
 
         private string m_TempFileExtension = null;
 
@@ -59,8 +39,7 @@ namespace COL.UnityGameWheels.Core
         /// <summary>
         /// Factory for a <see cref="IDownloadTaskImpl"/> instance.
         /// </summary>
-        [Ioc.Inject]
-        public ISimpleFactory<IDownloadTaskImpl> DownloadTaskImplFactory { get; set; }
+        public ISimpleFactory<IDownloadTaskImpl> DownloadTaskImplFactory { get; }
 
         private readonly SortedDictionary<int, DownloadTaskInfoSlot> m_WaitingDownloadTaskInfoSlots = new SortedDictionary<int, DownloadTaskInfoSlot>();
 
@@ -76,6 +55,23 @@ namespace COL.UnityGameWheels.Core
 
         private readonly HashSet<int> m_QuietlyStopTaskIds = new HashSet<int>();
 
+        public DownloadService(IDownloadServiceConfigReader configReader, IRefPoolService refPoolService, ITickService tickService,
+            ISimpleFactory<IDownloadTaskImpl> downloadTaskImplFactory)
+            : base(tickService)
+        {
+            ConfigReader = configReader;
+            m_RefPoolService = refPoolService;
+            DownloadTaskImplFactory = downloadTaskImplFactory;
+            InitTempFileExtension();
+            InitConcurrentDownloadCountLimit();
+            m_ChunkSizeToSave = ConfigReader.ChunkSizeToSave;
+            m_Timeout = ConfigReader.Timeout;
+
+            // Initialize pools.
+            m_DownloadTaskInfoSlotPool = m_RefPoolService.Add<DownloadTaskInfoSlot>(1024);
+            m_DownloadTaskPool = m_RefPoolService.Add<DownloadTask>(m_ConcurrentDownloadCountLimit);
+        }
+
         /// <summary>
         /// Start a downloading task.
         /// </summary>
@@ -83,7 +79,6 @@ namespace COL.UnityGameWheels.Core
         /// <returns>A unique ID of the downloading task.</returns>
         public int StartDownloading(DownloadTaskInfo downloadTaskInfo)
         {
-            CheckStateOrThrow();
             var slot = m_DownloadTaskInfoSlotPool.Acquire();
             slot.DownloadTaskInfo = downloadTaskInfo;
             slot.DownloadTaskId = ++m_CurrentDownloadTaskId;
@@ -93,7 +88,6 @@ namespace COL.UnityGameWheels.Core
 
         public bool StopDownloading(int taskId, bool quiet = false)
         {
-            CheckStateOrThrow();
             if (StopOngoingTask(taskId, quiet))
             {
                 return true;
@@ -141,41 +135,6 @@ namespace COL.UnityGameWheels.Core
             return false;
         }
 
-        /// <summary>
-        /// Check whether the module is in an available state.
-        /// </summary>
-        protected internal override void CheckStateOrThrow()
-        {
-            base.CheckStateOrThrow();
-            if (m_TempFileExtension == null)
-            {
-                throw new InvalidOperationException("Temp file extension is not set.");
-            }
-
-            if (m_RefPoolService == null)
-            {
-                throw new InvalidOperationException("Object pool module is not set.");
-            }
-        }
-
-        /// <summary>
-        /// Initialize this module.
-        /// </summary>
-        public override void OnInit()
-        {
-            base.OnInit();
-
-            // Read config.
-            InitTempFileExtension();
-            InitConcurrentDownloadCountLimit();
-            m_ChunkSizeToSave = ConfigReader.ChunkSizeToSave;
-            m_Timeout = ConfigReader.Timeout;
-
-            // Initialize pools.
-            m_DownloadTaskInfoSlotPool = RefPoolService.Add<DownloadTaskInfoSlot>(1024);
-            m_DownloadTaskPool = RefPoolService.Add<DownloadTask>(m_ConcurrentDownloadCountLimit);
-        }
-
         private void InitConcurrentDownloadCountLimit()
         {
             var concurrentDownloadCountLimit = ConfigReader.ConcurrentDownloadCountLimit;
@@ -211,22 +170,23 @@ namespace COL.UnityGameWheels.Core
             m_TempFileExtension = tempFileExtension;
         }
 
-        /// <summary>
-        /// Shut down this module.
-        /// </summary>
-        public override void OnShutdown()
+        protected override void Dispose(bool disposing)
         {
-            foreach (var kv in m_OngoingDownloadTasks)
+            if (disposing)
             {
-                var task = kv.Value;
-                task.Stop();
+                foreach (var kv in m_OngoingDownloadTasks)
+                {
+                    var task = kv.Value;
+                    task.Stop();
+                }
+
+                m_OngoingDownloadTasks.Clear();
+                m_DownloadTaskInfoSlotPool.Clear();
+                m_DownloadTaskInfoSlotPool = null;
+                m_DownloadTaskPool = null;
             }
 
-            m_OngoingDownloadTasks.Clear();
-            m_DownloadTaskInfoSlotPool.Clear();
-            m_DownloadTaskInfoSlotPool = null;
-            m_DownloadTaskPool = null;
-            base.OnShutdown();
+            base.Dispose(disposing);
         }
 
         /// <summary>
@@ -235,7 +195,6 @@ namespace COL.UnityGameWheels.Core
         /// <param name="timeStruct">Time struct.</param>
         protected override void OnUpdate(TimeStruct timeStruct)
         {
-            CheckStateOrThrow();
             m_DownloadTaskIdsToRemove.Clear();
             foreach (var kv in m_OngoingDownloadTasks)
             {

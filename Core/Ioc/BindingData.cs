@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace COL.UnityGameWheels.Core.Ioc
 {
@@ -11,39 +12,26 @@ namespace COL.UnityGameWheels.Core.Ioc
 
         public Type ImplType { get; internal set; }
 
-        public string ServiceName { get; internal set; }
+        public ILifeStyle LifeStyle { get; internal set; }
 
-        public bool LifeCycleManaged { get; internal set; }
-
-        internal HashSet<string> Aliases;
         internal Dictionary<string, object> PropertyInjections;
-        internal List<Action<object>> OnPreInitCallbacks;
-        internal List<Action<object>> OnPostInitCallbacks;
-        internal List<Action<object>> OnPreShutdownCallbacks;
-        internal List<Action> OnPostShutdownCallbacks;
+
+        private Action<object> OnInstanceCreatedCallback;
+        private Action<object> OnPreDisposeCallback;
+        private Action OnDisposedCallback;
+
+        internal bool HasCachedConstructorInfo;
+        internal ParameterInfo[] ConstructorParameterInfos;
+        internal ConstructorInfo ConstructorInfoFromSet;
+        internal ConstructorInfo CachedConstructorInfo;
 
         internal BindingData(Container container)
         {
             m_Container = container;
         }
 
-        public IBindingData Alias(string alias)
-        {
-            m_Container.Alias(ServiceName, alias);
-            return this;
-        }
 
-        internal bool AliasInternal(string alias)
-        {
-            if (Aliases == null)
-            {
-                Aliases = new HashSet<string>();
-            }
-
-            return Aliases.Add(alias);
-        }
-
-        internal void AddPropertyInjection(PropertyInjection propertyInjection)
+        private void AddPropertyInjection(PropertyInjection propertyInjection)
         {
             if (PropertyInjections == null)
             {
@@ -53,67 +41,141 @@ namespace COL.UnityGameWheels.Core.Ioc
             PropertyInjections.Add(propertyInjection.PropertyName, propertyInjection.Value);
         }
 
-        public IBindingData OnPreInit(Action<object> callback)
+        public IBindingData SetConstructor(params Type[] paramTypes)
         {
-            AddCallback(callback, ref OnPreInitCallbacks);
+            if (ConstructorInfoFromSet != null)
+            {
+                throw new InvalidOperationException("Already set constructor.");
+            }
+
+            if (HasCachedConstructorInfo)
+            {
+                throw new InvalidOperationException("Already cached constructor parameter infos.");
+            }
+
+            // TODO: stricter type check.
+
+            bool found = false;
+            foreach (var constructorInfo in ImplType.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var currentParameterInfos = constructorInfo.GetParameters();
+
+                // Check parameter count.
+                if (currentParameterInfos.Length != paramTypes.Length)
+                {
+                    continue;
+                }
+
+                // Match parameter type.
+                var veto = false;
+                for (int i = 0; i < paramTypes.Length; i++)
+                {
+                    if (paramTypes[i] == currentParameterInfos[i].ParameterType) continue;
+                    veto = true;
+                    break;
+                }
+
+                if (!veto)
+                {
+                    ConstructorInfoFromSet = constructorInfo;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                throw new InvalidOperationException($"No constructor is found to match '{nameof(paramTypes)}'.");
+            }
+
             return this;
         }
 
-        public IBindingData OnPostInit(Action<object> callback)
+        public IBindingData AddPropertyInjections(params PropertyInjection[] propertyInjections)
         {
-            AddCallback(callback, ref OnPostInitCallbacks);
+            if (!LifeStyle.AutoCreateInstance)
+            {
+                throw new InvalidOperationException("The binding's life style doesn't support auto instance creation.");
+            }
+
+            int propertyInjectionIndex = 0;
+            foreach (var propertyInjection in propertyInjections)
+            {
+                if (string.IsNullOrEmpty(propertyInjection.PropertyName))
+                {
+                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a invalid property name.");
+                }
+
+                if (propertyInjection.Value == null)
+                {
+                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a null value.");
+                }
+
+                var propertyInfo = ImplType.GetProperty(propertyInjection.PropertyName,
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.SetProperty);
+                if (propertyInfo == null)
+                {
+                    throw new ArgumentException($"Cannot find property named '{propertyInjection.PropertyName}' at index {propertyInjectionIndex}.");
+                }
+
+                if (!propertyInfo.PropertyType.IsInstanceOfType(propertyInjection.Value))
+                {
+                    throw new ArgumentException($"Property injection {propertyInjectionIndex} has a value that doesn't have a feasible type.");
+                }
+
+                AddPropertyInjection(propertyInjection);
+                propertyInjectionIndex++;
+            }
+
             return this;
         }
 
-        public IBindingData OnPreShutdown(Action<object> callback)
+        public IBindingData OnInstanceCreated(Action<object> callback)
         {
-            AddCallback(callback, ref OnPreShutdownCallbacks);
+            if (!LifeStyle.AutoCreateInstance)
+            {
+                throw new InvalidOperationException("The binding's life style doesn't support auto instance creation.");
+            }
+
+            OnInstanceCreatedCallback += callback;
             return this;
         }
 
-        public IBindingData OnPostShutdown(Action callback)
+        public IBindingData OnPreDispose(Action<object> callback)
         {
-            if (!typeof(ILifeCycle).IsAssignableFrom(ImplType))
+            if (!LifeStyle.AutoDispose)
             {
-                throw new InvalidOperationException($"The binding's implementation is not {nameof(ILifeCycle)}.");
+                throw new InvalidOperationException("The binding's life style doesn't support auto disposal.");
             }
 
-            if (!LifeCycleManaged)
-            {
-                throw new InvalidOperationException("The binding's life cycle is not managed by the container.");
-            }
-
-            Guard.RequireNotNull<ArgumentNullException>(callback, $"Invalid '{nameof(callback)}'.");
-
-            if (OnPostShutdownCallbacks == null)
-            {
-                OnPostShutdownCallbacks = new List<Action>();
-            }
-
-            OnPostShutdownCallbacks.Add(callback);
+            OnPreDisposeCallback += callback;
             return this;
         }
 
-        private void AddCallback(Action<object> callback, ref List<Action<object>> callbackList)
+        public IBindingData OnDisposed(Action callback)
         {
-            if (!typeof(ILifeCycle).IsAssignableFrom(ImplType))
+            if (!LifeStyle.AutoDispose)
             {
-                throw new InvalidOperationException($"The binding's implementation is not {nameof(ILifeCycle)}.");
+                throw new InvalidOperationException("The binding's life style doesn't support auto disposal.");
             }
 
-            if (!LifeCycleManaged)
-            {
-                throw new InvalidOperationException("The binding's life cycle is not managed by the container.");
-            }
+            OnDisposedCallback += callback;
+            return this;
+        }
 
-            Guard.RequireNotNull<ArgumentNullException>(callback, $"Invalid '{nameof(callback)}'.");
+        internal void InvokeOnInstanceCreatedCallback(object serviceInstance)
+        {
+            OnInstanceCreatedCallback?.Invoke(serviceInstance);
+        }
 
-            if (callbackList == null)
-            {
-                callbackList = new List<Action<object>>();
-            }
+        internal void InvokeOnPreDisposeCallback(object serviceInstance)
+        {
+            OnPreDisposeCallback?.Invoke(serviceInstance);
+        }
 
-            callbackList.Add(callback);
+        internal void InvokeOnDisposedCallback()
+        {
+            OnDisposedCallback?.Invoke();
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace COL.UnityGameWheels.Core.RedDot
 {
-    public partial class RedDotService : TickableLifeCycleService, IRedDotService
+    public partial class RedDotService : TickableService, IRedDotService
     {
         private readonly Dictionary<string, LeafNode> m_LeafNodes = new Dictionary<string, LeafNode>();
         private readonly Dictionary<string, Node> m_Nodes = new Dictionary<string, Node>();
@@ -24,6 +24,10 @@ namespace COL.UnityGameWheels.Core.RedDot
         {
             add => m_OnSetUp += value;
             remove => m_OnSetUp -= value;
+        }
+
+        public RedDotService(ITickService tickService) : base(tickService)
+        {
         }
 
         public void AddLeaf(string key)
@@ -74,7 +78,7 @@ namespace COL.UnityGameWheels.Core.RedDot
                 throw new InvalidOperationException("Non-leaf node must depends on something");
             }
 
-            var node = new NonLeafNode {Key = key, Operation = operation};
+            var node = new NonLeafNode { Key = key, Operation = operation };
             node.Dependencies.UnionWith(tempSet);
             m_Nodes.Add(key, node);
             m_NonLeafNodes.Add(key, node);
@@ -379,7 +383,7 @@ namespace COL.UnityGameWheels.Core.RedDot
 
         private void DoAddLeaf(string key)
         {
-            var node = new LeafNode {Key = key};
+            var node = new LeafNode { Key = key };
             m_Nodes.Add(key, node);
             m_LeafNodes.Add(key, node);
         }

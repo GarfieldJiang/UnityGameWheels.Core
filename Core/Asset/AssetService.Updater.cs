@@ -39,7 +39,7 @@ namespace COL.UnityGameWheels.Core.Asset
             {
                 foreach (var downloadTaskId in resourceGroup.DownloadTaskIds)
                 {
-                    m_Owner.DownloadService.StopDownloading(downloadTaskId, true);
+                    m_Owner.m_DownloadService.StopDownloading(downloadTaskId, true);
                 }
 
                 resourceGroup.DownloadTaskIds.Clear();
@@ -156,7 +156,7 @@ namespace COL.UnityGameWheels.Core.Asset
                         OnSuccess = m_OnDownloadSuccess,
                         OnProgress = m_OnDownloadProgress,
                     }, downloadContext);
-                resourceGroup.DownloadTaskIds.Add(m_Owner.DownloadService.StartDownloading(newDownloadTaskInfo));
+                resourceGroup.DownloadTaskIds.Add(m_Owner.m_DownloadService.StartDownloading(newDownloadTaskInfo));
             }
 
             private HashSet<int> AvailableResourceGroupIds
@@ -319,7 +319,7 @@ namespace COL.UnityGameWheels.Core.Asset
                             OnSuccess = m_OnDownloadSuccess,
                             OnProgress = m_OnDownloadProgress,
                         }, downloadContext);
-                    resourceGroup.DownloadTaskIds.Add(m_Owner.DownloadService.StartDownloading(downloadTaskInfo));
+                    resourceGroup.DownloadTaskIds.Add(m_Owner.m_DownloadService.StartDownloading(downloadTaskInfo));
                 }
             }
 
@@ -350,7 +350,7 @@ namespace COL.UnityGameWheels.Core.Asset
             {
                 foreach (var downloadTaskId in resourceGroup.DownloadTaskIds)
                 {
-                    m_Owner.DownloadService.StopDownloading(downloadTaskId, true);
+                    m_Owner.m_DownloadService.StopDownloading(downloadTaskId, true);
                 }
             }
 

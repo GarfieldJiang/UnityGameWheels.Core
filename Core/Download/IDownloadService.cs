@@ -3,13 +3,8 @@
     /// <summary>
     /// Interface of a download service.
     /// </summary>
-    public interface IDownloadService : ILifeCycle
+    public interface IDownloadService
     {
-        /// <summary>
-        /// Config reader.
-        /// </summary>
-        IDownloadServiceConfigReader ConfigReader { get; set; }
-
         /// <summary>
         /// The upper limit of the number of concurrent downloading tasks.
         /// </summary>
@@ -33,12 +28,7 @@
         /// <summary>
         /// Factory for a <see cref="IDownloadTaskImpl"/> instance.
         /// </summary>
-        ISimpleFactory<IDownloadTaskImpl> DownloadTaskImplFactory { get; set; }
-
-        /// <summary>
-        /// Get or set the object pool module.
-        /// </summary>
-        IRefPoolService RefPoolService { get; set; }
+        ISimpleFactory<IDownloadTaskImpl> DownloadTaskImplFactory { get; }
 
         /// <summary>
         /// Start a downloading task.

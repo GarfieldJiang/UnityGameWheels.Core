@@ -58,6 +58,7 @@
     <Compile Include="Asset\AssetService.UpdateChecker.cs" />
     <Compile Include="Asset\AssetIndexRemoteFileInfo.cs" />
     <Compile Include="Asset\IAssetAccessor.cs" />
+    <Compile Include="Asset\IAssetServiceConfigReader.cs" />
     <Compile Include="Asset\ResourceCacheQuery.cs" />
     <Compile Include="Asset\AssetCacheQuery.cs" />
     <Compile Include="Asset\BaseCacheQuery.cs" />
@@ -86,15 +87,14 @@
     <Compile Include="Common\Constant.cs" />
     <Compile Include="Common\Guard\Guard.cs" />
     <Compile Include="Common\Interfaces\IConfigReader.cs" />
-    <Compile Include="Common\Interfaces\ILifeCycle.cs" />
     <Compile Include="Common\Interfaces\IModule.cs" />
     <Compile Include="Common\Interfaces\IObjectDestroyer.cs" />
     <Compile Include="Common\Interfaces\ISimpleFactory.cs" />
+    <Compile Include="Common\Interfaces\ITickableService.cs" />
     <Compile Include="Common\Interfaces\ITickService.cs" />
     <Compile Include="Common\Logger\InternalLog.cs" />
     <Compile Include="Common\Profiler.cs" />
-    <Compile Include="Common\Service\BaseLifeCycleService.cs" />
-    <Compile Include="Common\Service\TickableLifeCycleService.cs" />
+    <Compile Include="Common\Service\TickableService.cs" />
     <Compile Include="Download\CheckingSubtaskResult.cs" />
     <Compile Include="Download\DownloadTask.StaticDebugOptions.cs" />
     <Compile Include="Download\IDownloadServiceConfigReader.cs" />
@@ -105,6 +105,7 @@
     <Compile Include="Ioc\ContainerExtension.cs" />
     <Compile Include="Ioc\IBindingData.cs" />
     <Compile Include="Ioc\InjectAttribute.cs" />
+    <Compile Include="Ioc\LifeStyle.cs" />
     <Compile Include="Ioc\PropertyInjection.cs" />
     <Compile Include="RedDot\IRedDotService.cs" />
     <Compile Include="RedDot\IRedDotObserver.cs" />

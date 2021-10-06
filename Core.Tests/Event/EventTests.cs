@@ -2,14 +2,16 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using NSubstitute;
 
 namespace COL.UnityGameWheels.Core.Tests
 {
     [TestFixture]
     public class EventTests
     {
-        private IEventService m_EventService = null;
+        private EventService m_EventService = null;
         private ITickService m_TickService = null;
+        private IRefPoolService m_RefPoolService = null;
 
         private class OneSimpleEventArgs : BaseEventArgs
         {
@@ -59,21 +61,21 @@ namespace COL.UnityGameWheels.Core.Tests
             int firstEventCount = 0;
             int secondEventCount = 0;
 
-            OnHearEvent onHearFirstEvent = (sender, e) =>
+            void OnHearFirstEvent(object sender, BaseEventArgs e)
             {
                 Assert.AreSame(sender, this);
                 Assert.True(e is OneSimpleEventArgs);
                 firstEventCount++;
-            };
+            }
 
-            OnHearEvent onHearSecondEvent = (sender, e) =>
+            void OnHearSecondEvent(object sender, BaseEventArgs e)
             {
                 Assert.AreSame(sender, this);
                 Assert.True(e is AnotherSimpleEventArgs);
                 secondEventCount++;
-            };
+            }
 
-            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
+            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, OnHearFirstEvent);
 
             m_EventService.SendEvent(this, new OneSimpleEventArgs());
             m_EventService.SendEvent(this, new AnotherSimpleEventArgs());
@@ -86,9 +88,9 @@ namespace COL.UnityGameWheels.Core.Tests
             Assert.AreEqual(1, firstEventCount);
             Assert.AreEqual(0, secondEventCount);
 
-            m_EventService.AddEventListener(AnotherSimpleEventArgs.TheEventId, onHearSecondEvent);
+            m_EventService.AddEventListener(AnotherSimpleEventArgs.TheEventId, OnHearSecondEvent);
 
-            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
+            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, OnHearFirstEvent);
 
             m_EventService.SendEvent(this, new OneSimpleEventArgs());
             m_EventService.SendEvent(this, new AnotherSimpleEventArgs());
@@ -101,8 +103,8 @@ namespace COL.UnityGameWheels.Core.Tests
             Assert.AreEqual(3, firstEventCount);
             Assert.AreEqual(1, secondEventCount);
 
-            m_EventService.RemoveEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
-            m_EventService.RemoveEventListener(AnotherSimpleEventArgs.TheEventId, onHearSecondEvent);
+            m_EventService.RemoveEventListener(OneSimpleEventArgs.TheEventId, OnHearFirstEvent);
+            m_EventService.RemoveEventListener(AnotherSimpleEventArgs.TheEventId, OnHearSecondEvent);
 
             m_EventService.SendEvent(this, new OneSimpleEventArgs());
             m_EventService.SendEvent(this, new AnotherSimpleEventArgs());
@@ -118,14 +120,14 @@ namespace COL.UnityGameWheels.Core.Tests
         {
             int firstEventCount = 0;
 
-            OnHearEvent onHearFirstEvent = (sender, e) =>
+            void OnHearFirstEvent(object sender, BaseEventArgs e)
             {
                 Assert.AreSame(sender, this);
                 Assert.True(e is OneSimpleEventArgs);
                 firstEventCount++;
-            };
+            }
 
-            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, onHearFirstEvent);
+            m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, OnHearFirstEvent);
             m_EventService.SendEventNow(this, new OneSimpleEventArgs());
             Assert.AreEqual(1, firstEventCount);
             ((MockTickService)m_TickService).ManualUpdate(new TimeStruct(0f, 0f, 0f, 0f));
@@ -148,34 +150,14 @@ namespace COL.UnityGameWheels.Core.Tests
         }
 
         [Test]
-        public void TestInitBeforeSettingMainThreadId()
+        public void TestStartTickingBeforeSettingMainThreadId()
         {
-            IEventService anotherEventService = new EventService();
-            Assert.Throws<InvalidOperationException>(() => anotherEventService.OnInit());
-        }
-
-        [Test]
-        public void TestUseWithoutInit()
-        {
-            IEventService anotherEventService = new EventService();
-            anotherEventService.MainThreadId = Thread.CurrentThread.ManagedThreadId;
-            Assert.Throws<InvalidOperationException>(() => anotherEventService.SendEvent(null, new OneSimpleEventArgs()));
-            Assert.Throws<InvalidOperationException>(() => anotherEventService.OnShutdown());
-        }
-
-        [Test]
-        public void TestShutdownTwice()
-        {
-            IEventService anotherEventService = new EventService
+            using (EventService anotherEventService = new EventService(new MockTickService(), new MockRefPoolService(), new DefaultEventArgsReleaser()))
             {
-                TickService = new MockTickService(),
-                TickOrder = 0,
-            };
-            anotherEventService.MainThreadId = Thread.CurrentThread.ManagedThreadId;
-            anotherEventService.OnInit();
-            anotherEventService.OnShutdown();
-            Assert.Throws<InvalidOperationException>(() => anotherEventService.OnShutdown());
+                Assert.Throws<InvalidOperationException>(() => { anotherEventService.StartTicking(); });
+            }
         }
+
 
         [Test]
         public void TestUseInAnotherThread()
@@ -220,24 +202,42 @@ namespace COL.UnityGameWheels.Core.Tests
             {
                 int exceptionsCaught = 0;
                 int eventsReceived = 0;
+                int threadCount = 100;
+                int eventCount = 100;
+                object lockObj = new object();
                 m_EventService.AddEventListener(OneSimpleEventArgs.TheEventId, (sender, o) => { eventsReceived++; });
-                var thread = new Thread(() =>
+                var threads = new List<Thread>();
+                for (var i = 0; i < threadCount; i++)
                 {
-                    try
+                    var thread = new Thread(() =>
                     {
-                        m_EventService.SendEvent(null, new OneSimpleEventArgs());
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        exceptionsCaught++;
-                    }
-                });
+                        for (var j = 0; j < eventCount; j++)
+                        {
+                            try
+                            {
+                                m_EventService.SendEvent(null, new OneSimpleEventArgs());
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                lock (lockObj)
+                                {
+                                    exceptionsCaught++;
+                                }
+                            }
+                        }
+                    });
+                    threads.Add(thread);
+                }
 
-                thread.Start();
-                thread.Join();
+                foreach (var thread in threads)
+                {
+                    thread.Start();
+                    thread.Join();
+                }
+
                 Assert.AreEqual(0, eventsReceived);
                 ((MockTickService)m_TickService).ManualUpdate(new TimeStruct(0f, 0f, 0f, 0f));
-                Assert.AreEqual(1, eventsReceived);
+                Assert.AreEqual(threadCount * eventCount, eventsReceived);
                 Assert.AreEqual(0, exceptionsCaught);
             }
         }
@@ -325,18 +325,22 @@ namespace COL.UnityGameWheels.Core.Tests
         {
             Assert.IsNull(m_EventService);
             m_TickService = new MockTickService();
-            m_EventService = new EventService { TickService = m_TickService, TickOrder = 0 };
-            m_EventService.MainThreadId = Thread.CurrentThread.ManagedThreadId;
-            m_EventService.OnInit();
+            m_RefPoolService = new MockRefPoolService();
+            m_EventService = new EventService(m_TickService, m_RefPoolService, new DefaultEventArgsReleaser())
+            {
+                MainThreadId = Thread.CurrentThread.ManagedThreadId
+            };
+            m_EventService.StartTicking();
         }
 
         [TearDown]
         public void TearDown()
         {
             Assert.IsNotNull(m_EventService);
-            m_EventService.OnShutdown();
+            m_EventService.Dispose();
             m_EventService = null;
             m_TickService = null;
+            m_RefPoolService = null;
         }
     }
 }

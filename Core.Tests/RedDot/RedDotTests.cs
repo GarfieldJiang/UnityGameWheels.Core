@@ -8,7 +8,7 @@ namespace COL.UnityGameWheels.Core.Tests
     [TestFixture]
     public class RedDotTests
     {
-        private IRedDotService m_RedDotService;
+        private RedDotService m_RedDotService;
         private ITickService m_TickService;
 
         private class RedDotObserver : IRedDotObserver
@@ -30,14 +30,14 @@ namespace COL.UnityGameWheels.Core.Tests
         public void SetUp()
         {
             m_TickService = new MockTickService();
-            m_RedDotService = new RedDotService { TickService = m_TickService, TickOrder = 0 };
-            m_RedDotService.OnInit();
+            m_RedDotService = new RedDotService(m_TickService);
+            m_RedDotService.StartTicking();
         }
 
         [TearDown]
         public void TearDown()
         {
-            m_RedDotService.OnShutdown();
+            m_RedDotService.Dispose();
             m_RedDotService = null;
             m_TickService = null;
         }

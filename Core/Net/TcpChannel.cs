@@ -232,16 +232,8 @@ namespace COL.UnityGameWheels.Core.Net
 
         private void Dispose(bool disposing)
         {
-            if (m_Disposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                Close();
-            }
-
+            if (m_Disposed || !disposing) return;
+            Close();
             m_Disposed = true;
         }
 

@@ -1,21 +1,39 @@
-﻿using System;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
 
 namespace COL.UnityGameWheels.Core
 {
     /// <summary>
     /// The default implementation of an event manager.
-    /// </summary>
-    public partial class EventService : TickableLifeCycleService, IEventService
+    /// </summary> 
+    public partial class EventService : TickableService, IEventService
     {
+        [RequireThreadSafeRefPool]
+        private class CopiedListenerCollection
+        {
+            internal readonly List<OnHearEvent> InnerCollection = new List<OnHearEvent>(4);
+
+            internal void Reset()
+            {
+                InnerCollection.Clear();
+            }
+        }
+
         private int? m_MainThreadId = null;
-        private Dictionary<int, LinkedList<OnHearEvent>> m_Listeners = null;
-        private List<OnHearEvent> m_CopiedListenerCollection = null;
-        private bool m_CopiedListenerCollectionIsBeingUsed = false;
-        private readonly Queue<SenderEventPair> m_EventQueue = new Queue<SenderEventPair>();
-        private Queue<SenderEventPair> m_UpdateEventQueue = null;
-        private IEventArgsReleaser m_EventArgsReleaser = new DefaultEventArgsReleaser();
+        private readonly Dictionary<int, LinkedList<OnHearEvent>> m_Listeners = new Dictionary<int, LinkedList<OnHearEvent>>();
+        private readonly ConcurrentQueue<SenderEventPair> m_EventQueue = new ConcurrentQueue<SenderEventPair>();
+        private readonly Queue<SenderEventPair> m_UpdateEventQueue = new Queue<SenderEventPair>();
+        private readonly IEventArgsReleaser m_EventArgsReleaser = null;
+        private readonly IRefPoolService m_RefPoolService = null;
+        private readonly IRefPool<CopiedListenerCollection> m_CopiedListenerCollectionPool = null;
+
+        public EventService(ITickService tickService, IRefPoolService refPoolService, IEventArgsReleaser eventArgsReleaser)
+            : base(tickService)
+        {
+            m_RefPoolService = refPoolService;
+            m_CopiedListenerCollectionPool = m_RefPoolService.Add<CopiedListenerCollection>(4);
+            m_EventArgsReleaser = eventArgsReleaser;
+        }
 
         /// <inheritdoc />
         public int MainThreadId
@@ -31,47 +49,22 @@ namespace COL.UnityGameWheels.Core
             }
         }
 
-        /// <inheritdoc />
-        [Ioc.Inject]
-        public IEventArgsReleaser EventArgsReleaser
+        protected override void Dispose(bool disposing)
         {
-            get => m_EventArgsReleaser;
-            set
+            base.Dispose(disposing);
+            if (disposing)
             {
-                CheckMainThreadOrThrow();
-                m_EventArgsReleaser = value ?? throw new ArgumentNullException(nameof(value));
+                lock (m_Listeners)
+                {
+                    m_Listeners.Clear();
+                }
+
+                while (m_EventQueue.TryDequeue(out _))
+                {
+                }
+
+                m_UpdateEventQueue.Clear();
             }
-        }
-
-        /// <inheritdoc />
-        public override void OnInit()
-        {
-            CheckMainThreadOrThrow();
-            base.OnInit();
-            m_Listeners = new Dictionary<int, LinkedList<OnHearEvent>>();
-            m_CopiedListenerCollection = new List<OnHearEvent>();
-            m_UpdateEventQueue = new Queue<SenderEventPair>();
-        }
-
-        /// <inheritdoc />
-        public override void OnShutdown()
-        {
-            CheckMainThreadOrThrow();
-            CheckStateOrThrow();
-            foreach (var kv in m_Listeners)
-            {
-                kv.Value.Clear();
-            }
-
-            m_Listeners.Clear();
-            m_CopiedListenerCollection.Clear();
-
-            lock (m_EventQueue)
-            {
-                m_EventQueue.Clear();
-            }
-
-            base.OnShutdown();
         }
 
         /// <summary>
@@ -82,9 +75,11 @@ namespace COL.UnityGameWheels.Core
         public void AddEventListener(int eventId, OnHearEvent onHearEvent)
         {
             CheckMainThreadOrThrow();
-            CheckStateOrThrow();
             CheckListenerOrThrow(onHearEvent);
-            EnsureListenerCollection(eventId).AddLast(onHearEvent);
+            lock (m_Listeners)
+            {
+                EnsureListenerCollection(eventId).AddLast(onHearEvent);
+            }
         }
 
         /// <summary>
@@ -95,9 +90,11 @@ namespace COL.UnityGameWheels.Core
         public void RemoveEventListener(int eventId, OnHearEvent onHearEvent)
         {
             CheckMainThreadOrThrow();
-            CheckStateOrThrow();
             CheckListenerOrThrow(onHearEvent);
-            EnsureListenerCollection(eventId).Remove(onHearEvent);
+            lock (m_Listeners)
+            {
+                EnsureListenerCollection(eventId).Remove(onHearEvent);
+            }
         }
 
         /// <summary>
@@ -107,11 +104,7 @@ namespace COL.UnityGameWheels.Core
         /// <param name="e">The event.</param>
         public void SendEvent(object sender, BaseEventArgs e)
         {
-            CheckStateOrThrow();
-            lock (m_EventQueue)
-            {
-                m_EventQueue.Enqueue(new SenderEventPair(sender, e));
-            }
+            m_EventQueue.Enqueue(new SenderEventPair(sender, e));
         }
 
         /// <summary>
@@ -122,61 +115,46 @@ namespace COL.UnityGameWheels.Core
         public void SendEventNow(object sender, BaseEventArgs eventArgs)
         {
             CheckMainThreadOrThrow();
-            CheckStateOrThrow();
             var copiedListenerCollection = PrepareCopiedListenerCollection(eventArgs);
 
             try
             {
-                foreach (var listener in copiedListenerCollection)
+                foreach (var listener in copiedListenerCollection.InnerCollection)
                 {
                     listener(sender, eventArgs);
                 }
             }
             finally
             {
-                ClearCopiedListenerCollection(copiedListenerCollection);
-                m_EventArgsReleaser.Release(eventArgs);
+                copiedListenerCollection.Reset();
+                m_CopiedListenerCollectionPool.Release(copiedListenerCollection);
             }
         }
 
-        private void ClearCopiedListenerCollection(List<OnHearEvent> copiedListenerCollection)
+        public override bool StartTicking()
         {
-            if (copiedListenerCollection == m_CopiedListenerCollection)
-            {
-                m_CopiedListenerCollectionIsBeingUsed = false;
-            }
-
-            copiedListenerCollection.Clear();
+            CheckMainThreadOrThrow();
+            return base.StartTicking();
         }
 
-        private List<OnHearEvent> PrepareCopiedListenerCollection(BaseEventArgs eventArgs)
+        private CopiedListenerCollection PrepareCopiedListenerCollection(BaseEventArgs eventArgs)
         {
-            List<OnHearEvent> copiedListenerCollection;
-            if (m_CopiedListenerCollectionIsBeingUsed)
+            CopiedListenerCollection copiedListenerCollection = m_RefPoolService.GetOrAdd<CopiedListenerCollection>().Acquire();
+            lock (m_Listeners)
             {
-                copiedListenerCollection = new List<OnHearEvent>();
-            }
-            else
-            {
-                m_CopiedListenerCollectionIsBeingUsed = true;
-                copiedListenerCollection = m_CopiedListenerCollection;
+                copiedListenerCollection.InnerCollection.AddRange(EnsureListenerCollection(eventArgs.EventId));
             }
 
-            copiedListenerCollection.AddRange(EnsureListenerCollection(eventArgs.EventId));
             return copiedListenerCollection;
         }
 
-        /// <inheritdoc />
         protected override void OnUpdate(TimeStruct timeStruct)
         {
             CheckMainThreadOrThrow();
             m_UpdateEventQueue.Clear();
-            lock (m_EventQueue)
+            while (m_EventQueue.TryDequeue(out var item))
             {
-                while (m_EventQueue.Count > 0)
-                {
-                    m_UpdateEventQueue.Enqueue(m_EventQueue.Dequeue());
-                }
+                m_UpdateEventQueue.Enqueue(item);
             }
 
             while (m_UpdateEventQueue.Count > 0)
@@ -196,8 +174,7 @@ namespace COL.UnityGameWheels.Core
 
         private LinkedList<OnHearEvent> EnsureListenerCollection(int eventId)
         {
-            LinkedList<OnHearEvent> listeners;
-            if (!m_Listeners.TryGetValue(eventId, out listeners))
+            if (!m_Listeners.TryGetValue(eventId, out var listeners))
             {
                 listeners = new LinkedList<OnHearEvent>();
                 m_Listeners.Add(eventId, listeners);

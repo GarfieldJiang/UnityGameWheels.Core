@@ -4,12 +4,12 @@ using System.IO;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
-    public sealed partial class AssetService : TickableLifeCycleService, IAssetService
+    public sealed partial class AssetService : TickableService, IAssetService
     {
-        private IDownloadService m_DownloadService = null;
-        private IRefPoolService m_RefPoolService = null;
-        private ISimpleFactory<IAssetLoadingTaskImpl> m_AssetLoadingTaskImplFactory = null;
-        private ISimpleFactory<IResourceLoadingTaskImpl> m_ResourceLoadingTaskImplFactory = null;
+        private readonly IDownloadService m_DownloadService = null;
+        private readonly IRefPoolService m_RefPoolService = null;
+        private readonly ISimpleFactory<IAssetLoadingTaskImpl> m_AssetLoadingTaskImplFactory = null;
+        private readonly ISimpleFactory<IResourceLoadingTaskImpl> m_ResourceLoadingTaskImplFactory = null;
         private int? m_ConcurrentAssetLoaderCount = null;
         private int? m_ConcurrentResourceLoaderCount = null;
         private int? m_AssetCachePoolCapacity = null;
@@ -28,87 +28,22 @@ namespace COL.UnityGameWheels.Core.Asset
         private readonly List<Uri> m_UpdateServerRootUrls = new List<Uri>();
         private int? m_UpdateSizeBeforeSavingReadWriteIndex = null;
 
-        private IAssetIndexForInstallerLoader m_AssetIndexForInstallerLoader = null;
-        private IObjectDestroyer<object> m_ResourceDestroyer = null;
+        private readonly IAssetIndexForInstallerLoader m_AssetIndexForInstallerLoader = null;
+        private readonly IObjectDestroyer<object> m_ResourceDestroyer = null;
 
         private readonly AssetIndexForInstaller m_InstallerIndex = new AssetIndexForInstaller();
         private readonly AssetIndexForReadWrite m_ReadWriteIndex = new AssetIndexForReadWrite();
         private readonly AssetIndexForRemote m_RemoteIndex = new AssetIndexForRemote();
 
-        private Preparer m_Preparer = null;
-        private UpdateChecker m_UpdateChecker = null;
-        private Updater m_Updater = null;
-        private Loader m_Loader = null;
+        private readonly Preparer m_Preparer = null;
+        private readonly UpdateChecker m_UpdateChecker = null;
+        private readonly Updater m_Updater = null;
+        private readonly Loader m_Loader = null;
 
         // Initialized by the update checker and used by the updater.
         private readonly Dictionary<int, ResourceGroupUpdateSummary> ResourceGroupUpdateSummaries =
             new Dictionary<int, ResourceGroupUpdateSummary>();
 
-        [Ioc.Inject]
-        public IDownloadService DownloadService
-        {
-            get => m_DownloadService ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_DownloadService != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_DownloadService = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        [Ioc.Inject]
-        public IRefPoolService RefPoolService
-        {
-            get => m_RefPoolService ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_RefPoolService != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_RefPoolService = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        [Ioc.Inject]
-        public ISimpleFactory<IAssetLoadingTaskImpl> AssetLoadingTaskImplFactory
-        {
-            get => m_AssetLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_AssetLoadingTaskImplFactory != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_AssetLoadingTaskImplFactory = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        [Ioc.Inject]
-        public ISimpleFactory<IResourceLoadingTaskImpl> ResourceLoadingTaskImplFactory
-        {
-            get => m_ResourceLoadingTaskImplFactory ?? throw new InvalidOperationException("Not set.");
-
-            set
-            {
-                if (m_ResourceLoadingTaskImplFactory != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_ResourceLoadingTaskImplFactory = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        /// <inheritdoc />
         public int ConcurrentAssetLoaderCount
         {
             get
@@ -131,7 +66,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int ConcurrentResourceLoaderCount
         {
             get
@@ -154,7 +88,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int DownloadRetryCount
         {
             get
@@ -182,55 +115,8 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public float ReleaseResourceInterval { get; set; }
 
-        [Ioc.Inject]
-        public IAssetIndexForInstallerLoader IndexForInstallerLoader
-        {
-            get
-            {
-                if (m_AssetIndexForInstallerLoader == null)
-                {
-                    throw new InvalidOperationException("Not set.");
-                }
-
-                return m_AssetIndexForInstallerLoader;
-            }
-            set
-            {
-                if (m_AssetIndexForInstallerLoader != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_AssetIndexForInstallerLoader = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        public IObjectDestroyer<object> ResourceDestroyer
-        {
-            get
-            {
-                if (m_ResourceDestroyer == null)
-                {
-                    throw new InvalidOperationException("Not set.");
-                }
-
-                return m_ResourceDestroyer;
-            }
-            set
-            {
-                if (m_ResourceDestroyer != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_ResourceDestroyer = value ?? throw new ArgumentNullException(nameof(value));
-            }
-        }
-
-        /// <inheritdoc />
         public bool UpdateIsEnabled
         {
             get
@@ -253,7 +139,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public string UpdateRelativePathFormat
         {
             get
@@ -305,7 +190,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public string ReadWritePath
         {
             get
@@ -333,7 +217,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public string InstallerPath
         {
             get
@@ -361,7 +244,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public string RunningPlatform
         {
             get
@@ -428,7 +310,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int AssetCachePoolCapacity
         {
             get
@@ -457,7 +338,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int ResourceCachePoolCapacity
         {
             get
@@ -486,7 +366,6 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
-        /// <inheritdoc />
         public int AssetAccessorPoolCapacity
         {
             get
@@ -544,34 +423,74 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
+        public IAssetServiceConfigReader ConfigReader { get; }
+
         /// <inheritdoc />
         public IResourceUpdater ResourceUpdater => m_Updater;
 
-        /// <inheritdoc />
-        public override void OnInit()
+        public AssetService(
+            IAssetServiceConfigReader configReader,
+            IDownloadService downloadService,
+            IAssetIndexForInstallerLoader assetIndexForInstallerLoader,
+            ISimpleFactory<IAssetLoadingTaskImpl> assetLoadingTaskImplFactory,
+            ISimpleFactory<IResourceLoadingTaskImpl> resourceLoadingTaskImplFactory,
+            IObjectDestroyer<object> resourceDestroyer,
+            IRefPoolService refPoolService,
+            ITickService tickService) : base(tickService)
         {
-            base.OnInit();
+            m_DownloadService = downloadService;
+            m_AssetIndexForInstallerLoader = assetIndexForInstallerLoader;
+            m_AssetLoadingTaskImplFactory = assetLoadingTaskImplFactory;
+            m_ResourceLoadingTaskImplFactory = resourceLoadingTaskImplFactory;
+            m_ResourceDestroyer = resourceDestroyer;
+            m_RefPoolService = refPoolService;
+            ConfigReader = configReader;
+            ApplyConfig();
             m_Preparer = new Preparer(this);
             m_UpdateChecker = new UpdateChecker(this);
             m_Updater = new Updater(this);
             m_Loader = new Loader(this);
         }
 
-        /// <inheritdoc />
+        private void ApplyConfig()
+        {
+            RunningPlatform = ConfigReader.RunningPlatform;
+            UpdateIsEnabled = ConfigReader.UpdateIsEnabled;
+            DownloadRetryCount = ConfigReader.DownloadRetryCount;
+            ConcurrentAssetLoaderCount = ConfigReader.ConcurrentAssetLoaderCount;
+            ConcurrentResourceLoaderCount = ConfigReader.ConcurrentResourceLoaderCount;
+            AssetCachePoolCapacity = ConfigReader.AssetCachePoolCapacity;
+            ResourceCachePoolCapacity = ConfigReader.ResourceCachePoolCapacity;
+            AssetAccessorPoolCapacity = ConfigReader.AssetAccessorPoolCapacity;
+            UpdateRelativePathFormat = ConfigReader.UpdateRelativePathFormat;
+            ReadWritePath = ConfigReader.ReadWritePath;
+            InstallerPath = ConfigReader.InstallerPath;
+            ReleaseResourceInterval = ConfigReader.ReleaseResourceInterval;
+            UpdateSizeBeforeSavingReadWriteIndex = ConfigReader.UpdateSizeBeforeSavingReadWriteIndex;
+
+            foreach (var urlStr in ConfigReader.UpdateServerRootUrls)
+            {
+                AddUpdateServerRootUrl(urlStr);
+            }
+        }
+
+
         protected override void OnUpdate(TimeStruct timeStruct)
         {
-            CheckStateOrThrow();
             m_Loader.Update(timeStruct);
         }
 
-        /// <inheritdoc />
-        public override void OnShutdown()
+        protected override void Dispose(bool disposing)
         {
-            if (IsLoadingAnyAsset)
+            if (disposing)
             {
-                InternalLog.Warning("Some asset is still being loaded.");
+                if (IsLoadingAnyAsset)
+                {
+                    InternalLog.Warning("Some asset is still being loaded.");
+                }
             }
-            base.OnShutdown();
+
+            base.Dispose(disposing);
         }
 
         /// <inheritdoc />

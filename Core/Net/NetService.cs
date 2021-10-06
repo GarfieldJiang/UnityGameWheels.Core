@@ -3,34 +3,16 @@ using System.Collections.Generic;
 
 namespace COL.UnityGameWheels.Core.Net
 {
-    public class NetService : TickableLifeCycleService, INetService
+    public class NetService : TickableService, INetService
     {
         private readonly List<INetChannel> m_Channels = new List<INetChannel>();
         private readonly List<INetChannel> m_CopiedChannels = new List<INetChannel>();
-        private INetChannelFactory m_ChannelFactory = null;
 
-        [Ioc.Inject]
-        public INetChannelFactory ChannelFactory
+        public INetChannelFactory ChannelFactory { get; } = null;
+
+        public NetService(INetChannelFactory channelFactory, ITickService tickService) : base(tickService)
         {
-            get
-            {
-                if (m_ChannelFactory == null)
-                {
-                    throw new InvalidOperationException("Not set.");
-                }
-
-                return m_ChannelFactory;
-            }
-
-            set
-            {
-                if (m_ChannelFactory != null)
-                {
-                    throw new InvalidOperationException("Already set.");
-                }
-
-                m_ChannelFactory = value ?? throw new ArgumentNullException(nameof(value));
-            }
+            ChannelFactory = channelFactory ?? throw new ArgumentNullException(nameof(channelFactory));
         }
 
         public INetChannel AddChannel(string name, string typeKey, INetChannelHandler handler, int receivePacketHeaderLength)
@@ -87,21 +69,19 @@ namespace COL.UnityGameWheels.Core.Net
             return false;
         }
 
-        public override void OnInit()
+        protected override void Dispose(bool disposing)
         {
-            base.OnInit();
-        }
-
-        public override void OnShutdown()
-        {
-            InternalLog.Debug("[NetModule ShutDown] channel count is " + m_Channels.Count);
-            foreach (var channel in m_Channels)
+            if (disposing)
             {
-                channel.Close();
+                foreach (var channel in m_Channels)
+                {
+                    channel.Close();
+                }
+
+                m_Channels.Clear();
             }
 
-            m_Channels.Clear();
-            base.OnShutdown();
+            base.Dispose(disposing);
         }
 
         public bool TryGetChannel(string name, out INetChannel channel)

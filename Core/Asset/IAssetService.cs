@@ -5,78 +5,17 @@ namespace COL.UnityGameWheels.Core.Asset
     /// <summary>
     /// Asset module interface.
     /// </summary>
-    public interface IAssetService : ILifeCycle
+    public interface IAssetService
     {
-        int ConcurrentAssetLoaderCount { get; set; }
-
-        int ConcurrentResourceLoaderCount { get; set; }
-
-        /// <summary>
-        /// How many asset caches to preserve at most.
-        /// </summary>
-        int AssetCachePoolCapacity { get; set; }
-
-        /// <summary>
-        /// How many resource caches to preserve at most.
-        /// </summary>
-        int ResourceCachePoolCapacity { get; set; }
-
-        /// <summary>
-        /// How many asset accessor to preserve at most.
-        /// </summary>
-        int AssetAccessorPoolCapacity { get; set; }
-
-        /// <summary>
-        /// How many times we should retry after the first time download fails.
-        /// </summary>
-        int DownloadRetryCount { get; set; }
-
-        /// <summary>
-        /// Time interval to check and release resources that are not retained.
-        /// </summary>
-        float ReleaseResourceInterval { get; set; }
-
-        IAssetIndexForInstallerLoader IndexForInstallerLoader { get; set; }
-
-        /// <summary>
-        /// Whether resource update is enabled.
-        /// </summary>
-        bool UpdateIsEnabled { get; set; }
-
-        /// <summary>
-        /// Format of relative path to the update server.
-        /// </summary>
-        /// <remarks>Two arguments needed. {0} stands for the running platform and {1} stands for the asset version.</remarks>
-        string UpdateRelativePathFormat { get; set; }
-
         /// <summary>
         /// Application version.
         /// </summary>
         string BundleVersion { get; set; }
 
         /// <summary>
-        /// Path to the persistent resources path.
-        /// </summary>
-        string ReadWritePath { get; set; }
-
-        /// <summary>
-        /// Path to resources in the installation package.
-        /// </summary>
-        string InstallerPath { get; set; }
-
-        /// <summary>
         /// Current running platform.
         /// </summary>
         string RunningPlatform { get; set; }
-
-        /// <summary>
-        /// Bytes to update before triggering a saving operation of the read-write index.
-        /// </summary>
-        /// <remarks>
-        /// If this value is set to 0, then during updating, the read-write index will be saved to disk every time a resource file is
-        /// successfully updated.
-        /// </remarks>
-        int UpdateSizeBeforeSavingReadWriteIndex { get; set; }
 
         /// <summary>
         /// Add root urls of update servers.

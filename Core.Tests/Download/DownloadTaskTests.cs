@@ -10,8 +10,8 @@ namespace COL.UnityGameWheels.Core.Tests
     [TestFixture]
     public class DownloadTaskTests
     {
+        private DownloadService m_DownloadService = null;
         private ITickService m_TickService = null;
-        private IDownloadService m_DownloadService = null;
         private IRefPoolService m_RefPoolService = null;
         private ISimpleFactory<IDownloadTaskImpl> m_DownloadTaskImplFactory = null;
         private DirectoryInfo m_DirectoryInfo = null;
@@ -134,7 +134,7 @@ namespace COL.UnityGameWheels.Core.Tests
             long size = 100L;
             float timeNeeded = 1f;
             string savePath = Path.Combine(m_DirectoryInfo.FullName, fileName);
-            var mockDownloadTaskImplFactory = m_DownloadTaskImplFactory as MockDownloadTaskImplFactory;
+            var mockDownloadTaskImplFactory = (MockDownloadTaskImplFactory)m_DownloadTaskImplFactory;
             mockDownloadTaskImplFactory.TaskSize = size;
             mockDownloadTaskImplFactory.TaskTimeNeeded = timeNeeded;
             int successCount = 0;
@@ -173,7 +173,7 @@ namespace COL.UnityGameWheels.Core.Tests
             long size = 100L;
             float timeNeeded = m_DownloadService.Timeout * 10;
             string savePath = Path.Combine(m_DirectoryInfo.FullName, fileName);
-            var mockDownloadTaskImplFactory = m_DownloadTaskImplFactory as MockDownloadTaskImplFactory;
+            var mockDownloadTaskImplFactory = (MockDownloadTaskImplFactory)m_DownloadTaskImplFactory;
             mockDownloadTaskImplFactory.TaskSize = size;
             mockDownloadTaskImplFactory.TaskTimeNeeded = timeNeeded;
             DownloadErrorCode? downloadErrorCode = null;
@@ -218,8 +218,9 @@ namespace COL.UnityGameWheels.Core.Tests
             File.Create(tempSavePath).Close();
             File.WriteAllBytes(tempSavePath, CreateBufferContent(alreadyDownloadedSize));
 
-            (m_DownloadTaskImplFactory as MockDownloadTaskImplFactory).TaskSize = size;
-            (m_DownloadTaskImplFactory as MockDownloadTaskImplFactory).TaskTimeNeeded = timeNeeded;
+            var mockDownloadTaskImplFactory = (MockDownloadTaskImplFactory)m_DownloadTaskImplFactory;
+            mockDownloadTaskImplFactory.TaskSize = size;
+            mockDownloadTaskImplFactory.TaskTimeNeeded = timeNeeded;
 
             int successCount = 0;
             int failureCount = 0;
@@ -263,7 +264,7 @@ namespace COL.UnityGameWheels.Core.Tests
             // Fake already downloaded file.
             File.Create(tempSavePath).Close();
             File.WriteAllBytes(tempSavePath, CreateBufferContent(alreadyDownloadedSize));
-            var mockDownloadTaskImplFactory = m_DownloadTaskImplFactory as MockDownloadTaskImplFactory;
+            var mockDownloadTaskImplFactory = (MockDownloadTaskImplFactory)m_DownloadTaskImplFactory;
             mockDownloadTaskImplFactory.TaskShouldNeverStart = true;
             mockDownloadTaskImplFactory.TaskSize = size;
             mockDownloadTaskImplFactory.TaskTimeNeeded = timeNeeded;
@@ -313,36 +314,28 @@ namespace COL.UnityGameWheels.Core.Tests
             m_DirectoryInfo = new DirectoryInfo(SavePathRoot);
 
             m_TickService = new MockTickService();
+            m_RefPoolService = new MockRefPoolService();
 
-            m_RefPoolService = new RefPoolService();
-            var refPoolServiceConfigReader = Substitute.For<IRefPoolServiceConfigReader>();
-            refPoolServiceConfigReader.DefaultCapacity.Returns(1);
-            m_RefPoolService.ConfigReader = refPoolServiceConfigReader;
-            m_RefPoolService.OnInit();
-
-            m_DownloadService = new DownloadService { TickService = m_TickService, TickOrder = 0 };
             var configReader = Substitute.For<IDownloadServiceConfigReader>();
             configReader.TempFileExtension.Returns(".tmp");
             configReader.Timeout.Returns(1f);
             configReader.ChunkSizeToSave.Returns(32);
             configReader.ConcurrentDownloadCountLimit.Returns(2);
-            m_DownloadService.ConfigReader = configReader;
+
 
             m_DownloadTaskImplFactory = new MockDownloadTaskImplFactory();
-            var mockDownloadTaskImplFactory = m_DownloadTaskImplFactory as MockDownloadTaskImplFactory;
+            var mockDownloadTaskImplFactory = (MockDownloadTaskImplFactory)m_DownloadTaskImplFactory;
             mockDownloadTaskImplFactory.TaskShouldNeverStart = false;
+            m_DownloadService = new DownloadService(configReader, m_RefPoolService, m_TickService, mockDownloadTaskImplFactory);
 
-            m_DownloadService.RefPoolService = m_RefPoolService;
-            m_DownloadService.DownloadTaskImplFactory = m_DownloadTaskImplFactory;
-            m_DownloadService.OnInit();
+            m_DownloadService.StartTicking();
         }
 
         [TearDown]
         public void TearDown()
         {
-            m_DownloadService.OnShutdown();
+            m_DownloadService.Dispose();
             m_DownloadService = null;
-            m_RefPoolService.OnShutdown();
             m_RefPoolService = null;
             m_TickService = null;
             m_DownloadTaskImplFactory = null;

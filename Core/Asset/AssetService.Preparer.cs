@@ -13,7 +13,7 @@
             private object m_Context = null;
             private AssetServicePrepareCallbackSet m_CallbackSet;
 
-            private IAssetIndexForInstallerLoader IndexForInstallerLoader => m_Owner.IndexForInstallerLoader;
+            private IAssetIndexForInstallerLoader IndexForInstallerLoader => m_Owner.m_AssetIndexForInstallerLoader;
 
             private AssetIndexForInstaller InstallerIndex => m_Owner.m_InstallerIndex;
 
