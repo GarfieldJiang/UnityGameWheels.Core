@@ -164,6 +164,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 Status = UpdateCheckerStatus.None;
                 m_RootUrlIndex = 0;
                 m_DownloadRetryTimes = 0;
+                ResourceSummaries.Clear();
             }
 
 
