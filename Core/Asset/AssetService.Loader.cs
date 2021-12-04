@@ -126,7 +126,7 @@ namespace COL.UnityGameWheels.Core.Asset
                 {
                     if (!resourceCache.CanRelease())
                     {
-                        InternalLog.Info($"[AssetModule.Loader ReleaseUnusedResourceCaches] Cannot release {resourceCache.Path}. Drop.");
+                        InternalLog.Info($"[AssetService.Loader ReleaseUnusedResourceCaches] Cannot release {resourceCache.Path}. Drop.");
                         releaseAll = false;
                         break;
                     }
@@ -137,7 +137,7 @@ namespace COL.UnityGameWheels.Core.Asset
                     return;
                 }
 
-                InternalLog.Info($"[AssetModule.Loader ReleaseUnusedResourceCaches] Release {m_UnretainedResourceCaches.Count} resources.");
+                InternalLog.Info($"[AssetService.Loader ReleaseUnusedResourceCaches] Release {m_UnretainedResourceCaches.Count} resources.");
                 foreach (var resourceCache in m_UnretainedResourceCaches)
                 {
                     // if (resourceCache.Status.ToString().StartsWith("Waiting"))
