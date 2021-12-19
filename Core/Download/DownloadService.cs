@@ -25,7 +25,19 @@ namespace COL.UnityGameWheels.Core
         private IRefPool<DownloadTask> m_DownloadTaskPool = null;
 
         /// <inheritdoc />
-        public int ConcurrentDownloadCountLimit => m_ConcurrentDownloadCountLimit;
+        public int ConcurrentDownloadCountLimit
+        {
+            get => m_ConcurrentDownloadCountLimit;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                }
+
+                m_ConcurrentDownloadCountLimit = value;
+            }
+        }
 
         /// <inheritdoc />
         public int ChunkSizeToSave => m_ChunkSizeToSave;
