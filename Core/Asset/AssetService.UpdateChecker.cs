@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace COL.UnityGameWheels.Core.Asset
 {
@@ -17,6 +19,12 @@ namespace COL.UnityGameWheels.Core.Asset
             private DownloadTaskInfo m_DownloadTaskInfo;
             private readonly OnDownloadSuccess m_OnDownloadSuccess;
             private readonly OnDownloadFailure m_OnDownloadFailure;
+
+            private static int s_IsCalculatingRemoteIndexCheckSum;
+            private static int s_IsUnzippingRemoteIndex;
+            private Task<bool> m_CheckNeedDownloadRemoteIndexSubtask;
+            private Task m_UnzipRemoteIndexSubtask;
+            private UpdateCheckerRunStatus m_RunStatus = UpdateCheckerRunStatus.None;
 
             public UpdateCheckerStatus Status { get; private set; }
 
@@ -82,40 +90,32 @@ namespace COL.UnityGameWheels.Core.Asset
                     }
                 }
 
-                if (!CheckNeedDownloadRemoteIndex(remoteIndexFileInfo))
-                {
-                    CheckUpdate();
-                    return;
-                }
-
-                m_DownloadRetryTimes = 0;
-                m_DownloadTaskInfo = new DownloadTaskInfo($"{RootUrls[m_RootUrlIndex]}/index_{m_RemoteIndexFileInfo.Crc32.ToString()}.dat",
-                    m_Owner.CachedRemoteIndexPath, m_RemoteIndexFileInfo.FileSize, m_RemoteIndexFileInfo.Crc32,
-                    new DownloadCallbackSet
-                    {
-                        OnSuccess = m_OnDownloadSuccess,
-                        OnFailure = m_OnDownloadFailure,
-                        OnProgress = null,
-                    }, null);
-                m_Owner.m_DownloadService.StartDownloading(m_DownloadTaskInfo);
+                m_RunStatus = UpdateCheckerRunStatus.Waiting;
             }
 
             private bool CheckNeedDownloadRemoteIndex(AssetIndexRemoteFileInfo remoteIndexFileInfo)
             {
-                bool needDownloadRemoteIndex = true;
-                var cachedRemoteIndexFile = new FileInfo(m_Owner.CachedRemoteIndexPath);
-                if (cachedRemoteIndexFile.Exists && cachedRemoteIndexFile.Length == remoteIndexFileInfo.FileSize)
+                try
                 {
-                    using (var stream = cachedRemoteIndexFile.OpenRead())
+                    bool needDownloadRemoteIndex = true;
+                    var cachedRemoteIndexFile = new FileInfo(m_Owner.CachedRemoteIndexPath);
+                    if (cachedRemoteIndexFile.Exists && cachedRemoteIndexFile.Length == remoteIndexFileInfo.FileSize)
                     {
-                        if (Algorithm.Crc32.Sum(stream) == remoteIndexFileInfo.Crc32)
+                        using (var stream = cachedRemoteIndexFile.OpenRead())
                         {
-                            needDownloadRemoteIndex = false;
+                            if (Algorithm.Crc32.Sum(stream) == remoteIndexFileInfo.Crc32)
+                            {
+                                needDownloadRemoteIndex = false;
+                            }
                         }
                     }
-                }
 
-                return needDownloadRemoteIndex;
+                    return needDownloadRemoteIndex;
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref s_IsCalculatingRemoteIndexCheckSum, 0);
+                }
             }
 
             private void UseInstallerResourcesOnly()
@@ -156,15 +156,18 @@ namespace COL.UnityGameWheels.Core.Asset
 
             private void OnDownloadSuccess(int downloadTaskId, DownloadTaskInfo taskInfo)
             {
-                CheckUpdate();
+                StartUnzippingRemoteIndex();
             }
 
             private void ResetStatus()
             {
                 Status = UpdateCheckerStatus.None;
+                m_RunStatus = UpdateCheckerRunStatus.None;
                 m_RootUrlIndex = 0;
                 m_DownloadRetryTimes = 0;
                 ResourceSummaries.Clear();
+                m_CheckNeedDownloadRemoteIndexSubtask = null;
+                m_UnzipRemoteIndexSubtask = null;
             }
 
 
@@ -199,16 +202,7 @@ namespace COL.UnityGameWheels.Core.Asset
 
                 if (m_DownloadRetryTimes == 0)
                 {
-                    m_DownloadTaskInfo = new DownloadTaskInfo(
-                        Utility.Text.Format("{0}/index_{1}.dat", RootUrls[m_RootUrlIndex].ToString(),
-                            m_RemoteIndexFileInfo.Crc32.ToString()),
-                        m_Owner.CachedRemoteIndexPath, m_RemoteIndexFileInfo.FileSize, m_RemoteIndexFileInfo.Crc32,
-                        new DownloadCallbackSet
-                        {
-                            OnSuccess = m_OnDownloadSuccess,
-                            OnFailure = m_OnDownloadFailure,
-                            OnProgress = null,
-                        }, null);
+                    m_DownloadTaskInfo = CreateDownloadTaskInfo();
                 }
 
                 m_Owner.m_DownloadService.StartDownloading(m_DownloadTaskInfo);
@@ -388,6 +382,121 @@ namespace COL.UnityGameWheels.Core.Asset
                 }
 
                 return true;
+            }
+
+
+            internal void Update(TimeStruct timeStruct)
+            {
+                switch (m_RunStatus)
+                {
+                    case UpdateCheckerRunStatus.Waiting:
+                        UpdateWaiting();
+                        break;
+                    case UpdateCheckerRunStatus.CheckingNeedDownloadRemoteIndex:
+                        UpdateCheckingNeedDownloadRemoteIndex();
+                        break;
+                    case UpdateCheckerRunStatus.UnzippingRemoteIndex:
+                        UpdateUnzippingRemoteIndex();
+                        break;
+                }
+            }
+
+            private void UpdateWaiting()
+            {
+                if (0 != Interlocked.CompareExchange(ref s_IsCalculatingRemoteIndexCheckSum, 0, 0) ||
+                    0 != Interlocked.CompareExchange(ref s_IsUnzippingRemoteIndex, 0, 0)) return;
+                m_RunStatus = UpdateCheckerRunStatus.CheckingNeedDownloadRemoteIndex;
+                Interlocked.Exchange(ref s_IsCalculatingRemoteIndexCheckSum, 1);
+                m_CheckNeedDownloadRemoteIndexSubtask = Task.Run(() => CheckNeedDownloadRemoteIndex(m_RemoteIndexFileInfo));
+            }
+
+            private void UpdateCheckingNeedDownloadRemoteIndex()
+            {
+                if (m_CheckNeedDownloadRemoteIndexSubtask.IsFaulted)
+                {
+                    var task = m_CheckNeedDownloadRemoteIndexSubtask;
+                    m_CheckNeedDownloadRemoteIndexSubtask = null;
+                    foreach (var e in m_CheckNeedDownloadRemoteIndexSubtask.Exception.InnerExceptions)
+                    {
+                        throw e;
+                    }
+                }
+                else if (m_CheckNeedDownloadRemoteIndexSubtask.IsCompleted)
+                {
+                    var task = m_CheckNeedDownloadRemoteIndexSubtask;
+                    m_CheckNeedDownloadRemoteIndexSubtask = null;
+                    if (!task.Result)
+                    {
+                        StartUnzippingRemoteIndex();
+                    }
+                    else
+                    {
+                        StartDownloadingRemoteIndex();
+                    }
+                }
+            }
+
+            private void StartDownloadingRemoteIndex()
+            {
+                m_RunStatus = UpdateCheckerRunStatus.DownloadingRemoteIndex;
+                m_DownloadRetryTimes = 0;
+                m_DownloadTaskInfo = CreateDownloadTaskInfo();
+                m_Owner.m_DownloadService.StartDownloading(m_DownloadTaskInfo);
+            }
+
+            private DownloadTaskInfo CreateDownloadTaskInfo()
+            {
+                return new DownloadTaskInfo($"{RootUrls[m_RootUrlIndex]}/index_{m_RemoteIndexFileInfo.Crc32.ToString()}.zip",
+                    m_Owner.CachedZippedRemoteIndexPath, m_RemoteIndexFileInfo.FileSize, m_RemoteIndexFileInfo.Crc32,
+                    new DownloadCallbackSet
+                    {
+                        OnSuccess = m_OnDownloadSuccess,
+                        OnFailure = m_OnDownloadFailure,
+                        OnProgress = null,
+                    }, null);
+            }
+
+            private void StartUnzippingRemoteIndex()
+            {
+                m_RunStatus = UpdateCheckerRunStatus.UnzippingRemoteIndex;
+                Interlocked.Exchange(ref s_IsUnzippingRemoteIndex, 1);
+                m_UnzipRemoteIndexSubtask = Task.Run(() =>
+                {
+                    try
+                    {
+                        File.Delete(m_Owner.CachedRemoteIndexPath);
+                        using (var zipFile = File.OpenRead(m_Owner.CachedZippedRemoteIndexPath))
+                        {
+                            using (var dstFile = File.OpenWrite(m_Owner.CachedRemoteIndexPath))
+                            {
+                                m_Owner.m_ZipImpl.Unzip(zipFile, dstFile);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        Interlocked.Exchange(ref s_IsUnzippingRemoteIndex, 0);
+                    }
+                });
+            }
+
+            private void UpdateUnzippingRemoteIndex()
+            {
+                if (m_UnzipRemoteIndexSubtask.IsFaulted)
+                {
+                    var task = m_UnzipRemoteIndexSubtask;
+                    m_UnzipRemoteIndexSubtask = null;
+                    foreach (var e in task.Exception.InnerExceptions)
+                    {
+                        throw e;
+                    }
+                }
+                else if (m_UnzipRemoteIndexSubtask.IsCompleted)
+                {
+                    m_UnzipRemoteIndexSubtask = null;
+                    m_RunStatus = UpdateCheckerRunStatus.None;
+                    CheckUpdate();
+                }
             }
         }
     }

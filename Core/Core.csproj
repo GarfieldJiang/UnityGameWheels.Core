@@ -50,6 +50,7 @@
     <Compile Include="Asset\AssetService.Loader.ResourceLoadingTask.cs" />
     <Compile Include="Asset\AssetService.Loader.AssetLoadingTask.cs" />
     <Compile Include="Asset\AssetService.Loader.cs" />
+    <Compile Include="Asset\AssetService.UpdateCheckerRunStatus.cs" />
     <Compile Include="Asset\AssetService.Updater.DownloadContext.cs" />
     <Compile Include="Asset\AssetService.Updater.cs" />
     <Compile Include="Asset\AssetService.UpdateCheckerStatus.cs" />
@@ -92,6 +93,7 @@
     <Compile Include="Common\Interfaces\ISimpleFactory.cs" />
     <Compile Include="Common\Interfaces\ITickableService.cs" />
     <Compile Include="Common\Interfaces\ITickService.cs" />
+    <Compile Include="Common\Interfaces\IZipImpl.cs" />
     <Compile Include="Common\Logger\InternalLog.cs" />
     <Compile Include="Common\Profiler.cs" />
     <Compile Include="Common\Service\TickableService.cs" />

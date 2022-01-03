@@ -10,6 +10,7 @@ namespace COL.UnityGameWheels.Core.Asset
         private readonly IRefPoolService m_RefPoolService = null;
         private readonly ISimpleFactory<IAssetLoadingTaskImpl> m_AssetLoadingTaskImplFactory = null;
         private readonly ISimpleFactory<IResourceLoadingTaskImpl> m_ResourceLoadingTaskImplFactory = null;
+        private readonly IZipImpl m_ZipImpl = null;
         private int? m_ConcurrentAssetLoaderCount = null;
         private int? m_ConcurrentResourceLoaderCount = null;
         private int? m_AssetCachePoolCapacity = null;
@@ -25,6 +26,7 @@ namespace COL.UnityGameWheels.Core.Asset
         private string m_InstallerIndexPath = null;
         private string m_ReadWriteIndexPath = null;
         private string m_CachedRemoteIndexPath = null;
+        private string m_CachedZippedRemoteIndexPath = null;
         private readonly List<Uri> m_UpdateServerRootUrls = new List<Uri>();
         private int? m_UpdateSizeBeforeSavingReadWriteIndex = null;
 
@@ -310,6 +312,19 @@ namespace COL.UnityGameWheels.Core.Asset
             }
         }
 
+        private string CachedZippedRemoteIndexPath
+        {
+            get
+            {
+                if (m_CachedZippedRemoteIndexPath == null)
+                {
+                    m_CachedZippedRemoteIndexPath = Path.Combine(ReadWritePath, Constant.CachedRemoteIndexZipFileName);
+                }
+
+                return m_CachedZippedRemoteIndexPath;
+            }
+        }
+
         public int AssetCachePoolCapacity
         {
             get
@@ -434,6 +449,7 @@ namespace COL.UnityGameWheels.Core.Asset
             IAssetIndexForInstallerLoader assetIndexForInstallerLoader,
             ISimpleFactory<IAssetLoadingTaskImpl> assetLoadingTaskImplFactory,
             ISimpleFactory<IResourceLoadingTaskImpl> resourceLoadingTaskImplFactory,
+            IZipImpl zipImpl,
             IObjectDestroyer<object> resourceDestroyer,
             IRefPoolService refPoolService,
             ITickService tickService) : base(tickService)
@@ -442,6 +458,7 @@ namespace COL.UnityGameWheels.Core.Asset
             m_AssetIndexForInstallerLoader = assetIndexForInstallerLoader;
             m_AssetLoadingTaskImplFactory = assetLoadingTaskImplFactory;
             m_ResourceLoadingTaskImplFactory = resourceLoadingTaskImplFactory;
+            m_ZipImpl = zipImpl;
             m_ResourceDestroyer = resourceDestroyer;
             m_RefPoolService = refPoolService;
             ConfigReader = configReader;
@@ -477,6 +494,11 @@ namespace COL.UnityGameWheels.Core.Asset
 
         protected override void OnUpdate(TimeStruct timeStruct)
         {
+            if (m_UpdateChecker.Status == UpdateCheckerStatus.Running)
+            {
+                m_UpdateChecker.Update(timeStruct);
+            }
+
             m_Loader.Update(timeStruct);
         }
 

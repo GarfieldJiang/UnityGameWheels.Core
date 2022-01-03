@@ -15,6 +15,11 @@
         /// </summary>
         public const string CachedRemoteIndexFileName = "remote_index.dat";
 
+        /// <summary>
+        /// Name of cached, zipped remote index file.
+        /// </summary>
+        public const string CachedRemoteIndexZipFileName = "remote_index.zip";
+
         public const string InstallerIndexFileHeader_Obsolete = "CRI";
 
         public const string ReadWriteIndexFileHeader_Obsolete = "PRI";
