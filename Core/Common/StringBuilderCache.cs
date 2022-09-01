@@ -7,7 +7,7 @@ namespace COL.UnityGameWheels.Core
     /// String builder cache.
     /// </summary>
     /// <remarks>https://referencesource.microsoft.com</remarks>
-    public class StringBuilderCache
+    public static class StringBuilderCache
     {
         // The value 360 was chosen in discussion with performance experts as a compromise between using
         // as little memory (per thread) as possible and still covering a large part of short-lived
