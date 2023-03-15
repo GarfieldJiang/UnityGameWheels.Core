@@ -440,26 +440,53 @@ namespace COL.UnityGameWheels.Core
                     return default(CheckingSubtaskResult);
                 }
 
-                using (var fs = File.OpenRead(m_TempSavePath))
-                {
-                    var actualCrc32 = Algorithm.Crc32.Sum(fs);
-                    if (actualCrc32 == taskInfo.Crc32.Value)
-                    {
-                        return default(CheckingSubtaskResult);
-                    }
-
-                    errorMessage = Utility.Text.Format("CRC 32 inconsistency: expects '{0}' but actually is '{1}'.",
-                        taskInfo.Crc32.Value, actualCrc32);
-                    return new CheckingSubtaskResult
-                    {
-                        ErrorCode = DownloadErrorCode.WrongChecksum,
-                        ErrorMessage = errorMessage
-                    };
-                }
+                return CompareChecksum(taskInfo);
             }
             finally
             {
                 s_DownloadedFileBeingChecked.TryRemove(tempSavePath, out _);
+            }
+        }
+
+        private CheckingSubtaskResult CompareChecksum(DownloadTaskInfo taskInfo)
+        {
+            string errorMessage;
+            FileStream fs;
+            try
+            {
+                fs = File.OpenRead(m_TempSavePath);
+            }
+            catch (IOException e)
+            {
+                errorMessage = $"Cannot read file for checksum. Exception: {e}";
+                return new CheckingSubtaskResult
+                {
+                    ErrorCode = DownloadErrorCode.FileIOException,
+                    ErrorMessage = errorMessage,
+                };
+            }
+
+            try
+            {
+                var actualCrc32 = Algorithm.Crc32.Sum(fs);
+                if (actualCrc32 == taskInfo.Crc32.Value)
+                {
+                    return default(CheckingSubtaskResult);
+                }
+
+                errorMessage = Utility.Text.Format("CRC 32 inconsistency: expects '{0}' but actually is '{1}'.",
+                    taskInfo.Crc32.Value, actualCrc32);
+                InternalLog.Warning($"[DownloadTask failure] {m_DownloadTaskImpl?.GetHashCode()} [{errorMessage}] for '[{taskInfo.UrlStr}]'");
+
+                return new CheckingSubtaskResult
+                {
+                    ErrorCode = DownloadErrorCode.WrongChecksum,
+                    ErrorMessage = errorMessage,
+                };
+            }
+            finally
+            {
+                fs.Close();
             }
         }
 
